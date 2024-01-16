@@ -1,4 +1,3 @@
-import sqlite3
 from contextlib import closing, suppress
 from datetime import datetime
 from time import sleep
@@ -6,27 +5,30 @@ from time import sleep
 from adafruit_dht import DHT22
 from board import D2
 
-from .lib import db, logging
+from ._utils import Db, Reading, logging
 
 logger = logging.getLogger("dht-sensor")
 
 
 def _init_db_table() -> None:
-    with closing(db()) as con:
-        cur = con.cursor()
-        cur.execute("CREATE TABLE IF NOT EXISTS "
-                    "reading(temperature, humidity, recording_time)")
-        con.commit()
+    with Db() as db:
+        db.execute("CREATE TABLE IF NOT EXISTS "
+                   "reading(temperature, humidity, recording_time)")
 
 
-def _read_data(dht: DHT22) -> None:
-    t, h = dht.temperature, dht.humidity
-    logger.info("temperature=%sc humidity=%s%%", t, h)
-    with closing(db()) as con:
-        cur = con.cursor()
-        cur.execute("INSERT INTO reading VALUES (?, ?, ?)",
-                    (t, h, datetime.now()))
-        con.commit()
+def _read_data(dht: DHT22) -> Reading:
+    reading = Reading(dht.temperature, dht.humidity, datetime.now())
+    logger.info("temperature=%sc humidity=%s%%",
+                reading.temperature, reading.humidity)
+    return reading
+
+
+def _save_data(reading: Reading) -> None:
+    with Db() as db:
+        db.execute("INSERT INTO reading VALUES (?, ?, ?)",
+                   (reading.temperature,
+                    reading.humidity,
+                    reading.recording_time))
 
 
 if __name__ == "__main__":
@@ -34,5 +36,5 @@ if __name__ == "__main__":
     _init_db_table()
     while True:
         with suppress(RuntimeError):
-            _read_data(dht)
+            _save_data(_read_data(dht))
         sleep(2)

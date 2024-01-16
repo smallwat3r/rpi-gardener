@@ -16,7 +16,7 @@ Build a Python virtual env
 
 Run the dht sensor listener
     
-    python -m src.sensor
+    python -m src.listener
 
 Run the flask server
     

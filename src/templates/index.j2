@@ -15,11 +15,11 @@
   </head>
   <body>
     <h2>RPI DHT22 sensor dashboard</h2>
-    {% set last_recorded_data = data[-1] %}
+    {% set last = data[0] %}
     <p>
-      <strong class="red">{{ last_recorded_data["temperature"] }}&#8451;</strong> -
-      <strong class="blue">{{ last_recorded_data["humidity"] }}%</strong>
-      (last fetch from <strong>{{ epoch_to_datetime(last_recorded_data["epoch"]) }}</strong>)
+      <strong class="red">{{ last["temperature"] }}&#8451;</strong> -
+      <strong class="blue">{{ last["humidity"] }}%</strong>
+      (last fetch from <strong>{{ epoch_to_datetime(last["epoch"]) }}</strong>)
     </p>
     <div><canvas height="60" id="temperature"></canvas></div>
     <div><canvas height="60" id="humidity"></canvas></div>

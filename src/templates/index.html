@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  </head>
+  <body>
+    <div><canvas height="70" id="temperature"></canvas></div>
+    <div><canvas height="70" id="humidity"></canvas></div>
+  </body>
+  <script>
+    // const options = {
+    //   scales: {x: {type: 'time', time: {unit: 'second', displayFormats: {second: 'HH:mm:ss' }}}},
+    //   interaction: {intersect: false, mode: 'index'}
+    // }
+    new Chart(document.getElementById('temperature'), {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: 'Temperature (celsius)',
+          data: {{ data | safe }},
+          pointStyle: false,
+          borderWidth: 1,
+          borderColor: 'red'
+        }]
+      },
+      options: {
+        parsing: {
+          xAxisKey: 'epoch',
+          yAxisKey: 'humidity'
+        },
+        scales: {x: {type: 'time', time: {unit: 'second', displayFormats: {second: 'HH:mm:ss' }}}},
+        interaction: {intersect: false, mode: 'index'}
+      }
+    });
+    new Chart(document.getElementById('humidity'), {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: 'Humidity (percent)',
+          data: {{ data | safe }},
+          pointStyle: false,
+          borderWidth: 1,
+          borderColor: 'blue'
+        }]
+      },
+      options: {
+        parsing: {
+          xAxisKey: 'epoch',
+          yAxisKey: 'humidity'
+        },
+        scales: {x: {type: 'time', time: {unit: 'second', displayFormats: {second: 'HH:mm:ss' }}}},
+        interaction: {intersect: false, mode: 'index'}
+      }
+    });
+  </script>
+</html>

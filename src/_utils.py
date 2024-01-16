@@ -11,6 +11,10 @@ logging.basicConfig(format="%(asctime)s %(levelname)s - %(message)s",
 class Db:
     def __init__(self) -> None:
         self.con = sqlite3.connect("dht.db", autocommit=False)
+        # renders the rows as Python native dictionaries, very useful to
+        # render the data directly in the frontend.
+        self.con.row_factory = lambda c, r: dict(
+            zip([col[0] for col in c.description], r))
         self.cur = self.con.cursor()
 
     def __enter__(self) -> Self:
@@ -19,8 +23,10 @@ class Db:
     def __exit__(self, *args, **kwargs) -> None:
         self.con.close()
 
-    def fetchone(self, query: str) -> list[str]:
-        return self.cur.execute(query).fetchone()
+    def fetchall(self, query: str,
+                 parameters: Iterable[str] | None = None
+                 ) -> list[list[str]]:
+        return self.cur.execute(query, parameters or []).fetchall()
 
     def execute(self, query: str,
                 parameters: Iterable[str] | None = None) -> None:

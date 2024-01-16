@@ -1,11 +1,19 @@
 import logging
 import sqlite3
+from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
+from functools import lru_cache
 from typing import Self
 
 logging.basicConfig(format="%(asctime)s %(levelname)s - %(message)s",
                     level=logging.INFO)
+
+
+@lru_cache
+def _get_sql_template(filename: str) -> str:
+    with open(Path(__file__).resolve().parent / "sql" / filename) as query:
+        return query.read()
 
 
 class Db:
@@ -23,11 +31,11 @@ class Db:
     def __exit__(self, *args, **kwargs) -> None:
         self.con.close()
 
-    def fetchall(self, query: str, *args) -> dict[str, float | int]:
-        return self.cur.execute(query, *args).fetchall()
+    def fetchall(self, filename: str, *args) -> dict[str, float | int]:
+        return self.cur.execute(_get_sql_template(filename), *args).fetchall()
 
-    def execute(self, query: str, *args) -> None:
-        self.cur.execute(query, *args).fetchone()
+    def execute(self, filename: str, *args) -> None:
+        self.cur.execute(_get_sql_template(filename), *args).fetchone()
         self.con.commit()
 
 

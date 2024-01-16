@@ -9,49 +9,26 @@
     <div><canvas height="70" id="humidity"></canvas></div>
   </body>
   <script>
-    // const options = {
-    //   scales: {x: {type: 'time', time: {unit: 'second', displayFormats: {second: 'HH:mm:ss' }}}},
-    //   interaction: {intersect: false, mode: 'index'}
-    // }
-    new Chart(document.getElementById('temperature'), {
-      type: 'line',
-      data: {
-        datasets: [{
-          label: 'Temperature (celsius)',
-          data: {{ data | safe }},
-          pointStyle: false,
-          borderWidth: 1,
-          borderColor: 'red'
-        }]
-      },
-      options: {
-        parsing: {
-          xAxisKey: 'epoch',
-          yAxisKey: 'humidity'
+    const charts = [{"name": "temperature", "label": "Temperature (celsius)", "color": "red"},
+                    {"name": "humidity", "label": "Humidity (percent)", "color": "blue"}];
+    for (const chart of charts) {
+      new Chart(document.getElementById(chart.name), {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: chart.label,
+            data: {{ data | safe }},
+            pointStyle: false,
+            borderWidth: 1,
+            borderColor: chart.color
+          }]
         },
-        scales: {x: {type: 'time', time: {unit: 'second', displayFormats: {second: 'HH:mm:ss' }}}},
-        interaction: {intersect: false, mode: 'index'}
-      }
-    });
-    new Chart(document.getElementById('humidity'), {
-      type: 'line',
-      data: {
-        datasets: [{
-          label: 'Humidity (percent)',
-          data: {{ data | safe }},
-          pointStyle: false,
-          borderWidth: 1,
-          borderColor: 'blue'
-        }]
-      },
-      options: {
-        parsing: {
-          xAxisKey: 'epoch',
-          yAxisKey: 'humidity'
-        },
-        scales: {x: {type: 'time', time: {unit: 'second', displayFormats: {second: 'HH:mm:ss' }}}},
-        interaction: {intersect: false, mode: 'index'}
-      }
-    });
+        options: {
+          parsing: {xAxisKey: 'epoch', yAxisKey: chart.name},
+          scales: {x: {type: 'time', time: {unit: 'second', displayFormats: {second: 'HH:mm:ss' }}}},
+          interaction: {intersect: false, mode: 'index'}
+        }
+      });
+    }
   </script>
 </html>

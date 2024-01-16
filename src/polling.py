@@ -7,7 +7,7 @@ from board import D2
 
 from ._utils import Db, Reading, logging
 
-logger = logging.getLogger("dht-sensor-polling")
+logger = logging.getLogger("dht-polling-service")
 
 
 def _init_db() -> None:

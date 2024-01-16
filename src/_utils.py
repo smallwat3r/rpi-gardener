@@ -44,3 +44,7 @@ class Reading:
     temperature: float
     humidity: float
     recording_time: datetime
+
+
+def epoch_to_datetime(epoch: int) -> str:
+    return datetime.fromtimestamp(epoch / 1000)

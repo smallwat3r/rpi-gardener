@@ -3,10 +3,26 @@
   <head>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+      body {
+        font-family: monospace;
+        font-size: 20px;
+        text-align: center;
+      }
+      .blue { color: blue; }
+      .red { color: red; }
+    </style>
   </head>
   <body>
-    <div><canvas height="70" id="temperature"></canvas></div>
-    <div><canvas height="70" id="humidity"></canvas></div>
+    <h2>RPI DHT22 sensor dashboard</h2>
+    {% set last_recorded_data = data[-1] %}
+    <p>
+      <strong class="red">{{ last_recorded_data["temperature"] }}&#8451;</strong> -
+      <strong class="blue">{{ last_recorded_data["humidity"] }}%</strong>
+      (last fetch from <strong>{{ epoch_to_datetime(last_recorded_data["epoch"]) }}</strong>)
+    </p>
+    <div><canvas height="60" id="temperature"></canvas></div>
+    <div><canvas height="60" id="humidity"></canvas></div>
   </body>
   <script>
     const charts = [{"name": "temperature", "label": "Temperature (celsius)", "color": "red"},

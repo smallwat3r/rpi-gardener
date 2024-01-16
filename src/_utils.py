@@ -2,7 +2,7 @@ import logging
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Iterable, Self
+from typing import Self
 
 logging.basicConfig(format="%(asctime)s %(levelname)s - %(message)s",
                     level=logging.INFO)
@@ -23,14 +23,11 @@ class Db:
     def __exit__(self, *args, **kwargs) -> None:
         self.con.close()
 
-    def fetchall(self, query: str,
-                 parameters: Iterable[str] | None = None
-                 ) -> list[list[str]]:
-        return self.cur.execute(query, parameters or []).fetchall()
+    def fetchall(self, query: str, *args) -> dict[str, float | int]:
+        return self.cur.execute(query, *args).fetchall()
 
-    def execute(self, query: str,
-                parameters: Iterable[str] | None = None) -> None:
-        self.cur.execute(query, parameters or []).fetchone()
+    def execute(self, query: str, *args) -> None:
+        self.cur.execute(query, *args).fetchone()
         self.con.commit()
 
 

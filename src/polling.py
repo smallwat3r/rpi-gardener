@@ -1,3 +1,10 @@
+"""Poll DHT22 sensor for new data, and persist results in Sqlite.
+
+The script will take care of initiating the local database if it does not
+exists yet. Polling frequency is set to 2 seconds, we can't make it poll
+faster as the DHT22 sensor is set-up to measure for new data every 2
+seconds, else cache results would be returned.
+"""
 from contextlib import suppress
 from datetime import datetime
 from time import sleep
@@ -7,6 +14,7 @@ from board import D2
 
 from ._utils import Db, Reading, logging
 
+POLLING_FREQUENCY = 2
 logger = logging.getLogger("dht-polling-service")
 
 
@@ -31,10 +39,17 @@ def _persist(reading: Reading) -> None:
                     reading.recording_time))
 
 
-if __name__ == "__main__":
+def main() -> None:
     dht = DHT22(D2)
     _init_db()
     while True:
+        # the DHT library can sporadically raise RuntimeError exceptions
+        # when it encounters an issue when reading the data. Ignore those
+        # exceptions, as next tries should be successful.
         with suppress(RuntimeError):
             _persist(_poll(dht))
-        sleep(2)
+        sleep(POLLING_FREQUENCY)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,4 @@
-from flask import Flask, Response, render_template
+from flask import Flask, render_template
 
 from ._utils import Db
 
@@ -14,5 +14,5 @@ def _get_data() -> dict[str, float | int]:
 
 
 @app.get("/")
-def index() -> Response:
+def index() -> str:
     return render_template("index.html", data=_get_data())

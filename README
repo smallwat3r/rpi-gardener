@@ -32,6 +32,6 @@ Run the dht sensor polling service
     
     make polling
 
-Run the flask server
+From another terminal window, run the flask server
     
     make server

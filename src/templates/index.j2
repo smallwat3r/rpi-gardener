@@ -32,9 +32,9 @@
     Chart.defaults.font.size = 12;
     const charts = [
       {"name": "temperature", "label": "Temperature (celsius)", "color": "red",
-       "max": {{ max_temperature_threshold }}, "min": {{ min_temperature_threshold }}},
+       "max": {{ threshold.MAX_TEMPERATURE }}, "min": {{ threshold.MIN_TEMPERATURE }}},
       {"name": "humidity", "label": "Humidity (percent)", "color": "blue",
-       "max": {{ max_humidity_threshold }}, "min": {{ min_humidity_threshold }}}
+       "max": {{ threshold.MAX_HUMIDITY }}, "min": {{ threshold.MIN_HUMIDITY }}}
     ];
     for (const chart of charts) {
       new Chart(document.getElementById(chart.name), {

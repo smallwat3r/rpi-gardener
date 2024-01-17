@@ -24,6 +24,10 @@ Create a Python virtual environment and install the Python dependencies
 (this is a one-off command)
 
     make venv deps
+    
+Install screen to run the commands in the background and keep them persistant
+
+    sudo apt install screen
 
 USAGE
 -----
@@ -35,3 +39,17 @@ Run the dht sensor polling service
 From another terminal window, run the flask server
     
     make server
+
+Run the commands in screen in order to keep them persistant over the SSH
+session
+   
+    screen -d -m make polling
+    screen -d -m make server
+
+You can then list the running screen sessions with
+   
+    screen -ls
+
+More screen commands see
+
+    screen --help

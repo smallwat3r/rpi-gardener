@@ -31,13 +31,6 @@ class Db:
     def __exit__(self, *args, **kwargs) -> None:
         self.con.close()
 
-<<<<<<< HEAD
-    def fetchall(self, filename: str, *args) -> dict[str, float | int]:
-        return self.cur.execute(_get_sql_template(filename), *args).fetchall()
-
-    def execute(self, filename: str, *args) -> None:
-        self.cur.execute(_get_sql_template(filename), *args).fetchone()
-=======
     def _execute(self, filename: str, *args):
         return self.cur.execute(_get_sql_template(filename), *args)
 
@@ -49,7 +42,6 @@ class Db:
 
     def commit(self, filename: str, *args) -> None:
         self._execute(filename, *args)
->>>>>>> b1c4aed (Add websocket support)
         self.con.commit()
 
 
@@ -58,7 +50,3 @@ class Reading:
     temperature: float
     humidity: float
     recording_time: datetime
-
-
-def epoch_to_datetime(epoch: int) -> str:
-    return datetime.fromtimestamp(epoch / 1000)

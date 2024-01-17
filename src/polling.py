@@ -20,7 +20,7 @@ logger = logging.getLogger("dht-polling-service")
 
 def _init_db() -> None:
     with Db() as db:
-        db.execute("init_table.sql")
+        db.commit("init_table.sql")
 
 
 def _poll(dht: DHT22) -> Reading:
@@ -32,8 +32,8 @@ def _poll(dht: DHT22) -> Reading:
 
 def _persist(reading: Reading) -> None:
     with Db() as db:
-        db.execute("feed_table.sql", (reading.temperature, reading.humidity,
-                                      reading.recording_time))
+        db.commit("feed_table.sql", (reading.temperature, reading.humidity,
+                                     reading.recording_time))
 
 
 def main() -> None:

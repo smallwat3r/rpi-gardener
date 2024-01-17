@@ -12,9 +12,9 @@ from time import sleep
 from adafruit_dht import DHT22
 from board import D2
 
+from ._config import POLLING_FREQUENCY_SEC
 from ._utils import Db, Reading, logging
 
-POLLING_FREQUENCY = 2
 logger = logging.getLogger("dht-polling-service")
 
 
@@ -45,7 +45,7 @@ def main() -> None:
         # exceptions, as next tries should be successful.
         with suppress(RuntimeError):
             _persist(_poll(dht))
-        sleep(POLLING_FREQUENCY)
+        sleep(POLLING_FREQUENCY_SEC)
 
 
 if __name__ == "__main__":

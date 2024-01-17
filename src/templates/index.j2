@@ -2,7 +2,8 @@
 <html>
   <head>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
     <style>
       body {
         font-family: monospace;
@@ -21,12 +22,20 @@
       <strong class="blue">{{ last["humidity"] }}%</strong>
       (last fetch from <strong>{{ epoch_to_datetime(last["epoch"]) }}</strong>)
     </p>
-    <div><canvas height="60" id="temperature"></canvas></div>
-    <div><canvas height="60" id="humidity"></canvas></div>
+    <div>
+      <canvas height="60" id="temperature"></canvas>
+      <canvas height="60" id="humidity"></canvas>
+    </div>
   </body>
   <script>
-    const charts = [{"name": "temperature", "label": "Temperature (celsius)", "color": "red"},
-                    {"name": "humidity", "label": "Humidity (percent)", "color": "blue"}];
+    Chart.defaults.font.family = 'monospace';
+    Chart.defaults.font.size = 12;
+    const charts = [
+      {"name": "temperature", "label": "Temperature (celsius)", "color": "red",
+       "max": {{ max_temperature_threshold }}, "min": {{ min_temperature_threshold }}},
+      {"name": "humidity", "label": "Humidity (percent)", "color": "blue",
+       "max": {{ max_humidity_threshold }}, "min": {{ min_humidity_threshold }}}
+    ];
     for (const chart of charts) {
       new Chart(document.getElementById(chart.name), {
         type: 'line',
@@ -41,8 +50,29 @@
         },
         options: {
           parsing: {xAxisKey: 'epoch', yAxisKey: chart.name},
-          scales: {x: {type: 'time', time: {unit: 'second', displayFormats: {second: 'HH:mm:ss'}}}},
-          interaction: {intersect: false, mode: 'index'}
+          scales: {x: {type: 'time',
+                       time: {unit: 'second', displayFormats: {second: 'HH:mm'}}}},
+          interaction: {intersect: false, mode: 'index'},
+          plugins: {
+            annotation: {
+              annotations: {
+                max_threshold: {
+                  type: 'line',
+                  borderWidth: 1,
+                  yMin: chart.max,
+                  yMax: chart.max,
+                  borderColor: 'rgba(97, 0, 94, 0.7)'
+                },
+                min_threshold: {
+                  type: 'line',
+                  borderWidth: 1,
+                  yMin: chart.min,
+                  yMax: chart.min,
+                  borderColor: 'rgba(6, 121, 0, 0.7)'
+                }
+              }
+            }
+          }
         }
       });
     }

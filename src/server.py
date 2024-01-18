@@ -5,7 +5,7 @@ from time import sleep
 from flask import Flask, render_template
 from flask_sock import Sock
 
-from ._config import POLLING_FREQUENCY_SEC, Threshold
+from ._config import POLLING_FREQUENCY_SEC
 from ._utils import Db
 
 app = Flask(__name__)
@@ -22,11 +22,6 @@ def _get_initial_data() -> list[dict[str, float | int]]:
 def _get_latest_data() -> dict[str, float | int]:
     with Db() as db:
         return db.fetchone("latest_recording.sql")
-
-
-@app.context_processor
-def context_processor():
-    return {"threshold": Threshold}
 
 
 @app.get("/")

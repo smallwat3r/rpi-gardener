@@ -1,10 +1,14 @@
-Chart.defaults.font.family = 'monospace';
-Chart.defaults.font.size = 12;
+Chart.defaults.font.family = 'Varela Round';
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.display = false;
+const charts = [
+  {"name": "temperature", "color": "red", "id": "temperatureChart"},
+  {"name": "humidity", "color": "blue", "id": "humidityChart"}
+];
 for (const chart of charts) {
   this[chart.name] = new Chart(document.getElementById(chart.id), {
     type: 'line',
     data: {datasets: [{
-      label: chart.label,
       data: data,
       pointStyle: false,
       borderWidth: 1,
@@ -15,9 +19,6 @@ for (const chart of charts) {
       parsing: {xAxisKey: 'epoch', yAxisKey: chart.name},
       scales: {x: {type: 'time', time: {unit: 'second', displayFormats: {second: 'HH:mm'}}}},
       interaction: {intersect: false, mode: 'index'},
-      plugins: {annotation: {annotations: {
-        max_threshold: {type: 'line', borderWidth: 1, yMin: chart.max, yMax: chart.max, borderColor: 'rgba(97, 0, 94, 0.7)'},
-        min_threshold: {type: 'line', borderWidth: 1, yMin: chart.min, yMax: chart.min, borderColor: 'rgba(6, 121, 0, 0.7)'}
-      }}}}
+    }
   });
 }

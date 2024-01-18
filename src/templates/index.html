@@ -1,42 +1,10 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
-    <style>
-      body {
-        font-family: monospace;
-        font-size: 20px;
-        text-align: center;
-      }
-      .blue { color: blue; }
-      .red { color: red; }
-    </style>
-  </head>
-  <body>
-    <h2>RPI DHT22 sensor dashboard</h2>
-    <p>
-      <strong class="red"><span id="cTemperature">{{ latest["temperature"] }}</span>&#8451;</strong>
-      <strong class="blue"><span id="cHumidity">{{ latest["humidity"] }}</span>%</strong>
-      (last fetch from <strong><span id="cRecordingTime">{{ latest["recording_time"] }}</span></strong>)
-    </p>
-    <div>
-      <canvas height="60" id="temperatureChart"></canvas>
-      <canvas height="60" id="humidityChart"></canvas>
-    </div>
-  </body>
-  <script>
-    const data = {{ data | safe }};
-    const charts = [
-      {"name": "temperature", "label": "Temperature (celsius)", "color": "red",
-       "max": {{ threshold.MAX_TEMPERATURE }}, "min": {{ threshold.MIN_TEMPERATURE }},
-       "id": "temperatureChart"},
-      {"name": "humidity", "label": "Humidity (percent)", "color": "blue",
-       "max": {{ threshold.MAX_HUMIDITY }}, "min": {{ threshold.MIN_HUMIDITY }},
-       "id": "humidityChart"}
-    ];
-  </script>
-  <script type="text/javascript" src="{{ url_for('static', filename='js/charts.js') }}"></script>
-  <script type="text/javascript" src="{{ url_for('static', filename='js/websocket.js') }}"></script>
-</html>
+{% extends 'base.html' %}
+{% block container %}
+  <i>Last update: <span id="cRecordingTime">{{ latest["recording_time"] }}</span></i>
+  <div>
+    <p class="red">Temperature <span id="cTemperature">{{ latest["temperature"] }}</span>c</p>
+    <canvas height="60" id="temperatureChart"></canvas>
+    <p class="blue">Humidity <span id="cHumidity">{{ latest["humidity"] }}</span>%</p>
+    <canvas height="60" id="humidityChart"></canvas>
+  </div>
+{% endblock %}

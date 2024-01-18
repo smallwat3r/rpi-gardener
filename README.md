@@ -1,13 +1,11 @@
-RPI DHT22 SERVER
-----------------
+# RPI DHT22 SERVER
 
 This project contains necessarry files and scripts to read temperature and 
 humidity data from a DHT22 sensor, wired to a Raspberry Pi 4. It stores the 
 results every 2 seconds in a local Sqlite database, and renders them on a bare 
 simple frontend using ChartJS powered by Flask and web-sockets.
 
-REQUIREMENTS
-------------
+## REQUIREMENTS
 
 Get and build Python 3.12 from source
 
@@ -20,17 +18,16 @@ Get and build Python 3.12 from source
     ./configure --enable-optimizations
     sudo make altinstall
 
+Install screen to run the commands in the background and keep them persistant
+
+    sudo apt install screen
+
 Create a Python virtual environment and install the Python dependencies 
 (this is a one-off command)
 
     make venv deps
     
-Install screen to run the commands in the background and keep them persistant
-
-    sudo apt install screen
-
-USAGE
------
+## USAGE
 
 Run the dht sensor polling service
     

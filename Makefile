@@ -25,9 +25,13 @@ deps:  ## Install Python requirements in virtual environment
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install --no-cache-dir -r requirements.txt
 
-.PHONY: server
-server:  ## Start the server
+.PHONY: flask
+flask:  ## Start the Flask server
 	$(PYTHON) -m flask --app src/server run --host 0.0.0.0
+
+.PHONY: server
+server:  ## Start the Flask server with Gunicorn
+	$(PYTHON) -m gunicorn src.server:app -b 0.0.0.0:5000 -w 3 --threads 100
 
 .PHONY: polling
 polling:  ## Start the polling service

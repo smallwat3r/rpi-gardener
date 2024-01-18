@@ -3,4 +3,4 @@ SELECT temperature
      , unixepoch(recording_time) * 1000 as 'epoch'
 FROM reading
 ORDER BY recording_time DESC
-LIMIT 2500
+LIMIT 5000

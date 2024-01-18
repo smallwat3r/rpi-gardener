@@ -1,4 +1,5 @@
 import json
+from os import environ
 from time import sleep
 
 from flask import Flask, render_template
@@ -8,6 +9,8 @@ from ._config import POLLING_FREQUENCY_SEC, Threshold
 from ._utils import Db
 
 app = Flask(__name__)
+app.config["TEMPLATES_AUTO_RELOAD"] = bool(environ.get("RELOAD"))
+
 sock = Sock(app)
 
 

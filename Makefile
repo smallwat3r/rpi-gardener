@@ -27,7 +27,7 @@ deps:  ## Install Python requirements in virtual environment
 
 .PHONY: flask
 flask:  ## Start the Flask server
-	$(PYTHON) -m flask --app src/server run --host 0.0.0.0
+	RELOAD=1 $(PYTHON) -m flask --app src/server run --host 0.0.0.0 --debug
 
 .PHONY: server
 server:  ## Start the Flask server with Gunicorn

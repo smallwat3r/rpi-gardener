@@ -4,7 +4,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
-from typing import Self
+from typing import Self, TypeAlias
 
 logging.basicConfig(format="%(asctime)s %(levelname)s - %(message)s",
                     level=logging.INFO)
@@ -26,13 +26,19 @@ class Sql:
         return cls(query)
 
 
+SqlRow: TypeAlias = dict[str, str | int | float]
+
+
+def _dict_factory(cursor: sqlite3.Cursor, row: tuple) -> SqlRow:
+    fields = [column[0] for column in cursor.description]
+    return {key: value for key, value in zip(fields, row)}
+
+
 class Db:
-    def __init__(self) -> None:
+    def __init__(self, dict_row_factory: bool = False) -> None:
         self.con = sqlite3.connect("dht.db", autocommit=False)
-        # renders the rows as Python native dictionaries, very useful to
-        # render the data directly in the frontend.
-        self.con.row_factory = lambda c, r: dict(
-            zip([col[0] for col in c.description], r))
+        if dict_row_factory:
+            self.con.row_factory = _dict_factory
         self.cur = self.con.cursor()
 
     def __enter__(self) -> Self:

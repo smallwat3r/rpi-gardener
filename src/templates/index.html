@@ -2,9 +2,11 @@
 {% block container %}
   <i>Last update: <span id="cRecordingTime">{{ latest["recording_time"] }}</span></i>
   <div>
-    <p class="red">Temperature <span id="cTemperature">{{ latest["temperature"] }}</span>c</p>
+    <p class="red">Temperature <span id="cTemperature">{{ latest["temperature"] }}</span>c
+      (avg 7h <span id="aTemperature">{{ average["temperature"] }}</span>c)</p>
     <canvas height="60" id="temperatureChart"></canvas>
-    <p class="blue">Humidity <span id="cHumidity">{{ latest["humidity"] }}</span>%</p>
+    <p class="blue">Humidity <span id="cHumidity">{{ latest["humidity"] }}</span>%
+      (avg 7h <span id="aHumidity">{{ average["humidity"] }}</span>%)</p>
     <canvas height="60" id="humidityChart"></canvas>
   </div>
 {% endblock %}

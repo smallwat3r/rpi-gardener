@@ -1,7 +1,7 @@
-const socket = new WebSocket(`ws://${location.host}/latest`);
+const latest = new WebSocket(`ws://${location.host}/latest`);
 const activeCharts = [temperature, humidity];
 let lastEpoch = null;
-socket.onmessage = function(message) {
+latest.onmessage = function(message) {
   let data = JSON.parse(message.data);
   if (data.epoch === lastEpoch) return;
   cTemperature.textContent = data.temperature;
@@ -13,4 +13,11 @@ socket.onmessage = function(message) {
     chart.update();
   }
   lastEpoch = data.epoch;
+}
+const average = new WebSocket(`ws://${location.host}/average`);
+average.onmessage = function(message) {
+  let data = JSON.parse(message.data);
+  aTemperature.textContent = data.temperature;
+  aHumidity.textContent = data.humidity;
+  console.log(data)
 }

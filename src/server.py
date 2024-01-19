@@ -6,7 +6,7 @@ from flask import Flask, render_template
 from flask_sock import Sock
 
 from ._config import POLLING_FREQUENCY_SEC
-from ._utils import Db
+from ._utils import Db, Sql
 
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = bool(environ.get("RELOAD"))
@@ -16,12 +16,12 @@ sock = Sock(app)
 
 def _get_initial_data() -> list[dict[str, float | int]]:
     with Db() as db:
-        return db.query("chart.sql").fetchall()
+        return db.query(Sql.from_file("chart.sql")).fetchall()
 
 
 def _get_latest_data() -> dict[str, float | int]:
     with Db() as db:
-        return db.query("latest_recording.sql").fetchone()
+        return db.query(Sql.from_file("latest_recording.sql")).fetchone()
 
 
 @app.get("/")

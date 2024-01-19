@@ -16,6 +16,16 @@ def _get_sql_template(filename: str) -> str:
         return query.read()
 
 
+class Sql:
+    def __init__(self, query: str) -> None:
+        self.query = query
+
+    @classmethod
+    def from_file(cls, filename: str) -> Self:
+        query = _get_sql_template(filename)
+        return cls(query)
+
+
 class Db:
     def __init__(self) -> None:
         self.con = sqlite3.connect("dht.db", autocommit=False)
@@ -31,14 +41,12 @@ class Db:
     def __exit__(self, *args, **kwargs) -> None:
         self.con.close()
 
-    def _execute(self, filename: str, *args) -> sqlite3.Cursor:
-        return self.cur.execute(_get_sql_template(filename), *args)
-
-    def query(self, filename: str, *args) -> sqlite3.Cursor:
+    def query(self, sql: Sql, *args) -> sqlite3.Cursor:
+        return self.cur.execute(sql.query, *args)
         return self._execute(filename, *args)
 
-    def commit(self, filename: str, *args) -> None:
-        self._execute(filename, *args)
+    def commit(self, sql: Sql, *args) -> None:
+        self.cur.execute(sql.query, *args)
         self.con.commit()
 
 

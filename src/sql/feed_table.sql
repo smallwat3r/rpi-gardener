@@ -1,2 +1,0 @@
-INSERT INTO reading
-VALUES (?, ?, ?)

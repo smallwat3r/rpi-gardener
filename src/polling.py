@@ -13,14 +13,14 @@ from adafruit_dht import DHT22
 from board import D2
 
 from ._config import POLLING_FREQUENCY_SEC
-from ._utils import Db, Reading, logging
+from ._utils import Db, Reading, Sql, logging
 
 logger = logging.getLogger("dht-polling-service")
 
 
 def _init_db() -> None:
     with Db() as db:
-        db.commit("init_table.sql")
+        db.commit(Sql.from_file("init_table.sql"))
 
 
 def _poll(dht: DHT22) -> Reading:
@@ -32,8 +32,9 @@ def _poll(dht: DHT22) -> Reading:
 
 def _persist(reading: Reading) -> None:
     with Db() as db:
-        db.commit("feed_table.sql", (reading.temperature, reading.humidity,
-                                     reading.recording_time))
+        db.commit(Sql("INSERT INTO reading VALUES (?, ?, ?)"),
+                  (reading.temperature, reading.humidity,
+                   reading.recording_time))
 
 
 def main() -> None:

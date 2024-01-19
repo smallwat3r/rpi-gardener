@@ -19,5 +19,4 @@ average.onmessage = function(message) {
   let data = JSON.parse(message.data);
   aTemperature.textContent = data.temperature;
   aHumidity.textContent = data.humidity;
-  console.log(data)
 }

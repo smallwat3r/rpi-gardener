@@ -31,7 +31,7 @@ SqlRow: TypeAlias = dict[str, str | int | float]
 
 def _dict_factory(cursor: sqlite3.Cursor, row: tuple) -> SqlRow:
     fields = [column[0] for column in cursor.description]
-    return {key: value for key, value in zip(fields, row)}
+    return {key: value for key, value in zip(fields, row, strict=True)}
 
 
 class Db:

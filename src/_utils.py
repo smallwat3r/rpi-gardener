@@ -43,7 +43,6 @@ class Db:
 
     def query(self, sql: Sql, *args) -> sqlite3.Cursor:
         return self.cur.execute(sql.query, *args)
-        return self._execute(filename, *args)
 
     def commit(self, sql: Sql, *args) -> None:
         self.cur.execute(sql.query, *args)

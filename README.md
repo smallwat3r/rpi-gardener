@@ -17,8 +17,12 @@ Get and build Python 3.12 from source
     cd Python-3.12.1
     ./configure --enable-optimizations
     sudo make altinstall
+    
+Install nginx
 
-Install screen to run the commands in the background and keep them persistant
+    sudo apt install nginx
+
+Install screen to run commands in the background and keep them persistant
 
     sudo apt install screen
 
@@ -27,26 +31,57 @@ Create a Python virtual environment and install the Python dependencies
 
     make venv deps
     
-## Usage
+## Development
 
 Run the dht sensor polling service
     
     make polling
-
-From another terminal window, run the flask server
     
-    make server
+From another terminal window, run the flask server
 
-Run the commands in screen in order to keep them persistant over the SSH
-session
+    make flask
+
+You should be able to browse the app at <http://LOCAL-IP:5000/>
+    
+## Production(ish)
+
+By production, I mean leaving the RPi running in the background on a
+local (secure) home network for personal access. Please do not use these
+configs for exposing your server to the Internet.
+
+### Link files 
+
+Link the app static files to `/var/www/html`
+
+    sudo rm /var/www/html/*
+    sudo ln -s "$(pwd)/src/static" /var/www/html
+    
+Link the Nginx configuration files:
+
+    sudo rm /etc/nginx/nginx.conf
+    sudo ln -s "$(pwd)/nginx/nginx.conf" /etc/nginx/nginx.conf
+    sudo ln -s "$(pwd)/nginx/sites-enabled/rpi.conf" /etc/nginx/sites-enabled/rpi.conf
+    
+### Background services
+    
+Use `screen` in order to keep the scripts persistant over the SSH session
+
+Start with the polling service first
    
     screen -d -m make polling
+    
+Then start the Gunicorn server
+
     screen -d -m make server
+    
+You can use `screen -ls` to list the active screen session, and re-attach to
+any session using `session -r <id>`, allowing you to tail logs, or kill 
+sessions.
 
-You can then list the running screen sessions with
-   
-    screen -ls
+### Nginx
 
-More screen commands see
+Lastly, start Nginx 
 
-    screen --help
+    sudo systemctl start nginx
+    
+You should be able to browse the app at <http://LOCAL-IP/>

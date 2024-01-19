@@ -56,7 +56,7 @@ Link the app static files to `/var/www/html`
     sudo rm /var/www/html/*
     sudo ln -s "$(pwd)/src/static" /var/www/html
     
-Link the Nginx configuration files:
+Link the Nginx configuration files
 
     sudo rm /etc/nginx/nginx.conf
     sudo ln -s "$(pwd)/nginx/nginx.conf" /etc/nginx/nginx.conf
@@ -74,7 +74,7 @@ Then start the Gunicorn server
 
     screen -d -m make server
     
-You can use `screen -ls` to list the active screen session, and re-attach to
+You can use `screen -ls` to list the active screen sessions, and re-attach to
 any session using `session -r <id>`, allowing you to tail logs, or kill 
 sessions.
 

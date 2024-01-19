@@ -18,11 +18,11 @@ Get and build Python 3.12 from source
     ./configure --enable-optimizations
     sudo make altinstall
     
-Install nginx
+Install `nginx`
 
     sudo apt install nginx
 
-Install screen to run commands in the background and keep them persistant
+Install `screen` to run commands in the background and keep them persistant
 
     sudo apt install screen
 

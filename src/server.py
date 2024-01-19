@@ -16,12 +16,12 @@ sock = Sock(app)
 
 def _get_initial_data() -> list[dict[str, float | int]]:
     with Db() as db:
-        return db.fetchall("chart.sql")
+        return db.query("chart.sql").fetchall()
 
 
 def _get_latest_data() -> dict[str, float | int]:
     with Db() as db:
-        return db.fetchone("latest_recording.sql")
+        return db.query("latest_recording.sql").fetchone()
 
 
 @app.get("/")

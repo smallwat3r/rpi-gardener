@@ -31,14 +31,11 @@ class Db:
     def __exit__(self, *args, **kwargs) -> None:
         self.con.close()
 
-    def _execute(self, filename: str, *args):
+    def _execute(self, filename: str, *args) -> sqlite3.Cursor:
         return self.cur.execute(_get_sql_template(filename), *args)
 
-    def fetchone(self, filename: str, *args) -> dict[str, float | int]:
-        return self._execute(filename, *args).fetchone()
-
-    def fetchall(self, filename: str, *args) -> list[dict[str, float | int]]:
-        return self._execute(filename, *args).fetchall()
+    def query(self, filename: str, *args) -> sqlite3.Cursor:
+        return self._execute(filename, *args)
 
     def commit(self, filename: str, *args) -> None:
         self._execute(filename, *args)

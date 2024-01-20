@@ -4,7 +4,7 @@ This project contains necessarry files and scripts to read temperature and
 humidity data from a DHT22 sensor, wired to a Raspberry Pi 4. It stores the 
 results every 2 seconds in a local Sqlite database, and renders them on a bare 
 simple frontend using ChartJS powered by Flask and web-sockets. Lastly, it also 
-provides a simple notification system.
+implements a simple notification service.
 
 ## Requirements
 

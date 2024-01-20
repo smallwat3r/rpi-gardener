@@ -1,13 +1,7 @@
-import logging
 import sqlite3
-from pathlib import Path
-from dataclasses import dataclass
-from datetime import datetime
 from functools import lru_cache
+from pathlib import Path
 from typing import Self, TypeAlias
-
-logging.basicConfig(format="%(asctime)s %(levelname)s - %(message)s",
-                    level=logging.INFO)
 
 
 @lru_cache
@@ -53,10 +47,3 @@ class Db:
     def commit(self, sql: Sql, *args) -> None:
         self.cur.execute(sql.query, *args)
         self.con.commit()
-
-
-@dataclass(frozen=True)
-class Reading:
-    temperature: float
-    humidity: float
-    recording_time: datetime

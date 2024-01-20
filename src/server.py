@@ -8,7 +8,7 @@ from flask import Flask, render_template
 from flask_sock import Sock
 
 from ._config import POLLING_FREQUENCY_SEC
-from ._utils import Db, Sql, SqlRow
+from ._db import Db, Sql, SqlRow
 
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = bool(environ.get("RELOAD"))

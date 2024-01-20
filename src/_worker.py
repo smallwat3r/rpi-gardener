@@ -2,16 +2,18 @@ from time import sleep
 from threading import Thread
 
 from . import logging
+from ._config import NOTIFICATION_SERVICE_ENABLED
 from ._events import queue
+from ._notifications import Gmail
 
 logger = logging.getLogger("worker-thread")
 
 
 def _work() -> None:
     event = queue.dequeue()
-    logger.warning("Picked up %s", event)
-    # TODO: this currently does nothing, implement alerting to communication
-    #   channels (for ex: phone, email etc)
+    if NOTIFICATION_SERVICE_ENABLED:
+        return Gmail(event).send()
+    logger.info("Ignoring event %s, notification service is off", id(event))
 
 
 def _event_handler() -> None:
@@ -22,5 +24,4 @@ def _event_handler() -> None:
 
 
 def start_worker() -> None:
-    logger.info("Worker started in another thread...")
     Thread(target=_event_handler, daemon=True).start()

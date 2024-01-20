@@ -1,14 +1,20 @@
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Deque
 
-from ._config import Threshold
+from . import logging
+from ._config import Threshold, Unit
+
+logger = logging.getLogger("queue-service")
 
 
 @dataclass(frozen=True)
 class Event:
-    threshold: Threshold
     value: float
+    threshold: Threshold
+    unit: Unit
+    recording_time: datetime
 
 
 class _Queue:
@@ -20,10 +26,13 @@ class _Queue:
         return bool(self._events)
 
     def enqueue(self, event: Event) -> None:
+        logger.info("Queuing event %s", id(event))
         self._events.append(event)
 
     def dequeue(self) -> Event:
-        return self._events.popleft()
+        event = self._events.popleft()
+        logger.info("Picking up event %s", id(event))
+        return event
 
 
 queue = _Queue()

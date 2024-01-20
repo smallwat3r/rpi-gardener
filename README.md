@@ -31,6 +31,28 @@ Create a Python virtual environment and install the Python dependencies
 
     make venv deps
     
+Create an `.env` file at the root of the repository, and fill in the required
+values. Ensure to keep this file secret, as it contains some sensitive values.
+
+    # .env
+    
+    # enables system notifications, set to 0 to disable
+    ENABLE_NOTIFICATION_SERVICE=1 
+
+    # if ENABLE_NOTIFICATION_SERVICE is set, the following values are 
+    # required, else you can leave them empty.
+    
+    # Gmail account email sender
+    GMAIL_SENDER='foo@example.com'
+    # comma separated list of email recipients 
+    GMAIL_RECIPIENTS='foo@example.com, bar@example.com'
+    # Gmail username used for auth
+    GMAIL_USERNAME='foo@example.com'
+    # Gmail account password (obtained with Gmail app passwords)
+    GMAIL_PASSWORD=''
+    # subject title to display for email notifications
+    GMAIL_SUBJECT='DHT-22 sensor alert!'
+
 ## Development
 
 Run the dht sensor polling service

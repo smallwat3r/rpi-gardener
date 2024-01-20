@@ -2,3 +2,4 @@ adafruit-circuitpython-dht
 flask
 flask-sock
 gunicorn
+python-dotenv

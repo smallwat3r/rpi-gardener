@@ -51,7 +51,7 @@ values. Ensure to keep this file secret, as it contains some sensitive values.
     GMAIL_USERNAME='foo@example.com'
     # Gmail account password (obtained with Gmail app passwords)
     GMAIL_PASSWORD=''
-    # subject title to display for email notifications
+    # subject title to use in email notifications
     GMAIL_SUBJECT='DHT-22 sensor alert!'
 
 ## Development

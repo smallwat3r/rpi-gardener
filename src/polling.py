@@ -62,9 +62,9 @@ def _audit_reading(reading: Reading) -> None:
                 if not getattr(reading, f"{type_}_state") == State.IN_ALERT:
                     queue.enqueue(Event(value, threshold, UNIT_MAPPING[type_],
                                         reading.recording_time))
-                # thresholds are either min or max, so once once has been
-                # triggered, we should put in alert on the reading, so we
-                # can break and move one.
+                # thresholds are either min or max, so once one has been
+                # triggered, the reading type (temperature or hunidity) must
+                # be 'in alert', so we can break and move one.
                 break
         # update the reading with the tracker state.
         setattr(reading, f"{type_}_state", getattr(tracker, type_))

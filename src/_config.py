@@ -9,12 +9,18 @@ load_dotenv()
 POLLING_FREQUENCY_SEC = 2
 
 
+class _MeasureName(StrEnum):
+    TEMPERATURE = "temperature"
+    HUMIDITY = "humidity"
+
+
 class Unit(StrEnum):
     CELCIUS = "c"
     PERCENT = "%"
 
 
-UNIT_MAPPING = {"temperature": Unit.CELCIUS, "humidity": Unit.PERCENT}
+UNIT_MAPPING = {_MeasureName.TEMPERATURE: Unit.CELCIUS,
+                _MeasureName.HUMIDITY: Unit.PERCENT}
 
 
 class Threshold(IntEnum):
@@ -25,11 +31,11 @@ class Threshold(IntEnum):
 
 
 THRESHOLD_RULES = {
-    "temperature": (
+    _MeasureName.TEMPERATURE: (
         (operator.lt, Threshold.MIN_TEMPERATURE),
         (operator.gt, Threshold.MAX_TEMPERATURE),
     ),
-    "humidity": (
+    _MeasureName.HUMIDITY: (
         (operator.lt, Threshold.MIN_HUMIDITY),
         (operator.gt, Threshold.MAX_HUMIDITY),
     ),

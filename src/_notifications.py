@@ -19,6 +19,11 @@ class Notification(ABC):
     def __init__(self, event: Event) -> None:
         self.event = event
 
+    @property
+    def message(self) -> str:
+        return MESSAGE.format(threshold_name=self.event.threshold.name,
+                              **asdict(self.event))
+
     @abstractmethod
     def send(self) -> None:
         ...
@@ -30,10 +35,7 @@ class Gmail(Notification):
         msg.add_header("From", GmailConfig.SENDER)
         msg.add_header("To", GmailConfig.RECIPIENTS)
         msg.add_header("Subject", GmailConfig.SUBJECT)
-        message = MESSAGE.format(threshold_name=self.event.threshold.name,
-                                 **asdict(self.event))
-        msg.set_content(message)
-        logger.debug("Generated message:\n\n%s", message)
+        msg.set_content(self.message)
         return msg
 
     def send(self) -> None:

@@ -68,7 +68,7 @@ def _audit_reading(reading: Reading) -> None:
                                         reading.recording_time))
                 # thresholds are either min or max, so once one has been
                 # triggered, the reading name (temperature or hunidity) must
-                # be 'in alert', so we can break and move one.
+                # be 'in alert', so we can break and move on.
                 break
         # update the reading with the tracker state.
         getattr(reading, name).state = getattr(tracker, name)

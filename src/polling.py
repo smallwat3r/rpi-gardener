@@ -30,12 +30,16 @@ class State(Enum):
 
 
 @dataclass
+class Measure:
+    value: float
+    state: State = State.OK
+
+
+@dataclass
 class Reading:
-    temperature: float
-    humidity: float
+    temperature: Measure
+    humidity: Measure
     recording_time: datetime
-    temperature_state: State = State.OK
-    humidity_state: State = State.OK
 
 
 def _init_db() -> None:
@@ -51,23 +55,23 @@ class _StateTracker:
 
 def _audit_reading(reading: Reading) -> None:
     tracker = _StateTracker()
-    for type_, rules in THRESHOLD_RULES.items():
+    for name, rules in THRESHOLD_RULES.items():
         for rule in rules:
             comparator, threshold = rule
-            value = getattr(reading, type_)
+            value = getattr(reading, name).value
             if comparator(value, threshold):
-                setattr(tracker, type_, State.IN_ALERT)
+                setattr(tracker, name, State.IN_ALERT)
                 # only triggers notification if the reading is not already in
                 # alert, to avoid polluting the user.
-                if not getattr(reading, f"{type_}_state") == State.IN_ALERT:
-                    queue.enqueue(Event(value, threshold, UNIT_MAPPING[type_],
+                if not getattr(reading, name).state == State.IN_ALERT:
+                    queue.enqueue(Event(value, threshold, UNIT_MAPPING[name],
                                         reading.recording_time))
                 # thresholds are either min or max, so once one has been
-                # triggered, the reading type (temperature or hunidity) must
+                # triggered, the reading name (temperature or hunidity) must
                 # be 'in alert', so we can break and move one.
                 break
         # update the reading with the tracker state.
-        setattr(reading, f"{type_}_state", getattr(tracker, type_))
+        getattr(reading, name).state = getattr(tracker, name)
 
 
 def alert_on_threshold(func: Callable[[DHT22], Reading]) -> Reading:
@@ -80,24 +84,25 @@ def alert_on_threshold(func: Callable[[DHT22], Reading]) -> Reading:
 
 @alert_on_threshold
 def _poll(dht: DHT22, reading: Reading) -> Reading:
-    reading.temperature = dht.temperature
-    reading.humidity = dht.humidity
+    reading.temperature = Measure(dht.temperature)
+    reading.humidity = Measure(dht.humidity)
     reading.recording_time = datetime.now()
-    logger.info("Read %sc, %s%%", reading.temperature, reading.humidity)
+    logger.info("Read %sc, %s%%", reading.temperature.value,
+                reading.humidity.value)
     return reading
 
 
 def _persist(reading: Reading) -> None:
     with Db() as db:
         db.commit(Sql("INSERT INTO reading VALUES (?, ?, ?)"),
-                  (reading.temperature, reading.humidity,
+                  (reading.temperature.value, reading.humidity.value,
                    reading.recording_time))
 
 
 def main() -> None:
     _init_db()
     start_worker()
-    reading = Reading(0.0, 0.0, datetime.now())  # init
+    reading = Reading(Measure(0.0), Measure(0.0), datetime.now())  # init
     dht = DHT22(D2)
     while True:
         # the DHT library can sporadically raise RuntimeError exceptions

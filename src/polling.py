@@ -67,7 +67,7 @@ def _audit_reading(reading: Reading) -> None:
                     queue.enqueue(Event(value, threshold, UNIT_MAPPING[name],
                                         reading.recording_time))
                 # thresholds are either min or max, so once one has been
-                # triggered, the reading name (temperature or hunidity) must
+                # triggered, the reading name (temperature or humidity) must
                 # be 'in alert', so we can break and move on.
                 break
         # update the reading with the tracker state.

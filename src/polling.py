@@ -61,16 +61,10 @@ def _audit_reading(reading: Reading) -> None:
             value = getattr(reading, name).value
             if comparator(value, threshold):
                 setattr(tracker, name, State.IN_ALERT)
-                # only triggers notification if the reading is not already in
-                # alert, to avoid polluting the user.
                 if not getattr(reading, name).state == State.IN_ALERT:
                     queue.enqueue(Event(value, threshold, UNIT_MAPPING[name],
                                         reading.recording_time))
-                # thresholds are either min or max, so once one has been
-                # triggered, the reading name (temperature or humidity) must
-                # be 'in alert', so we can break and move on.
                 break
-        # update the reading with the tracker state.
         getattr(reading, name).state = getattr(tracker, name)
 
 

@@ -96,12 +96,9 @@ def _persist(reading: Reading) -> None:
 
 def main() -> None:
     _init_db()
-    dht = DHT22(D2)
-    try:
-        reading = Reading(dht.temperature, dht.humidity, datetime.now())
-    except RuntimeError:
-        reading = Reading(0.0, 0.0, datetime.now())
     start_worker()
+    reading = Reading(0.0, 0.0, datetime.now())  # init
+    dht = DHT22(D2)
     while True:
         # the DHT library can sporadically raise RuntimeError exceptions
         # when it encounters an issue when reading the data. Ignore those

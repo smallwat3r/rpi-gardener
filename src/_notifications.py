@@ -19,14 +19,14 @@ class Notification(ABC):
     def __init__(self, event: Event) -> None:
         self.event = event
 
+    @abstractmethod
+    def send(self) -> None:
+        ...
+
     @property
     def message(self) -> str:
         return MESSAGE.format(threshold_name=self.event.threshold.name,
                               **asdict(self.event))
-
-    @abstractmethod
-    def send(self) -> None:
-        ...
 
 
 class Gmail(Notification):

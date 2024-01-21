@@ -1,7 +1,6 @@
 import operator
 from enum import IntEnum, StrEnum
 from os import environ
-from typing import Callable
 
 from dotenv import load_dotenv
 
@@ -26,12 +25,14 @@ class Threshold(IntEnum):
 
 
 THRESHOLD_RULES = {
-    "temperature":
-        ((operator.lt, Threshold.MIN_TEMPERATURE),
-         (operator.gt, Threshold.MAX_TEMPERATURE)),
-    "humidity":
-        ((operator.lt, Threshold.MIN_HUMIDITY),
-         (operator.gt, Threshold.MAX_HUMIDITY))
+    "temperature": (
+        (operator.lt, Threshold.MIN_TEMPERATURE),
+        (operator.gt, Threshold.MAX_TEMPERATURE),
+    ),
+    "humidity": (
+        (operator.lt, Threshold.MIN_HUMIDITY),
+        (operator.gt, Threshold.MAX_HUMIDITY),
+    ),
 }
 
 

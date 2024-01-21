@@ -1,5 +1,5 @@
-from time import sleep
 from threading import Thread
+from time import sleep
 
 from . import logging
 from ._config import NOTIFICATION_SERVICE_ENABLED

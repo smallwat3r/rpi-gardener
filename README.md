@@ -38,7 +38,7 @@ values. Ensure to keep this file secret, as it contains some sensitive values.
     # .env
     
     MAX_TEMPERATURE=25
-    MIN_TEMPERATURE=25
+    MIN_TEMPERATURE=18
     MAX_HUMIDITY=65
     MIN_TEMPERATURE=40
     

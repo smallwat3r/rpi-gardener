@@ -78,8 +78,8 @@ def alert_on_threshold(func: Callable[[DHT22], Reading]) -> Reading:
 
 @alert_on_threshold
 def _poll(dht: DHT22, reading: Reading) -> Reading:
-    reading.temperature = Measure(dht.temperature)
-    reading.humidity = Measure(dht.humidity)
+    reading.temperature.value = dht.temperature
+    reading.humidity.value = dht.humidity
     reading.recording_time = datetime.now()
     logger.info("Read %sc, %s%%", reading.temperature.value,
                 reading.humidity.value)

@@ -24,10 +24,10 @@ UNIT_MAPPING = {_MeasureName.TEMPERATURE: Unit.CELCIUS,
 
 
 class Threshold(IntEnum):
-    MAX_TEMPERATURE = 25
-    MIN_TEMPERATURE = 18
-    MAX_HUMIDITY = 65
-    MIN_HUMIDITY = 40
+    MAX_TEMPERATURE = int(environ.get("MAX_TEMPERATURE", 25))
+    MIN_TEMPERATURE = int(environ.get("MIN_TEMPERATURE", 18))
+    MAX_HUMIDITY = int(environ.get("MAX_HUMIDITY", 65))
+    MIN_HUMIDITY = int(environ.get("MIN_HUMIDITY", 40))
 
 
 THRESHOLD_RULES = {

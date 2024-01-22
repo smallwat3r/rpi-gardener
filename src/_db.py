@@ -3,6 +3,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Self, TypeAlias
 
+_DB_NAME = "dht.sqlite3"
+
 
 @lru_cache
 def _get_sql_template(filename: str) -> str:
@@ -30,7 +32,7 @@ def _dict_factory(cursor: sqlite3.Cursor, row: tuple) -> SqlRow:
 
 class Db:
     def __init__(self, dict_row_factory: bool = False) -> None:
-        self.con = sqlite3.connect("dht.db", autocommit=False)
+        self.con = sqlite3.connect(_DB_NAME, autocommit=False)
         if dict_row_factory:
             self.con.row_factory = _dict_factory
         self.cur = self.con.cursor()

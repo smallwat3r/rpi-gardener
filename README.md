@@ -40,7 +40,7 @@ values. Ensure to keep this file secret, as it contains some sensitive values.
     MAX_TEMPERATURE=25
     MIN_TEMPERATURE=18
     MAX_HUMIDITY=65
-    MIN_TEMPERATURE=40
+    MIN_HUMIDITY=40
     
     # enables system notifications, set to 0 to disable
     ENABLE_NOTIFICATION_SERVICE=1 

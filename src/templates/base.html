@@ -4,7 +4,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Varela+Round" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <style>body { font-family: 'Varela Round'; } .blue { color: blue; } .red { color: red; }</style>
+    <style>
+      body   { font-family: 'Varela Round'; }
+      .blue  { color: #007D73; }
+      .red   { color: #AE0000; }
+      .left  { float: left; }
+      .right { float: right; text-align: right; }
+    </style>
   </head>
   <body>{% block container %}{% endblock %}</body>
   <script>const data = {{ data | safe }};</script>

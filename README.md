@@ -42,6 +42,9 @@ values. Ensure to keep this file secret, as it contains some sensitive values.
     MAX_HUMIDITY=65
     MIN_HUMIDITY=40
     
+    # flask secret key
+    SECRET_KEY=a-random-secret-string
+    
     # enables system notifications, set to 0 to disable
     ENABLE_NOTIFICATION_SERVICE=1 
 

@@ -52,3 +52,6 @@ class GmailConfig:
     USERNAME = environ["GMAIL_USERNAME"]
     PASSWORD = environ["GMAIL_PASSWORD"]
     SUBJECT = environ.get("GMAIL_SUBJECT", "Sensor alert!")
+
+
+FLASK_SECRET_KEY = environ["SECRET_KEY"]

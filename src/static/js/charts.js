@@ -23,7 +23,7 @@ const chartRepr = new Chart(document.getElementById('chart'), {
   },
   options: {
     animation: {duration: 0},
-    scales: {x:  {type: 'time', time: {unit: 'second', displayFormats: {second: 'HH:mm'}}},
+    scales: {x:  {type: 'time', ticks: {stepSize: 2}, time: {unit: 'second', displayFormats: {second: 'HH:mm'}}},
              y:  {type: 'linear', display: true, position: 'left'},
              y1: {type: 'linear', display: true, position: 'right'}},
     interaction: {intersect: false, mode: 'index'},

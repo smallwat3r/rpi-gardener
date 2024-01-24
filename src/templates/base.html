@@ -5,14 +5,19 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
-      body   { font-family: 'Varela Round'; }
+      body   { font-family: 'Varela Round'; margin: 2%; }
       .blue  { color: #007D73; }
       .red   { color: #AE0000; }
       .left  { float: left; }
       .right { float: right; text-align: right; }
     </style>
   </head>
-  <body>{% block container %}{% endblock %}</body>
+  <body>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}<p class="red">Error: {{ messages[0] }}</p>{% endif %}
+    {% endwith %}
+    {% block container %}{% endblock %}
+  </body>
   <script>const data = {{ data | safe }};</script>
   <script type="text/javascript" src="{{ url_for('static', filename='js/charts.js') }}"></script>
   <script type="text/javascript" src="{{ url_for('static', filename='js/websocket.js') }}"></script>

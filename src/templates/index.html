@@ -1,11 +1,24 @@
 {% extends 'base.html' %}
 {% block container %}
-  <i>Last update: <span id="cRecordingTime">{{ latest["recording_time"] }}</span></i>
+  <form method="GET">
+    <label for="hours">Number of hours ago</label>
+    <input type="number" min="1" max="24" id="hours"
+           name="hours" value="{{ hours }}" />
+    <input type="submit" />
+  </form>
+  <hr />
+  <i>Last update: <span id="cRecordingTime">
+    {{ latest["recording_time"] }}</span>
+  </i>
   <div>
-    <p class="red left">Temperature <span id="cTemperature">{{ latest["temperature"] }}</span>c
-      (avg 7h <span id="aTemperature">{{ average["temperature"] }}</span>c)</p>
-    <p class="blue right">Humidity <span id="cHumidity">{{ latest["humidity"] }}</span>%
-      (avg 7h <span id="aHumidity">{{ average["humidity"] }}</span>%)</p>
+    <p class="red left">Temperature
+      <span id="cTemperature">{{ latest["temperature"] }}</span>c
+      (avg 7h <span id="aTemperature">{{ average["temperature"] }}</span>c)
+    </p>
+    <p class="blue right">Humidity
+      <span id="cHumidity">{{ latest["humidity"] }}</span>%
+      (avg 7h <span id="aHumidity">{{ average["humidity"] }}</span>%)
+    </p>
     <canvas height="110" id="chart"></canvas>
   </div>
 {% endblock %}

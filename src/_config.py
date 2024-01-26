@@ -14,11 +14,6 @@ class _MeasureName(StrEnum):
     HUMIDITY = "humidity"
 
 
-class Unit(StrEnum):
-    CELCIUS = "c"
-    PERCENT = "%"
-
-
 class Threshold(IntEnum):
     MAX_TEMPERATURE = int(environ.get("MAX_TEMPERATURE", 25))
     MIN_TEMPERATURE = int(environ.get("MIN_TEMPERATURE", 18))

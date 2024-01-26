@@ -24,8 +24,8 @@ const chartRepr = new Chart(document.getElementById('chart'), {
   options: {
     animation: {duration: 0},
     scales: {x:  {type: 'time', ticks: {stepSize: 2}, time: {unit: 'second', displayFormats: {second: 'HH:mm'}}},
-             y:  {type: 'linear', display: true, position: 'left'},
-             y1: {type: 'linear', display: true, position: 'right'}},
+             y:  {type: 'linear', display: true, position: 'left', suggestedMin: 20, suggestedMax: 30},
+             y1: {type: 'linear', display: true, position: 'right', suggestedMin: 40, suggestedMax: 65}},
     interaction: {intersect: false, mode: 'index'},
   }
 });

@@ -15,7 +15,8 @@ from adafruit_dht import DHT22
 from board import D17
 
 from . import logging
-from ._config import POLLING_FREQUENCY_SEC, THRESHOLD_RULES
+from ._config import (DHT22_BOUNDS, POLLING_FREQUENCY_SEC,
+                      THRESHOLD_RULES, MeasureName)
 from ._db import Db, Sql
 from ._display import display
 from ._events import Event, queue
@@ -37,6 +38,7 @@ class _StateTracker:
 
 
 def _audit_reading(reading: Reading) -> None:
+    """Audit reading value, and enqueue notification events."""
     tracker = _StateTracker()
     for name, rules in THRESHOLD_RULES.items():
         for rule in rules:
@@ -52,6 +54,7 @@ def _audit_reading(reading: Reading) -> None:
 
 
 def alert_on_threshold(func: Callable[[DHT22], Reading]) -> Reading:
+    """Hook an alert if a reading is outside of the configured threshold."""
     def wrapper(*args, **kwargs) -> Reading:
         reading = func(*args, **kwargs)
         _audit_reading(reading)
@@ -59,18 +62,48 @@ def alert_on_threshold(func: Callable[[DHT22], Reading]) -> Reading:
     return wrapper
 
 
+class OutsideDHT22Bounds(RuntimeError):
+    """Reading from DHT22 sensor is outside of allowed bounds."""
+
+
+def check_dht_boundaries(func: Callable[[DHT22], Reading]) -> Reading:
+    """Ensure the readings from the sensor are sane.
+
+    The DHT22 sensor only allows specific bounds for temperature and humidity
+    readings. Temperature cannot be measured outside of the -40 to 80 degree
+    celsius range. Humidity cannot be measured outside of 0-100% range.
+
+    If the sensor were to record a reading outside of these bounds, something
+    bad has happened, and the reading would need to be retried.
+    """
+    def wrapper(*args, **kwargs) -> Reading:
+        reading = func(*args, **kwargs)
+        for name in MeasureName:
+            measure = getattr(reading, name).value
+            bmin, bmax = DHT22_BOUNDS[name]
+            if measure < bmin or measure > bmax:
+                logger.error("%s reading bounds of DHT22 sensor: %s",
+                             name.capitalize(), str(reading.temperature))
+                raise OutsideDHT22Bounds()
+        return reading
+    return wrapper
+
+
+@check_dht_boundaries
 @alert_on_threshold
 def _poll(dht: DHT22, reading: Reading) -> Reading:
+    """Poll the DHT22 sensor for new reading values."""
     reading.temperature.value = dht.temperature
     reading.humidity.value = dht.humidity
     reading.recording_time = datetime.now()
-    display.render_reading(reading)
     logger.info("Read %s, %s", str(reading.temperature),
                 str(reading.humidity))
+    display.render_reading(reading)
     return reading
 
 
 def _persist(reading: Reading) -> None:
+    """Persist the reading values into the database."""
     with Db() as db:
         db.commit(Sql("INSERT INTO reading VALUES (?, ?, ?)"),
                   (reading.temperature.value, reading.humidity.value,
@@ -89,6 +122,9 @@ def main() -> None:
         # the DHT library can sporadically raise RuntimeError exceptions
         # when it encounters an issue when reading the data. Ignore those
         # exceptions, as next tries should be successful.
+        # some custom exceptions from the polling code also use RuntimeError
+        # as their base class, so they can fall into the same suppression
+        # process (due to incorrect readings from the DHT sensor).
         with suppress(RuntimeError):
             _persist(_poll(dht, reading))
         sleep(POLLING_FREQUENCY_SEC)

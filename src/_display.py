@@ -38,4 +38,5 @@ display = _Display(_size.w, _size.h, I2C(SCL, SDA))
 
 @atexit.register
 def _clear_display():
+    """Hook to clear the display screen when the program exits."""
     display.clear()

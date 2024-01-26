@@ -9,9 +9,17 @@ load_dotenv()
 POLLING_FREQUENCY_SEC = 2
 
 
-class _MeasureName(StrEnum):
+class MeasureName(StrEnum):
     TEMPERATURE = "temperature"
     HUMIDITY = "humidity"
+
+
+# DHT22 sensor reading bounds, a reading outside of those, would mean
+# an error has happened, and the reading would need to be retried.
+DHT22_BOUNDS = {
+    MeasureName.TEMPERATURE: (-40, 80),
+    MeasureName.HUMIDITY: (0, 100)
+}
 
 
 class Threshold(IntEnum):
@@ -22,11 +30,11 @@ class Threshold(IntEnum):
 
 
 THRESHOLD_RULES = {
-    _MeasureName.TEMPERATURE: (
+    MeasureName.TEMPERATURE: (
         (operator.lt, Threshold.MIN_TEMPERATURE),
         (operator.gt, Threshold.MAX_TEMPERATURE),
     ),
-    _MeasureName.HUMIDITY: (
+    MeasureName.HUMIDITY: (
         (operator.lt, Threshold.MIN_HUMIDITY),
         (operator.gt, Threshold.MAX_HUMIDITY),
     ),

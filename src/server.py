@@ -39,7 +39,7 @@ def index() -> str:
     try:
         hours = int(request.args.get("hours", 1))
     except ValueError:
-        flash("Parameter need to be an integer")
+        flash("Parameter needs to be an integer")
         return redirect(url_for("index"))
     if hours > 24:
         flash("Can't look past 24 hours")

@@ -13,7 +13,7 @@ latest.onmessage = function(message) {
   chartRepr.update();
   lastEpoch = data.epoch;
 }
-const average = new WebSocket(`ws://${location.host}/average`);
+const average = new WebSocket(`ws://${location.host}/stats?hours=${hours}`);
 average.onmessage = function(message) {
   let data = JSON.parse(message.data);
   aTemperature.textContent = data.avg_temperature;

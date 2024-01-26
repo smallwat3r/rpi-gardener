@@ -4,7 +4,8 @@ from os import environ
 from time import sleep
 from typing import Callable
 
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import (Flask, Request, flash, redirect, render_template,
+                   request, url_for)
 from flask_sock import Sock
 
 from ._config import FLASK_SECRET_KEY, POLLING_FREQUENCY_SEC
@@ -32,17 +33,27 @@ def _get_stats_data(from_time: datetime) -> SqlRow:
         return db.query(Sql.from_file("stats.sql"), (from_time,)).fetchone()
 
 
-@app.get("/")
-def index() -> str:
+class BadParameter(Exception):
+    ...
+
+
+def _get_qs(request: Request) -> tuple[int, datetime]:
     try:
         hours = int(request.args.get("hours", 1))
     except ValueError:
-        flash("Parameter needs to be an integer")
-        return redirect(url_for("index"))
+        raise BadParameter("Parameter needs to be an integer")
     if hours > 24:
-        flash("Can't look past 24 hours")
+        raise BadParameter("Can't look past 24 hours")
+    return hours, datetime.now() - timedelta(hours=hours)
+
+
+@app.get("/")
+def index() -> str:
+    try:
+        hours, from_time = _get_qs(request)
+    except BadParameter as err:
+        flash(str(err))
         return redirect(url_for("index"))
-    from_time = datetime.now() - timedelta(hours=hours)
     return render_template("index.html",
                            hours=hours,
                            data=_get_initial_data(from_time),
@@ -50,10 +61,10 @@ def index() -> str:
                            latest=_get_latest_data())
 
 
-def _websocket_loop(sock: Sock, func: Callable) -> None:
+def _websocket_loop(sock: Sock, func: Callable, *args, **kwargs) -> None:
     while True:
         sleep(POLLING_FREQUENCY_SEC)
-        sock.send(json.dumps(func()))
+        sock.send(json.dumps(func(*args, **kwargs)))
 
 
 @sock.route("/latest")
@@ -61,6 +72,7 @@ def latest(sock: Sock) -> None:
     _websocket_loop(sock, _get_latest_data)
 
 
-@sock.route("/average")
-def average(sock: Sock) -> None:
-    _websocket_loop(sock, _get_average_data)
+@sock.route("/stats")
+def stats(sock: Sock) -> None:
+    _, from_time = _get_qs(request)
+    _websocket_loop(sock, _get_stats_data, from_time)

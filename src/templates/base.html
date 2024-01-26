@@ -18,7 +18,10 @@
     {% endwith %}
     {% block container %}{% endblock %}
   </body>
-  <script>const data = {{ data | safe }};</script>
+  <script>
+    const data = {{ data | safe }};
+    const hours = {{ hours }};
+  </script>
   <script type="text/javascript" src="{{ url_for('static', filename='js/charts.js') }}"></script>
   <script type="text/javascript" src="{{ url_for('static', filename='js/websocket.js') }}"></script>
 </html>

@@ -1,5 +1,7 @@
 adafruit-circuitpython-dht
+adafruit-circuitpython-ssd1306
 flask
 flask-sock
 gunicorn
 python-dotenv
+pillow

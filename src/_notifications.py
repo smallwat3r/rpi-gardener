@@ -10,9 +10,9 @@ from ._events import Event
 
 logger = logging.getLogger("notification-service")
 
-MESSAGE = ("Sensor alert! A threshold has been crossed at "
-           "{recording_time}, value recorded: {value}{unit}, "
-           "threshold {threshold_name} bound was: {threshold}{unit}.")
+MESSAGE = ("Sensor alert! A threshold has been crossed at {recording_time}, "
+           "value recorded: {value}, threshold {threshold_name} bound was: "
+           "{threshold}{unit}.")
 
 
 class Notification(ABC):
@@ -26,6 +26,8 @@ class Notification(ABC):
     @property
     def message(self) -> str:
         return MESSAGE.format(threshold_name=self.event.threshold.name,
+                              value=str(self.event.measure),
+                              unit=self.event.measure.unit,
                               **asdict(self.event))
 
 

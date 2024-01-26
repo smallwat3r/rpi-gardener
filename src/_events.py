@@ -4,16 +4,16 @@ from datetime import datetime
 from typing import Deque
 
 from . import logging
-from ._config import Threshold, Unit
+from ._config import Threshold
+from ._reading import Measure
 
 logger = logging.getLogger("queue-service")
 
 
 @dataclass(frozen=True)
 class Event:
-    value: float
+    measure: Measure
     threshold: Threshold
-    unit: Unit
     recording_time: datetime
 
 

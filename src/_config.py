@@ -19,10 +19,6 @@ class Unit(StrEnum):
     PERCENT = "%"
 
 
-UNIT_MAPPING = {_MeasureName.TEMPERATURE: Unit.CELCIUS,
-                _MeasureName.HUMIDITY: Unit.PERCENT}
-
-
 class Threshold(IntEnum):
     MAX_TEMPERATURE = int(environ.get("MAX_TEMPERATURE", 25))
     MIN_TEMPERATURE = int(environ.get("MIN_TEMPERATURE", 18))

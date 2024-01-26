@@ -16,6 +16,10 @@ latest.onmessage = function(message) {
 const average = new WebSocket(`ws://${location.host}/average`);
 average.onmessage = function(message) {
   let data = JSON.parse(message.data);
-  aTemperature.textContent = data.temperature;
-  aHumidity.textContent = data.humidity;
+  aTemperature.textContent = data.avg_temperature;
+  minTemperature.textContent = data.min_temperature;
+  maxTemperature.textContent = data.max_temperature;
+  aHumidity.textContent = data.avg_humidity;
+  minHumidity.textContent = data.min_humidity;
+  maxHumidity.textContent = data.max_humidity;
 }

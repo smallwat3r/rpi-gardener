@@ -17,8 +17,7 @@ app.secret_key = FLASK_SECRET_KEY
 sock = Sock(app)
 
 
-def _get_initial_data(hours: int) -> list[SqlRow]:
-    from_time = datetime.now() - timedelta(hours=hours)
+def _get_initial_data(from_time: datetime) -> list[SqlRow]:
     with Db(dict_row_factory=True) as db:
         return db.query(Sql.from_file("chart.sql"), (from_time,)).fetchall()
 
@@ -28,10 +27,9 @@ def _get_latest_data() -> SqlRow:
         return db.query(Sql.from_file("latest_recording.sql")).fetchone()
 
 
-def _get_average_data() -> SqlRow:
+def _get_stats_data(from_time: datetime) -> SqlRow:
     with Db(dict_row_factory=True) as db:
-        return db.query(Sql.from_file("average.sql"),
-                        (datetime.now() - timedelta(hours=7),)).fetchone()
+        return db.query(Sql.from_file("stats.sql"), (from_time,)).fetchone()
 
 
 @app.get("/")
@@ -44,10 +42,11 @@ def index() -> str:
     if hours > 24:
         flash("Can't look past 24 hours")
         return redirect(url_for("index"))
+    from_time = datetime.now() - timedelta(hours=hours)
     return render_template("index.html",
                            hours=hours,
-                           data=_get_initial_data(hours),
-                           average=_get_average_data(),
+                           data=_get_initial_data(from_time),
+                           stats=_get_stats_data(from_time),
                            latest=_get_latest_data())
 
 

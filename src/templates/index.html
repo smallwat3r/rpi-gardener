@@ -13,11 +13,15 @@
   <div>
     <p class="red left">Temperature
       <span id="cTemperature">{{ latest["temperature"] }}</span>c
-      (avg 7h <span id="aTemperature">{{ average["temperature"] }}</span>c)
+      (avg <span id="aTemperature">{{ stats["avg_temperature"] }}</span>c,
+       min <span id="minTemperature">{{ stats["min_temperature"] }}</span>c,
+       max <span id="maxTemperature">{{ stats["max_temperature"] }}</span>c)
     </p>
     <p class="blue right">Humidity
       <span id="cHumidity">{{ latest["humidity"] }}</span>%
-      (avg 7h <span id="aHumidity">{{ average["humidity"] }}</span>%)
+      (avg <span id="aHumidity">{{ stats["avg_humidity"] }}</span>%,
+       min <span id="minHumidity">{{ stats["min_humidity"] }}</span>%,
+       max <span id="maxHumidity">{{ stats["max_humidity"] }}</span>%)
     </p>
     <canvas height="110" id="chart"></canvas>
   </div>

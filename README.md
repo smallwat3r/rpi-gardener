@@ -7,6 +7,8 @@ simple frontend using ChartJS powered by Flask and web-sockets. It also
 implements a simple notification service, and render the live readings on a 
 128x64 OLED (SSD1306) display.
 
+![dashboard](./ext/dashboard.png)
+
 ## Requirements
 
 Get and build Python 3.12 from source

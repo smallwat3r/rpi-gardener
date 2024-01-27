@@ -53,20 +53,11 @@ def _audit_reading(reading: Reading) -> None:
         getattr(reading, name).state = getattr(tracker, name)
 
 
-def alert_on_threshold(func: Callable[[DHT22], Reading]) -> Reading:
-    """Hook an alert if a reading is outside of the configured threshold."""
-    def wrapper(*args, **kwargs) -> Reading:
-        reading = func(*args, **kwargs)
-        _audit_reading(reading)
-        return reading
-    return wrapper
-
-
 class OutsideDHT22Bounds(RuntimeError):
     """Reading from DHT22 sensor is outside of allowed bounds."""
 
 
-def check_dht_boundaries(func: Callable[[DHT22], Reading]) -> Reading:
+def _check_dht_boundaries(reading: Reading) -> Reading:
     """Ensure the readings from the sensor are sane.
 
     The DHT22 sensor only allows specific bounds for temperature and humidity
@@ -76,21 +67,27 @@ def check_dht_boundaries(func: Callable[[DHT22], Reading]) -> Reading:
     If the sensor were to record a reading outside of these bounds, something
     bad has happened, and the reading would need to be retried.
     """
+    for name in MeasureName:
+        measure = getattr(reading, name).value
+        bmin, bmax = DHT22_BOUNDS[name]
+        if measure < bmin or measure > bmax:
+            logger.error("%s reading outside bounds of DHT22 sensor: %s",
+                         name.capitalize(), str(reading.temperature))
+            raise OutsideDHT22Bounds()
+    return reading
+
+
+def after_run_hook(func: Callable[[DHT22], Reading]) -> Reading:
+    """Hook to run after polling."""
     def wrapper(*args, **kwargs) -> Reading:
         reading = func(*args, **kwargs)
-        for name in MeasureName:
-            measure = getattr(reading, name).value
-            bmin, bmax = DHT22_BOUNDS[name]
-            if measure < bmin or measure > bmax:
-                logger.error("%s reading bounds of DHT22 sensor: %s",
-                             name.capitalize(), str(reading.temperature))
-                raise OutsideDHT22Bounds()
+        _check_dht_boundaries(reading)
+        _audit_reading(reading)
         return reading
     return wrapper
 
 
-@check_dht_boundaries
-@alert_on_threshold
+@after_run_hook
 def _poll(dht: DHT22, reading: Reading) -> Reading:
     """Poll the DHT22 sensor for new reading values."""
     reading.temperature.value = dht.temperature

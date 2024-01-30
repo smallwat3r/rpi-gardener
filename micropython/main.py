@@ -1,5 +1,5 @@
-# This module uses micropython and needs to be set-up on the Rpi Pico board, to
-# read values from capacitative soil moisture sensors (v1.2).
+# This module uses micropython and needs to be set-up on the Raspberry Pico
+# board, to read values from capacitative soil moisture sensors (v1.2).
 #
 # Requirements:
 # ------------

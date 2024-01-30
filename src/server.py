@@ -40,8 +40,8 @@ class BadParameter(Exception):
 def _get_qs(request: Request) -> tuple[int, datetime]:
     try:
         hours = int(request.args.get("hours", 1))
-    except ValueError:
-        raise BadParameter("Parameter needs to be an integer")
+    except ValueError as err:
+        raise BadParameter("Parameter needs to be an integer") from err
     if hours > 24:
         raise BadParameter("Can't look past 24 hours")
     return hours, datetime.now() - timedelta(hours=hours)

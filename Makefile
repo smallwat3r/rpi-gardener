@@ -25,6 +25,11 @@ deps:  ## Install Python requirements in virtual environment
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install --no-cache-dir -r requirements.txt
 
+.PHONY: mpdeps
+mpdeps:  ## Install Micropython requirements in virtual environment
+	$(PYTHON) -m pip install --upgrade pip
+	$(PYTHON) -m pip install --no-cache-dir -r requirements-mp.txt
+
 .PHONY: flask
 flask:  ## Start the Flask server (for development)
 	RELOAD=1 $(PYTHON) -m flask --app src/server run --host 0.0.0.0 --debug

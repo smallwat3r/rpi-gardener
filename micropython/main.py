@@ -1,4 +1,4 @@
-# This module uses micropython and needs to be set-up on the Raspberry Pico
+# This module uses Micropython and needs to be set-up on the Raspberry Pico
 # board, to read values from capacitative soil moisture sensors (v1.2).
 #
 # Requirements:
@@ -9,16 +9,34 @@
 #      mpremote a0
 #      mpremote mip install ssd1306
 #
-# TODO: set up network connect to send HTTP requests to the main Rpi board.
-#   wlan = network.WLAN(network.STA_IF)
-#   wlan.active(True)
-#   wlan.connect("", "")
-#   assert wlan.isconnected()
+#   Create a secrets.py file on the Pico, in the same directory than the
+#   main.py file, this file will contain secret values in order to
+#   communicate with our main Rpi board.
+#
+#      SSID=<ssid name>
+#      SSID_PASSWORD=<ssid password>
+#      RPI_HOST=192.168.1.XXX
 
+import network
+import ujson
+import urequests
 import utime
 from machine import ADC, Pin, I2C
 
 from ssd1306 import SSD1306_I2C
+
+import secrets
+
+PLANT_TO_PIN_MAPPING = (
+    ("plant-1", ADC(Pin(26))),
+    ("plant-2", ADC(Pin(27))),
+    ("plant-3", ADC(Pin(28))),
+)
+
+wlan = network.WLAN(network.STA_IF)
+wlan.active(True)
+wlan.connect(secrets.SSID, secrets.PASSWORD)
+
 
 class Display(SSD1306_I2C):
     def __init__(self, *args, **kwargs) -> None:
@@ -53,12 +71,16 @@ class Calibration:
 
 cal = Calibration()
 display = Display(128, 64, I2C(0, scl=Pin(1), sda=Pin(0), freq=200000))
-sensors = ADC(Pin(26)), ADC(Pin(27)), ADC(Pin(28))
 
 while True:
     display.clear()
-    for sensor in sensors:
-        reading = (cal.max - sensor.read_u16()) * 100 / cal.diff
-        display.add_content(f"{round(reading, 2)} %")
+    readings = {}
+    for plant, pin in PLANT_TO_PIN_MAPPING:
+        reading = round((cal.max - pin.read_u16()) * 100 / cal.diff, 2)
+        readings[plant] = reading
+        display.add_content(f"{reading} %")
     display.display_content()
+    response = urequests.post(f"{secrets.RPI_HOST}/pico",
+                              headers={'content-type': 'application/json'},
+                              data=ujson.dumps(readings))
     utime.sleep(2)

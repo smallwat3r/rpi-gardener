@@ -5,4 +5,3 @@ flask-sock
 gunicorn
 python-dotenv
 pillow
-mpremote

@@ -28,3 +28,10 @@ class Reading:
     temperature: Measure
     humidity: Measure
     recording_time: datetime
+
+
+@dataclass
+class PicoReading:
+    plant_id: str
+    moisture: Measure
+    recording_time: datetime

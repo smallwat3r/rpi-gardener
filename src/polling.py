@@ -28,7 +28,7 @@ logger = logging.getLogger("polling-service")
 
 def _init_db() -> None:
     with Db() as db:
-        db.commit(Sql.from_file("init_table.sql"))
+        db.commit(Sql.from_file("init_tables.sql"))
 
 
 @dataclass

@@ -10,10 +10,12 @@ from flask_sock import Sock
 
 from ._config import FLASK_SECRET_KEY, POLLING_FREQUENCY_SEC
 from ._db import Db, Sql, SqlRow
+from .api import pico
 
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = bool(environ.get("RELOAD"))
 app.secret_key = FLASK_SECRET_KEY
+app.register_blueprint(pico)
 
 sock = Sock(app)
 

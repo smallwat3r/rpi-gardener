@@ -15,14 +15,17 @@ from adafruit_dht import DHT22
 from board import D17
 
 from rpi import logging
-from rpi.lib.config import (DHT22_BOUNDS, POLLING_FREQUENCY_SEC,
-                          THRESHOLD_RULES, MeasureName)
+from rpi.dht._display import display
+from rpi.dht._worker import start_worker
+from rpi.lib.config import (
+    DHT22_BOUNDS,
+    POLLING_FREQUENCY_SEC,
+    THRESHOLD_RULES,
+    MeasureName,
+)
 from rpi.lib.db import Db, Sql
 from rpi.lib.events import Event, queue
 from rpi.lib.reading import Measure, Reading, State, Unit
-
-from ._display import display
-from ._worker import start_worker
 
 logger = logging.getLogger("polling-service")
 

@@ -1,9 +1,10 @@
 from threading import Thread
 from time import sleep
 
-from .. import logging
-from ..lib.config import NOTIFICATION_SERVICE_ENABLED
-from ..lib.events import queue
+from rpi import logging
+from rpi.lib.config import NOTIFICATION_SERVICE_ENABLED
+from rpi.lib.events import queue
+
 from ._notifications import Gmail
 
 logger = logging.getLogger("worker-thread")

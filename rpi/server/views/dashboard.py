@@ -7,8 +7,8 @@ from flask import (Blueprint, Request, flash, redirect,
                    render_template, request, url_for)
 from flask_sock import Sock
 
-from ...lib.config import POLLING_FREQUENCY_SEC
-from ...lib.db import Db, Sql, SqlRow
+from rpi.lib.config import POLLING_FREQUENCY_SEC
+from rpi.lib.db import Db, Sql, SqlRow
 
 dashboard = Blueprint("dashboard", __name__)
 sock = Sock(dashboard)

@@ -6,7 +6,7 @@ from board import SCL, SDA
 from busio import I2C
 from PIL import Image, ImageDraw, ImageFont
 
-from ..lib.reading import Reading
+from rpi.lib.reading import Reading
 
 _ScreenSize = namedtuple("ScreenSize", "w h")
 _size = _ScreenSize(128, 64)

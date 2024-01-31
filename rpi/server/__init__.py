@@ -2,7 +2,8 @@ from os import environ
 
 from flask import Flask
 
-from ..lib.config import FLASK_SECRET_KEY
+from rpi.lib.config import FLASK_SECRET_KEY
+
 from .api import pico
 from .views import dashboard
 

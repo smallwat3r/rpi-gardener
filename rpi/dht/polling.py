@@ -14,12 +14,13 @@ from typing import Callable
 from adafruit_dht import DHT22
 from board import D17
 
-from .. import logging
-from ..lib.config import (DHT22_BOUNDS, POLLING_FREQUENCY_SEC,
+from rpi import logging
+from rpi.lib.config import (DHT22_BOUNDS, POLLING_FREQUENCY_SEC,
                           THRESHOLD_RULES, MeasureName)
-from ..lib.db import Db, Sql
-from ..lib.events import Event, queue
-from ..lib.reading import Measure, Reading, State, Unit
+from rpi.lib.db import Db, Sql
+from rpi.lib.events import Event, queue
+from rpi.lib.reading import Measure, Reading, State, Unit
+
 from ._display import display
 from ._worker import start_worker
 

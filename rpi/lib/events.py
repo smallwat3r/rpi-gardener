@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Deque
 
-from .. import logging
+from rpi import logging
+
 from .config import Threshold
 from .reading import Measure
 

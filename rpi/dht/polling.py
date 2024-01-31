@@ -14,13 +14,13 @@ from typing import Callable
 from adafruit_dht import DHT22
 from board import D17
 
-from . import logging
-from ._config import (DHT22_BOUNDS, POLLING_FREQUENCY_SEC,
-                      THRESHOLD_RULES, MeasureName)
-from ._db import Db, Sql
+from .. import logging
+from ..lib.config import (DHT22_BOUNDS, POLLING_FREQUENCY_SEC,
+                          THRESHOLD_RULES, MeasureName)
+from ..lib.db import Db, Sql
+from ..lib.events import Event, queue
+from ..lib.reading import Measure, Reading, State, Unit
 from ._display import display
-from ._events import Event, queue
-from ._reading import Measure, Reading, State, Unit
 from ._worker import start_worker
 
 logger = logging.getLogger("polling-service")

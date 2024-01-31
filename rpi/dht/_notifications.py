@@ -4,9 +4,9 @@ from dataclasses import asdict
 from email.message import EmailMessage
 from smtplib import SMTP
 
-from . import logging
-from ._config import GmailConfig
-from ._events import Event
+from .. import logging
+from ..lib.config import GmailConfig
+from ..lib.events import Event
 
 logger = logging.getLogger("notification-service")
 

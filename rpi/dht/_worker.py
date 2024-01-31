@@ -1,9 +1,9 @@
 from threading import Thread
 from time import sleep
 
-from . import logging
-from ._config import NOTIFICATION_SERVICE_ENABLED
-from ._events import queue
+from .. import logging
+from ..lib.config import NOTIFICATION_SERVICE_ENABLED
+from ..lib.events import queue
 from ._notifications import Gmail
 
 logger = logging.getLogger("worker-thread")

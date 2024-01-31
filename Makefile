@@ -33,7 +33,7 @@ mpdeps:  ## Install Micropython requirements in virtual environment
 
 .PHONY: flask
 flask:  ## Start the Flask server (for development)
-	RELOAD=1 $(PYTHON) -m flask --app $(RPI)/server run --host 0.0.0.0 --debug
+	RELOAD=1 $(PYTHON) -m flask --app $(RPI).server:app run --host 0.0.0.0 --debug
 
 .PHONY: server
 server:  ## Start the Flask server with Gunicorn (binded for Nginx)
@@ -42,4 +42,4 @@ server:  ## Start the Flask server with Gunicorn (binded for Nginx)
 
 .PHONY: polling
 polling:  ## Start the polling service
-	$(PYTHON) -m $(RPI).polling
+	$(PYTHON) -m $(RPI).dht.polling

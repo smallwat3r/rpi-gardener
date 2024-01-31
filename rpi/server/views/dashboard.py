@@ -1,23 +1,17 @@
 import json
 from datetime import datetime, timedelta
-from os import environ
 from time import sleep
 from typing import Callable
 
-from flask import (Flask, Request, flash, redirect, render_template,
-                   request, url_for)
+from flask import (Blueprint, Request, flash, redirect,
+                   render_template, request, url_for)
 from flask_sock import Sock
 
-from ._config import FLASK_SECRET_KEY, POLLING_FREQUENCY_SEC
-from ._db import Db, Sql, SqlRow
-from .api import pico
+from ...lib.config import POLLING_FREQUENCY_SEC
+from ...lib.db import Db, Sql, SqlRow
 
-app = Flask(__name__)
-app.config["TEMPLATES_AUTO_RELOAD"] = bool(environ.get("RELOAD"))
-app.secret_key = FLASK_SECRET_KEY
-app.register_blueprint(pico)
-
-sock = Sock(app)
+dashboard = Blueprint("dashboard", __name__)
+sock = Sock(dashboard)
 
 
 def _get_initial_data(from_time: datetime) -> list[SqlRow]:
@@ -49,7 +43,7 @@ def _get_qs(request: Request) -> tuple[int, datetime]:
     return hours, datetime.now() - timedelta(hours=hours)
 
 
-@app.get("/")
+@dashboard.get("/")
 def index() -> str:
     try:
         hours, from_time = _get_qs(request)

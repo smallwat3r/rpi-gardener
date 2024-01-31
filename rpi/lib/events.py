@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Deque
 
-from . import logging
-from ._config import Threshold
-from ._reading import Measure
+from .. import logging
+from .config import Threshold
+from .reading import Measure
 
 logger = logging.getLogger("queue-service")
 

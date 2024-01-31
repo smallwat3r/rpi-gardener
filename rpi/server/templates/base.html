@@ -20,6 +20,7 @@
   </body>
   <script>
     const data = {{ data | safe }};
+    const picoData = {{ pico_data | safe }};
     const hours = {{ hours }};
   </script>
   <script type="text/javascript" src="{{ url_for('static', filename='js/charts.js') }}"></script>

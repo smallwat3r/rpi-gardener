@@ -8,6 +8,7 @@ from flask_sock import Sock
 from rpi.lib.config import POLLING_FREQUENCY_SEC
 from rpi.server.views._queries import (
     get_initial_dht_data,
+    get_initial_pico_data,
     get_latest_dht_data,
     get_stats_dht_data,
 )
@@ -24,8 +25,13 @@ def index() -> str:
         flash(str(err))
         return redirect(url_for("index"))
     return render_template(
-        "index.html", hours=hours, data=get_initial_dht_data(from_time),
-        stats=get_stats_dht_data(from_time), latest=get_latest_dht_data())
+        "index.html",
+        hours=hours,
+        data=get_initial_dht_data(from_time),
+        stats=get_stats_dht_data(from_time),
+        latest=get_latest_dht_data(),
+        pico_data=get_initial_pico_data(from_time)
+    )
 
 
 sock = Sock(dashboard)

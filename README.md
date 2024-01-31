@@ -101,7 +101,7 @@ configs for exposing your server to the Internet.
 Link the app static files to `/var/www/html`
 
     sudo rm /var/www/html/*
-    sudo ln -s "$(pwd)/rpi/static" /var/www/html
+    sudo ln -s "$(pwd)/rpi/server/static" /var/www/html
     
 Link the Nginx configuration files
 

@@ -14,7 +14,7 @@ Pico board.
 It stores the results every 2 seconds in a local Sqlite database, and renders 
 them on a bare simple frontend using ChartJS powered by Flask and web-sockets.
 It also implements a simple notification service, and render the live readings
-from both the Rpi and the Pico on 128x64 OLED (SSD1306) displays.
+from both the RPi and the Pico on 128x64 OLED (SSD1306) displays.
 
 Readings from the DHT22 happens directly from the RPi. But readings from the 
 capacitative soil moisture sensors, are sent over HTTP from the Pico to the 

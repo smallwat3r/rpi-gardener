@@ -55,7 +55,7 @@ class Display(SSD1306_I2C):
     def display_content(self):
         start, offset = 10, 10
         for text in self._content:
-            self.text(text, 35, start + offset)
+            self.text(text, 0, start + offset)
             offset += 10
         self.show()
 
@@ -72,15 +72,25 @@ class Calibration:
 
 cal = Calibration()
 display = Display(128, 64, I2C(0, scl=Pin(1), sda=Pin(0), freq=200000))
+display_failure = False
 
 while True:
-    display.clear()
+    try:
+        display.clear()
+        display_failure = False
+    except OSError:
+        display_failure = True
     readings = {}
     for plant, pin in PLANT_TO_PIN_MAPPING:
         reading = round((cal.max - pin.read_u16()) * 100 / cal.diff, 2)
         readings[plant] = reading
-        display.add_content(f"{reading} %")
-    display.display_content()
+        if not display_failure:
+            display.add_content(f"[{plant[-1]}]: {reading} %")
+    if not display_failure:
+        try:
+            display.display_content()
+        except OSError:
+            pass
     response = urequests.post(f"{secrets.RPI_HOST}/pico",
                               headers={'content-type': 'application/json'},
                               data=ujson.dumps(readings))

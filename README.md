@@ -1,11 +1,24 @@
-# RPi DHT-22 server
+# RPi Gardener
 
-This project contains necessarry files and scripts to read temperature and 
-humidity data from a DHT22 sensor, wired to a Raspberry Pi 4. It stores the 
-results every 2 seconds in a local Sqlite database, and renders them on a bare 
-simple frontend using ChartJS powered by Flask and web-sockets. It also 
-implements a simple notification service, and render the live readings on a 
-128x64 OLED (SSD1306) display.
+Note: while I try to keep the main branch of this project in a working state,
+this project is still very work in progress.
+
+The goal of this project is to be able to monitor the environment, to ensure
+its propice for growing plants.
+
+You will find in this repository all necessarry files and scripts to read 
+temperature and humidity data from a DHT22 sensor, wired to a Raspberry Pi 4 
+Model B, as well as capacitative soil moisture sensors, wired to a Raspberry 
+Pico board. 
+
+It stores the results every 2 seconds in a local Sqlite database, and renders 
+them on a bare simple frontend using ChartJS powered by Flask and web-sockets.
+It also implements a simple notification service, and render the live readings
+from both the Rpi and the Pico on 128x64 OLED (SSD1306) displays.
+
+Readings from the DHT22 happens directly from the RPi. But readings from the 
+capacitative soil moisture sensors, are sent over HTTP from the Pico to the 
+RPi.
 
 ![dashboard](./ext/dashboard.png)
 
@@ -88,7 +101,7 @@ configs for exposing your server to the Internet.
 Link the app static files to `/var/www/html`
 
     sudo rm /var/www/html/*
-    sudo ln -s "$(pwd)/src/static" /var/www/html
+    sudo ln -s "$(pwd)/rpi/static" /var/www/html
     
 Link the Nginx configuration files
 

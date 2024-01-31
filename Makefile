@@ -1,5 +1,6 @@
-SHELL    = /bin/bash
-SRC_DIR  = src
+SHELL  = /bin/bash
+RPI    = rpi
+PICO   = pico
 
 .PHONY: help
 help:  ## Show this help menu
@@ -32,13 +33,13 @@ mpdeps:  ## Install Micropython requirements in virtual environment
 
 .PHONY: flask
 flask:  ## Start the Flask server (for development)
-	RELOAD=1 $(PYTHON) -m flask --app src/server run --host 0.0.0.0 --debug
+	RELOAD=1 $(PYTHON) -m flask --app $(RPI)/server run --host 0.0.0.0 --debug
 
 .PHONY: server
 server:  ## Start the Flask server with Gunicorn (binded for Nginx)
-	$(PYTHON) -m gunicorn src.server:app --bind=unix:/tmp/gunicorn.sock \
+	$(PYTHON) -m gunicorn $(RPI).server:app --bind=unix:/tmp/gunicorn.sock \
 		--workers 3 --threads 100
 
 .PHONY: polling
 polling:  ## Start the polling service
-	$(PYTHON) -m src.polling
+	$(PYTHON) -m $(RPI).polling

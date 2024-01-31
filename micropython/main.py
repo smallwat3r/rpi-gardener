@@ -17,6 +17,7 @@
 #      SSID_PASSWORD=<ssid password>
 #      RPI_HOST=192.168.1.XXX
 
+import gc
 import network
 import ujson
 import urequests
@@ -84,3 +85,4 @@ while True:
                               headers={'content-type': 'application/json'},
                               data=ujson.dumps(readings))
     utime.sleep(2)
+    gc.collect()

@@ -14,19 +14,19 @@ dashboard = Blueprint("dashboard", __name__)
 sock = Sock(dashboard)
 
 
-def _get_initial_data(from_time: datetime) -> list[SqlRow]:
+def _get_initial_dht_data(from_time: datetime) -> list[SqlRow]:
     with Db(dict_row_factory=True) as db:
-        return db.query(Sql.from_file("chart.sql"), (from_time,)).fetchall()
+        return db.query(Sql.from_file("dht_chart.sql"), (from_time,)).fetchall()
 
 
-def _get_latest_data() -> SqlRow:
+def _get_latest_dht_data() -> SqlRow:
     with Db(dict_row_factory=True) as db:
-        return db.query(Sql.from_file("latest_recording.sql")).fetchone()
+        return db.query(Sql.from_file("dht_latest_recording.sql")).fetchone()
 
 
-def _get_stats_data(from_time: datetime) -> SqlRow:
+def _get_stats_dht_data(from_time: datetime) -> SqlRow:
     with Db(dict_row_factory=True) as db:
-        return db.query(Sql.from_file("stats.sql"), (from_time,)).fetchone()
+        return db.query(Sql.from_file("dht_stats.sql"), (from_time,)).fetchone()
 
 
 class BadParameter(Exception):
@@ -52,9 +52,9 @@ def index() -> str:
         return redirect(url_for("index"))
     return render_template("index.html",
                            hours=hours,
-                           data=_get_initial_data(from_time),
-                           stats=_get_stats_data(from_time),
-                           latest=_get_latest_data())
+                           data=_get_initial_dht_data(from_time),
+                           stats=_get_stats_dht_data(from_time),
+                           latest=_get_latest_dht_data())
 
 
 def _websocket_loop(sock: Sock, func: Callable, *args, **kwargs) -> None:
@@ -63,12 +63,12 @@ def _websocket_loop(sock: Sock, func: Callable, *args, **kwargs) -> None:
         sock.send(json.dumps(func(*args, **kwargs)))
 
 
-@sock.route("/latest")
+@sock.route("/dht/latest")
 def latest(sock: Sock) -> None:
-    _websocket_loop(sock, _get_latest_data)
+    _websocket_loop(sock, _get_latest_dht_data)
 
 
-@sock.route("/stats")
+@sock.route("/dht/stats")
 def stats(sock: Sock) -> None:
     _, from_time = _get_qs(request)
-    _websocket_loop(sock, _get_stats_data, from_time)
+    _websocket_loop(sock, _get_stats_dht_data, from_time)

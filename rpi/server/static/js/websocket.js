@@ -1,6 +1,6 @@
-const latest = new WebSocket(`ws://${location.host}/latest`);
+const dhtLatest = new WebSocket(`ws://${location.host}/dht/latest`);
 let lastEpoch = null;
-latest.onmessage = function(message) {
+dhtLatest.onmessage = function(message) {
   let data = JSON.parse(message.data);
   if (data.epoch === lastEpoch) return;
   cTemperature.textContent = data.temperature;
@@ -13,8 +13,8 @@ latest.onmessage = function(message) {
   chartRepr.update();
   lastEpoch = data.epoch;
 }
-const average = new WebSocket(`ws://${location.host}/stats?hours=${hours}`);
-average.onmessage = function(message) {
+const dhtAverage = new WebSocket(`ws://${location.host}/dht/stats?hours=${hours}`);
+dhtAverage.onmessage = function(message) {
   let data = JSON.parse(message.data);
   aTemperature.textContent = data.avg_temperature;
   minTemperature.textContent = data.min_temperature;

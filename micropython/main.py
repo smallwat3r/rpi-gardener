@@ -35,7 +35,7 @@ PLANT_TO_PIN_MAPPING = (
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
-wlan.connect(secrets.SSID, secrets.PASSWORD)
+wlan.connect(secrets.SSID, secrets.SSID_PASSWORD)
 
 
 class Display(SSD1306_I2C):

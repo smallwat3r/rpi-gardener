@@ -1,15 +1,26 @@
 {% extends 'base.html' %}
+{% block css %}
+  <style>
+    .blue  { color: #007D73; }
+    .red   { color: #AE0000; }
+    .left  { float: left; }
+    .right { float: right; text-align: right; }
+    .plant-1 { color: #8000FF}
+    .plant-2 { color: #00DAFF}
+    .plant-3 { color: #ff3399}
+  </style>
+{% endblock  %}
 {% block container %}
   <form method="GET">
-    <label for="hours">Number of hours ago</label>
+    <label for="hours">Hours ago</label>
     <input type="number" min="1" max="24" id="hours"
            name="hours" value="{{ hours }}" />
     <input type="submit" />
   </form>
   <hr />
-  <i>Last update: <span id="cRecordingTime">
-    {{ latest["recording_time"] }}</span>
-  </i>
+  <span>RPi 4 DHT22 - <i>Last update: <span id="cRecordingTime">
+    {{ latest["recording_time"] }}</span></i>
+  </span>
   <div>
     <p class="red left">Temperature
       <span id="cTemperature">{{ latest["temperature"] }}</span>c
@@ -23,8 +34,22 @@
        min <span id="minHumidity">{{ stats["min_humidity"] }}</span>%,
        max <span id="maxHumidity">{{ stats["max_humidity"] }}</span>%)
     </p>
-    <canvas height="110" id="chart"></canvas>
-    <canvas height="110" id="picoChart"></canvas>
+    <canvas height="55" id="chart"></canvas>
+  </div>
+  <hr />
+  <span>RPi Pico Moisture - <i>Last update: <span id="picoRecordingTime">
+    {{ pico_latest[0]["recording_time"] }}</span></i>
+  </span>
+  <div>
+    <p>
+      {% for record in pico_latest %}
+        <span class="{{ record['plant_id'] }}" style="margin-right: 5%;">
+          {{ record["plant_id"] }}
+          <span id="moisture{{ record['plant_id'] }}">{{ record["moisture"] }}</span>%
+        </span>
+      {% endfor %}
+    </p>
+    <canvas height="55" id="picoChart"></canvas>
   </div>
 {% endblock %}
 {% block script %}
@@ -32,6 +57,7 @@
     const data = {{ data | safe }};
     const picoData = {{ pico_data | safe }};
     const hours = {{ hours }};
+    const picoLatestInit = {{ pico_latest | safe }};
   </script>
   <script type="text/javascript" src="{{ url_for('static', filename='js/charts.js') }}"></script>
   <script type="text/javascript" src="{{ url_for('static', filename='js/websocket.js') }}"></script>

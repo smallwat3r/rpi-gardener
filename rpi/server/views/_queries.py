@@ -27,3 +27,8 @@ def _pico_dict_factory(cursor: Cursor, row: tuple) -> SqlRow:
 def get_initial_pico_data(from_time: datetime) -> list[SqlRow]:
     with Db(row_factory=_pico_dict_factory) as db:
         return db.query(Sql.from_file("pico_chart.sql"), (from_time,)).fetchall()
+
+
+def get_latest_pico_data() -> SqlRow:
+    with Db(row_factory=dict_factory) as db:
+        return db.query(Sql.from_file("pico_latest_recording.sql")).fetchall()

@@ -23,3 +23,20 @@ dhtAverage.onmessage = function(message) {
   minHumidity.textContent = data.min_humidity;
   maxHumidity.textContent = data.max_humidity;
 }
+const picoLatest = new WebSocket(`ws://${location.host}/pico/latest`);
+let picoLastEpoch = null;
+picoLatest.onmessage = function(message) {
+  let data = JSON.parse(message.data);
+  if (data[0].epoch === picoLastEpoch) return;
+  picoRecordingTime.textContent = data[0].recording_time;
+  for (let index in data) {
+    document.getElementById(`moisture${data[index].plant_id}`).textContent =
+      data[index].moisture;
+    picoChartRepr.data.datasets[index].data.pop();
+    let newData = {'epoch': data[index].epoch};
+    newData[`${data[index].plant_id}`] = data[index].moisture;
+    picoChartRepr.data.datasets[index].data.unshift(newData);
+  }
+  picoChartRepr.update();
+  picoLastEpoch = data[0].epoch;
+}

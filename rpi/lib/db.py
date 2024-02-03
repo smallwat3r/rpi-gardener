@@ -32,7 +32,7 @@ def dict_factory(cursor: sqlite3.Cursor, row: tuple) -> SqlRow:
 
 class Db:
     def __init__(self, row_factory: Callable | None = None) -> None:
-        self.con = sqlite3.connect(_DB_NAME, autocommit=False)
+        self.con = sqlite3.connect(_DB_NAME, autocommit=False, timeout=10)
         if row_factory:
             self.con.row_factory = row_factory
         self.cur = self.con.cursor()

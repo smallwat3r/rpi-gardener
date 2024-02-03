@@ -29,34 +29,24 @@ const chartRepr = new Chart(document.getElementById('chart'), {
     interaction: {intersect: false, mode: 'index'},
   }
 });
+const plantColors = ['#8000FF', '#00DAFF', '#ff3399'];
+let picoDataset = [];
+for (let index in picoLatestInit) {
+  let plantId = picoLatestInit[index]['plant_id'];
+  picoDataset.push({
+    label: `${plantId} %`,
+    data: picoData,
+    borderColor: plantColors[index],
+    parsing: {yAxisKey: plantId, xAxisKey: 'epoch'}
+  });
+};
 const picoChartRepr = new Chart(document.getElementById('picoChart'), {
   type: 'line',
-  data: {
-    datasets: [{
-      label: '1 Moisture (%)',
-      data: picoData,
-      borderColor: '#0949B7',
-      yAxisID: 'y',
-      parsing: {yAxisKey: 'plant-1', xAxisKey: 'epoch'}
-    }, {
-      label: '2 Moisture (%)',
-      data: picoData,
-      borderColor: '#194D33',
-      yAxisID: 'y',
-      parsing: {yAxisKey: 'plant-2', xAxisKey: 'epoch'}
-    }, {
-    }, {
-      label: '3 Moisture (%)',
-      data: picoData,
-      borderColor: '#B76609',
-      yAxisID: 'y',
-      parsing: {yAxisKey: 'plant-3', xAxisKey: 'epoch'}
-    }]
-  },
+  data: {datasets: picoDataset},
   options: {
     animation: {duration: 0},
     scales: {x: {type: 'time', ticks: {stepSize: 2}, time: {unit: 'second', displayFormats: {second: 'HH:mm'}}},
-             y: {type: 'linear', display: true, suggestedMin: 10, suggestedMax: 90}},
+             y: {type: 'linear', display: true, suggestedMin: 10, suggestedMax: 90, min: 0}},
     interaction: {intersect: false, mode: 'index'},
   }
 });

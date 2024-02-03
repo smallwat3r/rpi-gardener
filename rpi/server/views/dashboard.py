@@ -10,6 +10,7 @@ from rpi.server.views._queries import (
     get_initial_dht_data,
     get_initial_pico_data,
     get_latest_dht_data,
+    get_latest_pico_data,
     get_stats_dht_data,
 )
 from rpi.server.views._utils import BadParameter, get_qs
@@ -30,7 +31,8 @@ def index() -> str:
         data=get_initial_dht_data(from_time),
         stats=get_stats_dht_data(from_time),
         latest=get_latest_dht_data(),
-        pico_data=get_initial_pico_data(from_time)
+        pico_data=get_initial_pico_data(from_time),
+        pico_latest=get_latest_pico_data(),
     )
 
 
@@ -52,3 +54,8 @@ def latest(sock: Sock) -> None:
 def stats(sock: Sock) -> None:
     _, from_time = get_qs(request)
     _websocket_loop(sock, get_stats_dht_data, from_time)
+
+
+@sock.route("/pico/latest")
+def pico_latest(sock: Sock) -> None:
+    _websocket_loop(sock, get_latest_pico_data)

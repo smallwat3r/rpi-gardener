@@ -125,6 +125,8 @@ You can use `screen -ls` to list the active screen sessions, and re-attach to
 any session using `session -r <id>`, allowing you to tail logs, or kill 
 sessions.
 
+For the Pico service, see [here](./pico/README.md).
+
 ### Nginx
 
 Lastly, start Nginx 

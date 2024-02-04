@@ -13,7 +13,7 @@ import secrets
 
 
 class Plant:
-    def __init__(self, name, adc_pin, calibration) -> None:
+    def __init__(self, name, adc_pin, calibration):
         self.name = name
         self.pin = adc_pin
         self.cal = calibration
@@ -24,7 +24,7 @@ class Plant:
 
 
 class Calibration:
-    def __init__(self, cmin, cmax) -> None:
+    def __init__(self, cmin, cmax):
         self.min = cmin
         self.max = cmax
 
@@ -48,7 +48,7 @@ wlan.connect(secrets.SSID, secrets.SSID_PASSWORD)
 
 
 class Display(SSD1306_I2C):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._content = []
 

@@ -11,6 +11,10 @@ from ssd1306 import SSD1306_I2C
 
 import secrets
 
+wlan = network.WLAN(network.STA_IF)
+wlan.active(True)
+wlan.connect(secrets.SSID, secrets.SSID_PASSWORD)
+
 
 class Plant:
     def __init__(self, name, adc_pin, calibration):
@@ -41,10 +45,6 @@ plants = (
     Plant("plant-2", ADC(Pin(27)), Calibration(19600, 45000)),
     Plant("plant-3", ADC(Pin(28)), Calibration(14500, 44000)),
 )
-
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-wlan.connect(secrets.SSID, secrets.SSID_PASSWORD)
 
 
 class Display(SSD1306_I2C):

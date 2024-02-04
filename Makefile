@@ -52,4 +52,4 @@ mpedit:  ## Edit remote Pico file
 .PHONY: mprestart
 mprestart:  ## Restart main.py script on the Pico
 	$(MPREMOTE) soft-reset
-	$(MPREMOTE) exec 'import main'
+	$(MPREMOTE) exec --no-follow 'import main'

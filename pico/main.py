@@ -11,10 +11,35 @@ from ssd1306 import SSD1306_I2C
 
 import secrets
 
-PLANT_TO_PIN_MAPPING = (
-    ("plant-1", ADC(Pin(26))),
-    ("plant-2", ADC(Pin(27))),
-    ("plant-3", ADC(Pin(28))),
+
+class Plant:
+    def __init__(self, name, adc_pin, calibration) -> None:
+        self.name = name
+        self.pin = adc_pin
+        self.cal = calibration
+
+    @property
+    def id(self):
+        return self.name[-1]
+
+
+class Calibration:
+    def __init__(self, cmin, cmax) -> None:
+        self.min = cmin
+        self.max = cmax
+
+    @property
+    def diff(self):
+        return self.max - self.min
+
+
+# after some testing, it seems calibration change from device to device,
+# so I've calibrated them independently to ensure we get the most accurate
+# readings.
+plants = (
+    Plant("plant-1", ADC(Pin(26)), Calibration(15600, 43500)),
+    Plant("plant-2", ADC(Pin(27)), Calibration(19600, 45000)),
+    Plant("plant-3", ADC(Pin(28)), Calibration(14500, 44000)),
 )
 
 wlan = network.WLAN(network.STA_IF)
@@ -43,17 +68,6 @@ class Display(SSD1306_I2C):
         self.show()
 
 
-class Calibration:
-    def __init__(self) -> None:
-        self.min = 17000
-        self.max = 47000
-
-    @property
-    def diff(self):
-        return self.max - self.min
-
-
-cal = Calibration()
 display = Display(128, 64, I2C(0, scl=Pin(1), sda=Pin(0), freq=200000))
 display_failure = False
 
@@ -64,11 +78,16 @@ while True:
     except OSError:
         display_failure = True
     readings = {}
-    for plant, pin in PLANT_TO_PIN_MAPPING:
-        reading = round((cal.max - pin.read_u16()) * 100 / cal.diff, 2)
-        readings[plant] = reading
+    for plant in plants:
+        reading = round((plant.cal.max - plant.pin.read_u16())
+                        * 100 / plant.cal.diff, 2)
+        if reading < 0:
+            reading = 0
+        elif reading > 100:
+            reading = 100
+        readings[plant.name] = reading
         if not display_failure:
-            display.add_content(f"[{plant[-1]}]: {reading} %")
+            display.add_content(f"[{plant.id}]: {reading} %")
     if not display_failure:
         try:
             display.display_content()

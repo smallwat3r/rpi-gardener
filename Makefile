@@ -13,6 +13,7 @@ VENV           = .venv
 VENV_PYTHON    = $(VENV)/bin/python
 SYSTEM_PYTHON  = $(shell which python3.12)
 PYTHON         = $(wildcard $(VENV_PYTHON))
+MPREMOTE       = $(VENV)/bin/mpremote
 
 $(VENV_PYTHON):
 	rm -rf $(VENV)
@@ -43,3 +44,12 @@ server:  ## Start the Flask server with Gunicorn (binded for Nginx)
 .PHONY: polling
 polling:  ## Start the polling service
 	$(PYTHON) -m $(RPI).dht.polling
+
+.PHONY: mpedit
+mpedit:  ## Edit remote Pico file
+	EDITOR=vim $(MPREMOTE) edit $(file)
+
+.PHONY: mprestart
+mprestart:  ## Restart main.py script on the Pico
+	$(MPREMOTE) soft-reset
+	$(MPREMOTE) exec 'import main'

@@ -28,8 +28,8 @@ communicate with our main RPi.
 Other useful commands:
 * Edit a file directly on the Pico
 
-        EDITOR=vim mpremote edit <file>
+        make mpedit file=<file>
 
 * Restart the main script on the Pico
 
-        mpremote exec 'import main'
+        make mprestart

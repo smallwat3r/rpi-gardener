@@ -21,6 +21,7 @@ capacitative soil moisture sensors, are sent over HTTP from the Pico to the
 RPi.
 
 ![dashboard](./ext/dashboard.png)
+![installation](./ext/installation.jpeg)
 
 ## Requirements
 

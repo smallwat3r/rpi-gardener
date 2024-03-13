@@ -1,7 +1,7 @@
 # RPi Gardener
 
 Note: while I try to keep the main branch of this project in a working state,
-this project is still very work in progress.
+this project is still very much work in progress.
 
 The goal of this project is to be able to monitor the environment, to ensure
 its propice for growing plants.

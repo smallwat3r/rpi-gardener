@@ -52,6 +52,7 @@ Create a Python virtual environment and install the Python dependencies
 Create an `.env` file at the root of the repository, and fill in the required
 values. Ensure to keep this file secret, as it contains some sensitive values.
 
+    ```sh
     # .env
     
     MAX_TEMPERATURE=25
@@ -78,6 +79,7 @@ values. Ensure to keep this file secret, as it contains some sensitive values.
     GMAIL_PASSWORD=''
     # subject title to use in email notifications
     GMAIL_SUBJECT='DHT-22 sensor alert!'
+    ```
 
 ## Development
 

@@ -52,34 +52,34 @@ Create a Python virtual environment and install the Python dependencies
 Create an `.env` file at the root of the repository, and fill in the required
 values. Ensure to keep this file secret, as it contains some sensitive values.
 
-    ```sh
-    # .env
-    
-    MAX_TEMPERATURE=25
-    MIN_TEMPERATURE=18
-    MAX_HUMIDITY=65
-    MIN_HUMIDITY=40
-    
-    # flask secret key
-    SECRET_KEY=a-random-secret-string
-    
-    # enables system notifications, set to 0 to disable
-    ENABLE_NOTIFICATION_SERVICE=1 
+```sh
+# .env
 
-    # if ENABLE_NOTIFICATION_SERVICE is set, the following values are 
-    # required, else you can leave them empty.
-    
-    # Gmail account email sender
-    GMAIL_SENDER='foo@example.com'
-    # comma separated list of email recipients 
-    GMAIL_RECIPIENTS='foo@example.com, bar@example.com'
-    # Gmail username used for auth
-    GMAIL_USERNAME='foo@example.com'
-    # Gmail account password (obtained with Gmail app passwords)
-    GMAIL_PASSWORD=''
-    # subject title to use in email notifications
-    GMAIL_SUBJECT='DHT-22 sensor alert!'
-    ```
+MAX_TEMPERATURE=25
+MIN_TEMPERATURE=18
+MAX_HUMIDITY=65
+MIN_HUMIDITY=40
+
+# flask secret key
+SECRET_KEY=a-random-secret-string
+
+# enables system notifications, set to 0 to disable
+ENABLE_NOTIFICATION_SERVICE=1 
+
+# if ENABLE_NOTIFICATION_SERVICE is set, the following values are 
+# required, else you can leave them empty.
+
+# Gmail account email sender
+GMAIL_SENDER='foo@example.com'
+# comma separated list of email recipients 
+GMAIL_RECIPIENTS='foo@example.com, bar@example.com'
+# Gmail username used for auth
+GMAIL_USERNAME='foo@example.com'
+# Gmail account password (obtained with Gmail app passwords)
+GMAIL_PASSWORD=''
+# subject title to use in email notifications
+GMAIL_SUBJECT='DHT-22 sensor alert!'
+```
 
 ## Development
 

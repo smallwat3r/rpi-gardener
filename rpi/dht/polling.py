@@ -82,17 +82,6 @@ def _check_dht_boundaries(reading: Reading) -> Reading:
     return reading
 
 
-def after_run_hook(func: Callable[[DHT22], Reading]) -> Reading:
-    """Hook to run after polling."""
-    def wrapper(*args, **kwargs) -> Reading:
-        reading = func(*args, **kwargs)
-        _check_dht_boundaries(reading)
-        _audit_reading(reading)
-        return reading
-    return wrapper
-
-
-@after_run_hook
 def _poll(dht: DHT22, reading: Reading) -> Reading:
     """Poll the DHT22 sensor for new reading values."""
     reading.temperature.value = dht.temperature
@@ -101,6 +90,13 @@ def _poll(dht: DHT22, reading: Reading) -> Reading:
     logger.info("Read %s, %s", str(reading.temperature),
                 str(reading.humidity))
     display.render_reading(reading)
+    return reading
+
+
+def _audit(reading: Reading) -> Reading:
+    """Audit the reading."""
+    _check_dht_boundaries(reading)
+    _audit_reading(reading)
     return reading
 
 
@@ -128,7 +124,7 @@ def main() -> None:
         # as their base class, so they can fall into the same suppression
         # process (due to incorrect readings from the DHT sensor).
         with suppress(RuntimeError):
-            _persist(_poll(dht, reading))
+            _persist(_audit(_poll(dht, reading)))
         sleep(POLLING_FREQUENCY_SEC)
 
 

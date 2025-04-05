@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-make polling &
-sudo make server &
+sudo systemctl start nginx
+screen -d -m make polling
+screen -d -m sudo make server

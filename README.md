@@ -118,7 +118,7 @@ Use `screen` in order to keep the scripts persistant over the SSH session
 
 Start with the polling service first
    
-    screen -d -m sudo make polling
+    screen -d -m make polling
     
 Then start the Gunicorn server
 

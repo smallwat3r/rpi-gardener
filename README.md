@@ -91,7 +91,7 @@ From another terminal window, run the flask server
 
     make flask
 
-You should be able to browse the app at <http://LOCAL-IP:5000/>
+You should be able to browse the app at <http://RPI-IP:5000/>
     
 ## Production(ish)
 
@@ -118,14 +118,14 @@ Use `screen` in order to keep the scripts persistant over the SSH session
 
 Start with the polling service first
    
-    screen -d -m make polling
+    screen -d -m sudo make polling
     
 Then start the Gunicorn server
 
-    screen -d -m make server
+    screen -d -m sudo make server
     
 You can use `screen -ls` to list the active screen sessions, and re-attach to
-any session using `session -r <id>`, allowing you to tail logs, or kill 
+any session using `screen -r <id>`, allowing you to tail logs, or kill 
 sessions.
 
 For the Pico service, see [here](./pico/README.md).
@@ -136,4 +136,4 @@ Lastly, start Nginx
 
     sudo systemctl start nginx
     
-You should be able to browse the app at <http://LOCAL-IP/>
+You should be able to browse the app at <http://RPI-IP/>

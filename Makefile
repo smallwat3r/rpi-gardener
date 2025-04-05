@@ -46,7 +46,7 @@ polling:  ## Start the polling service
 	$(PYTHON) -m $(RPI).dht.polling
 
 .PHONY: mpedit
-mpedit:  ## Edit remote Pico file
+mpedit:  ## Edit remote Pico file (make mpedit file=main.py)
 	EDITOR=vim $(MPREMOTE) edit $(file)
 
 .PHONY: mprestart

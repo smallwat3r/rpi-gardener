@@ -1,0 +1,14 @@
+[Unit]
+Description=RPi Gardener polling service
+After=network-online.target
+
+[Service]
+ExecStart=/bin/bash -c '(cd /home/pi/rpi-gardener && screen -d -m sudo make polling)'
+WorkingDirectory=/home/owner/rpi-gardener/
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=owner
+
+[Install]
+WantedBy=multi-user.target

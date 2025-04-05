@@ -38,11 +38,11 @@ class Calibration:
 
 
 # after some testing, it seems calibration change from device to device,
-# so I've calibrated them independently to ensure we get the most accurate
+# so I've calibrated them independently to ensure we get the most sensible
 # readings.
 plants = (
     Plant("plant-1", ADC(Pin(26)), Calibration(15600, 43500)),
-    Plant("plant-2", ADC(Pin(27)), Calibration(19600, 45000)),
+    Plant("plant-2", ADC(Pin(27)), Calibration(15600, 43500)),
     Plant("plant-3", ADC(Pin(28)), Calibration(14500, 44000)),
 )
 

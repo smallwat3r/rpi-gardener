@@ -4,7 +4,7 @@ After=network-online.target
 
 [Service]
 ExecStart=/bin/bash /home/pi/rpi-gardener/start.sh
-WorkingDirectory=/home/owner/rpi-gardener/
+WorkingDirectory=/home/pi/rpi-gardener/
 StandardOutput=inherit
 StandardError=inherit
 Restart=always

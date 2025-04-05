@@ -122,7 +122,7 @@ Start with the polling service first
     
 Then start the Gunicorn server
 
-    screen -d -m sudo make server
+    screen -d -m make server
     
 You can use `screen -ls` to list the active screen sessions, and re-attach to
 any session using `screen -r <id>`, allowing you to tail logs, or kill 

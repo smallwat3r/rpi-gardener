@@ -33,7 +33,9 @@ logger = logging.getLogger("polling-service")
 def _init_db() -> None:
     with Db() as db:
         db.commit(Sql.from_file("init_reading_table.sql"))
+        db.commit(Sql.from_file("idx_reading.sql"))
         db.commit(Sql.from_file("init_pico_reading_table.sql"))
+        db.commit(Sql.from_file("idx_pico_reading.sql"))
 
 
 @dataclass

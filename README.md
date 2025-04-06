@@ -20,8 +20,8 @@ Readings from the DHT22 happens directly from the RPi. But readings from the
 capacitative soil moisture sensors, are sent over HTTP from the Pico to the 
 RPi.
 
-![dashboard](./ext/dashboard.png)
-![installation](./ext/installation.jpeg)
+![dashboard](./img/dashboard.png)
+![installation](./img/installation.jpeg)
 
 ## Requirements
 
@@ -137,3 +137,7 @@ Lastly, start Nginx
     sudo systemctl start nginx
     
 You should be able to browse the app at <http://RPI-IP/>
+
+### Wiring
+
+![wiring](./img/wiring.jpeg)

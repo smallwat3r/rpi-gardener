@@ -140,4 +140,4 @@ You should be able to browse the app at <http://RPI-IP/>
 
 ### Wiring
 
-![wiring](./img/wiring.jpeg)
+![wiring](./img/wiring.png)

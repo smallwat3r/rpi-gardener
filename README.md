@@ -144,6 +144,6 @@ perform a soft restart and restart its loop every 3 hours:
 
     0 */3 * * * (cd /home/pi/rpi-gardener && make mprestart)
 
-### Wiring
+## Wiring
 
 ![wiring](./img/wiring.png)

@@ -112,7 +112,7 @@ Link the Nginx configuration files
     sudo ln -s "$(pwd)/nginx/nginx.conf" /etc/nginx/nginx.conf
     sudo ln -s "$(pwd)/nginx/sites-enabled/rpi.conf" /etc/nginx/sites-enabled/rpi.conf
     
-### Background services
+### Services
     
 Use `screen` in order to keep the scripts persistant over the SSH session
 
@@ -130,13 +130,19 @@ sessions.
 
 For the Pico service, see [here](./pico/README.md).
 
-### Nginx
-
 Lastly, start Nginx 
 
     sudo systemctl start nginx
     
 You should be able to browse the app at <http://RPI-IP/>
+
+You can also use `./start.sh` to start all those services at once.
+
+Note: I noticed the Pico can sometimes get out of sync and stop recording/sending data
+to the RPi. To fix this I'm adding a cronjob to the RPi to force the Pico to 
+perform a soft restart and re-run `main.py` every 3 hours:
+
+    0 */3 * * * (cd /home/pi/rpi-gardener && make mprestart)
 
 ### Wiring
 

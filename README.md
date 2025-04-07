@@ -140,7 +140,7 @@ You can also use `./start.sh` to start all those services at once.
 
 Note: I noticed the Pico can sometimes get out of sync and stop recording/sending data
 to the RPi. To fix this I'm adding a cronjob to the RPi to force the Pico to 
-perform a soft restart and re-run `main.py` every 3 hours:
+perform a soft restart and restart its loop every 3 hours:
 
     0 */3 * * * (cd /home/pi/rpi-gardener && make mprestart)
 

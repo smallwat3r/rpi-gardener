@@ -5,3 +5,4 @@ flask-sock
 gunicorn
 python-dotenv
 pillow
+sqlitey

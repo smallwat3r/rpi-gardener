@@ -3,10 +3,16 @@ from enum import IntEnum, StrEnum
 from os import environ
 
 from dotenv import load_dotenv
+from sqlitey import DbPathConfig
 
 load_dotenv()
 
 POLLING_FREQUENCY_SEC = 2
+
+DB_CONFIG = DbPathConfig(
+    database="dht.sqlite3",
+    sql_templates_dir=Path(__file__).resolve().parent / "sql"
+)
 
 
 class MeasureName(StrEnum):

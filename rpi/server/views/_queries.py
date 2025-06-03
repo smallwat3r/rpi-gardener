@@ -17,7 +17,7 @@ def get_latest_dht_data() -> SqlRow:
 
 def get_stats_dht_data(from_time: datetime) -> SqlRow:
     with Db.from_config(DB_CONFIG, row_factory=dict_factory) as db:
-        return db.fetchone(Sql.from_file("dht_stats.sql"), (from_time,))
+        return db.fetchone(Sql.template("dht_stats.sql"), (from_time,))
 
 
 def _pico_dict_factory(cursor: Cursor, row: tuple) -> SqlRow:

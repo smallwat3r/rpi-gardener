@@ -3,16 +3,18 @@ from datetime import datetime
 from flask import Blueprint, request
 
 from rpi import logging
-from rpi.lib.db import Db, Sql
+from rpi.lib.config import DB_CONFIG
 from rpi.lib.reading import Measure, PicoReading, Unit
+
+from sqlitey import Db, Sql
 
 logger = logging.getLogger("pico-bp")
 pico = Blueprint("pico", __name__)
 
 
 def _persist(reading: PicoReading) -> None:
-    with Db() as db:
-        db.commit(Sql("INSERT INTO pico_reading VALUES (?, ?, ?)"),
+    with Db.from_config(DB_CONFIG) as db:
+        db.commit(Sql.raw("INSERT INTO pico_reading VALUES (?, ?, ?)"),
                   (reading.plant_id, reading.moisture.value,
                    reading.recording_time))
 

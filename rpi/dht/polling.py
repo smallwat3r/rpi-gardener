@@ -18,26 +18,28 @@ from rpi import logging
 from rpi.dht._display import display
 from rpi.dht._worker import start_worker
 from rpi.lib.config import (
+    DB_CONFIG,
     DHT22_BOUNDS,
     POLLING_FREQUENCY_SEC,
     THRESHOLD_RULES,
     MeasureName,
 )
-from rpi.lib.db import Db, Sql
 from rpi.lib.events import Event, queue
 from rpi.lib.reading import Measure, Reading, State, Unit
+
+from sqlitey import Db, Sql
 
 logger = logging.getLogger("polling-service")
 
 
 def _init_db() -> None:
-    with Db() as db:
-        db.commit(Sql.from_file("init_reading_table.sql"))
+    with Db.from_config(DB_CONFIG) as db:
+        db.executescript(Sql.template("init_reading_table.sql"))
         with suppress(OperationalError):
-            db.commit(Sql.from_file("idx_reading.sql"))
-        db.commit(Sql.from_file("init_pico_reading_table.sql"))
+            db.executescript(Sql.template("idx_reading.sql"))
+        db.executescript(Sql.template("init_pico_reading_table.sql"))
         with suppress(OperationalError):
-            db.commit(Sql.from_file("idx_pico_reading.sql"))
+            db.executescript(Sql.template("idx_pico_reading.sql"))
 
 
 @dataclass
@@ -106,8 +108,8 @@ def _audit(reading: Reading) -> Reading:
 
 def _persist(reading: Reading) -> None:
     """Persist the reading values into the database."""
-    with Db() as db:
-        db.commit(Sql("INSERT INTO reading VALUES (?, ?, ?)"),
+    with Db.from_config(DB_CONFIG) as db:
+        db.commit(Sql.raw("INSERT INTO reading VALUES (?, ?, ?)"),
                   (reading.temperature.value, reading.humidity.value,
                    reading.recording_time))
 

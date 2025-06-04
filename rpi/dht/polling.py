@@ -37,7 +37,7 @@ def _init_db() -> None:
         db.executescript(Sql.template("init_reading_table.sql"))
         with suppress(OperationalError):
             db.executescript(Sql.template("idx_reading.sql"))
-        db.executescript(Sql.from_file("init_pico_reading_table.sql"))
+        db.executescript(Sql.template("init_pico_reading_table.sql"))
         with suppress(OperationalError):
             db.executescript(Sql.template("idx_pico_reading.sql"))
 

@@ -13,27 +13,27 @@ from time import sleep
 
 from adafruit_dht import DHT22
 from board import D17
+from sqlitey import Sql
 
 from rpi import logging
 from rpi.dht._display import display
 from rpi.dht._worker import start_worker
 from rpi.lib.config import (
-    DB_CONFIG,
     DHT22_BOUNDS,
     POLLING_FREQUENCY_SEC,
     THRESHOLD_RULES,
     MeasureName,
+    db_with_config,
 )
 from rpi.lib.events import Event, queue
 from rpi.lib.reading import Measure, Reading, State, Unit
-
-from sqlitey import Db, Sql
 
 logger = logging.getLogger("polling-service")
 
 
 def _init_db() -> None:
-    with Db.from_config(DB_CONFIG) as db:
+    """Init database scripts."""
+    with db_with_config() as db:
         db.executescript(Sql.template("init_reading_table.sql"))
         with suppress(OperationalError):
             db.executescript(Sql.template("idx_reading.sql"))
@@ -58,8 +58,8 @@ def _audit_reading(reading: Reading) -> None:
             if comparator(measure.value, threshold):
                 setattr(tracker, name, State.IN_ALERT)
                 if not getattr(reading, name).state == State.IN_ALERT:
-                    queue.enqueue(Event(measure, threshold,
-                                        reading.recording_time))
+                    queue.enqueue(
+                        Event(measure, threshold, reading.recording_time))
                 break
         getattr(reading, name).state = getattr(tracker, name)
 
@@ -108,7 +108,7 @@ def _audit(reading: Reading) -> Reading:
 
 def _persist(reading: Reading) -> None:
     """Persist the reading values into the database."""
-    with Db.from_config(DB_CONFIG) as db:
+    with db_with_config() as db:
         db.commit(Sql.raw("INSERT INTO reading VALUES (?, ?, ?)"),
                   (reading.temperature.value, reading.humidity.value,
                    reading.recording_time))
@@ -117,9 +117,11 @@ def _persist(reading: Reading) -> None:
 def main() -> None:
     _init_db()
     start_worker()
-    reading = Reading(Measure(0.0, Unit.CELCIUS),
-                      Measure(0.0, Unit.PERCENT),
-                      datetime.now())
+    reading = Reading(
+        Measure(0.0, Unit.CELCIUS),
+        Measure(0.0, Unit.PERCENT),
+        datetime.now(),
+    )
     display.clear()
     dht = DHT22(D17)
     while True:

@@ -15,23 +15,25 @@ MESSAGE = ("Sensor alert! A threshold has been crossed at {recording_time}, "
            "{threshold}{unit}.")
 
 
-class Notification(ABC):
+class _AbstractNotification(ABC):
     def __init__(self, event: Event) -> None:
         self.event = event
 
     @abstractmethod
-    def send(self) -> None:
-        ...
+    def send(self) -> None: ...
 
     @property
     def message(self) -> str:
-        return MESSAGE.format(threshold_name=self.event.threshold.name,
-                              value=str(self.event.measure),
-                              unit=self.event.measure.unit,
-                              **asdict(self.event))
+        return MESSAGE.format(
+            threshold_name=self.event.threshold.name,
+            value=str(self.event.measure),
+            unit=self.event.measure.unit,
+            **asdict(self.event))
 
 
-class Gmail(Notification):
+class Gmail(_AbstractNotification):
+    """Gmail notification handler."""
+
     def _build_message(self) -> EmailMessage:
         msg = EmailMessage()
         msg.add_header("From", GmailConfig.SENDER)

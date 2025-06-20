@@ -19,16 +19,14 @@ class _Display(SSD1306_I2C):
         self.fill(0)
         self.show()
 
-    def add_text(self, draw: ImageDraw,
-                 pos: tuple[int, int], text: str) -> None:
-        draw.text(pos, text, font=_font, fill=255)
-
     def render_reading(self, reading: Reading) -> None:
         image = Image.new("1", _size)
         draw = ImageDraw.Draw(image)
         draw.rectangle((0, 0, _size.w, _size.h))
-        self.add_text(draw, (23, 0), f"T: {reading.temperature}")
-        self.add_text(draw, (23, 20), f"H: {reading.humidity}")
+        draw.text((23, 0), f"T: {reading.temperature}",
+                  font=_font, fill=255)
+        draw.text((23, 20), f"H: {reading.humidity}",
+                  font=_font, fill=255)
         self.image(image)
         self.show()
 

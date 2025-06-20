@@ -4,16 +4,20 @@ from os import environ
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlitey import DbPathConfig
+from sqlitey import Db, DbPathConfig
 
 load_dotenv()
 
 POLLING_FREQUENCY_SEC = 2
 
-DB_CONFIG = DbPathConfig(
+_DB_CONFIG = DbPathConfig(
     database="dht.sqlite3",
     sql_templates_dir=Path(__file__).resolve().parent / "sql"
 )
+
+def db_with_config(**kwargs) -> Db:
+    """Shortcut to load db with pre-configured config."""
+    return Db.from_config(_DB_CONFIG, **kwargs)
 
 
 class MeasureName(StrEnum):

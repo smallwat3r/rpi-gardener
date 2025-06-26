@@ -39,7 +39,7 @@ flask:  ## Start the Flask server (for development)
 .PHONY: server
 server:  ## Start the Flask server with Gunicorn (binded for Nginx)
 	$(PYTHON) -m gunicorn $(RPI).server:app --bind=unix:/tmp/gunicorn.sock \
-		--workers 3 --threads 100
+		--workers 3 --threads 2
 
 .PHONY: polling
 polling:  ## Start the polling service

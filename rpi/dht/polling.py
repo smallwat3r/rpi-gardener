@@ -8,6 +8,7 @@ seconds, else cache results would be returned.
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
+from random import randint
 from sqlite3 import OperationalError
 from time import sleep
 
@@ -114,6 +115,17 @@ def _persist(reading: Reading) -> None:
                    reading.recording_time))
 
 
+def _randomly_clear_records() -> None:
+    """Once in a while, clear historical data."""
+    if randint(1, 10) != 1:
+        return
+    logger.info("Clearing historical data...")
+    with db_with_config() as db:
+        db.commit(Sql.raw(
+            "DELETE FROM reading "
+            "WHERE recording_time < datetime('now', '-3 days')"))
+
+
 def main() -> None:
     _init_db()
     start_worker()
@@ -125,6 +137,7 @@ def main() -> None:
     display.clear()
     dht = DHT22(D17)
     while True:
+        _randomly_clear_records()
         # the DHT library can sporadically raise RuntimeError exceptions
         # when it encounters an issue when reading the data. Ignore those
         # exceptions, as next tries should be successful.

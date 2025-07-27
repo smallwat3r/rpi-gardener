@@ -144,6 +144,9 @@ perform a soft restart and restart its loop every 3 hours:
 
     0 */3 * * * (cd /home/pi/rpi-gardener && make mprestart)
 
+The historical data (older than 3 days) gets automatically deleted, in order to keep
+the database size healthy.
+
 ## Wiring
 
 ![wiring](./img/wiring.png)

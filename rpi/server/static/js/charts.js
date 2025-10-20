@@ -32,7 +32,11 @@ const chartRepr = new Chart(document.getElementById('chart'), {
       x:  {
         type: 'time',
         ticks: {stepSize: 2, color: '#f8f9fa'},
-        time: {unit: 'second', displayFormats: {second: 'HH:mm'}},
+        time: {
+          unit: 'second',
+          displayFormats: {second: 'HH:mm'},
+          tooltipFormat: 'yyyy-MM-dd HH:mm'
+        },
         grid: {color: '#495057'}
       },
       y:  {
@@ -79,7 +83,11 @@ const picoChartRepr = new Chart(document.getElementById('picoChart'), {
       x: {
         type: 'time',
         ticks: {stepSize: 2, color: '#f8f9fa'},
-        time: {unit: 'second', displayFormats: {second: 'HH:mm'}},
+        time: {
+          unit: 'second',
+          displayFormats: {second: 'HH:mm'},
+          tooltipFormat: 'yyyy-MM-dd HH:mm'
+        },
         grid: {color: '#495057'}
       },
       y: {

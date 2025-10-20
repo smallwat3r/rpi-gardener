@@ -6,7 +6,6 @@ faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
 from contextlib import suppress
-from dataclasses import dataclass
 from datetime import datetime
 from random import randint
 from sqlite3 import OperationalError
@@ -17,17 +16,14 @@ from board import D17
 from sqlitey import Sql
 
 from rpi import logging
-from rpi.dht._display import display
-from rpi.dht._worker import start_worker
+from rpi.dht.service import audit_reading, display, start_worker
 from rpi.lib.config import (
     DHT22_BOUNDS,
     POLLING_FREQUENCY_SEC,
-    THRESHOLD_RULES,
     MeasureName,
     db_with_config,
 )
-from rpi.lib.events import Event, queue
-from rpi.lib.reading import Measure, Reading, State, Unit
+from rpi.lib.reading import Measure, Reading, Unit
 
 logger = logging.getLogger("polling-service")
 
@@ -41,28 +37,6 @@ def _init_db() -> None:
         db.executescript(Sql.template("init_pico_reading_table.sql"))
         with suppress(OperationalError):
             db.executescript(Sql.template("idx_pico_reading.sql"))
-
-
-@dataclass
-class _StateTracker:
-    temperature: State = State.OK
-    humidity: State = State.OK
-
-
-def _audit_reading(reading: Reading) -> None:
-    """Audit reading value, and enqueue notification events."""
-    tracker = _StateTracker()
-    for name, rules in THRESHOLD_RULES.items():
-        for rule in rules:
-            comparator, threshold = rule
-            measure = getattr(reading, name)
-            if comparator(measure.value, threshold):
-                setattr(tracker, name, State.IN_ALERT)
-                if not getattr(reading, name).state == State.IN_ALERT:
-                    queue.enqueue(
-                        Event(measure, threshold, reading.recording_time))
-                break
-        getattr(reading, name).state = getattr(tracker, name)
 
 
 class OutsideDHT22Bounds(RuntimeError):
@@ -93,7 +67,7 @@ def _poll(dht: DHT22, reading: Reading) -> Reading:
     """Poll the DHT22 sensor for new reading values."""
     reading.temperature.value = dht.temperature
     reading.humidity.value = dht.humidity
-    reading.recording_time = datetime.now()
+    reading.recording_time = datetime.utcnow()
     logger.info("Read %s, %s", str(reading.temperature),
                 str(reading.humidity))
     display.render_reading(reading)
@@ -103,7 +77,7 @@ def _poll(dht: DHT22, reading: Reading) -> Reading:
 def _audit(reading: Reading) -> Reading:
     """Audit the reading."""
     _check_dht_boundaries(reading)
-    _audit_reading(reading)
+    audit_reading(reading)
     return reading
 
 
@@ -121,9 +95,9 @@ def _randomly_clear_records() -> None:
         return
     logger.info("Clearing historical data...")
     with db_with_config() as db:
-        db.commit(Sql.raw(
-            "DELETE FROM reading "
-            "WHERE recording_time < datetime('now', '-3 days')"))
+        db.commit(
+            Sql.raw("DELETE FROM reading "
+                    "WHERE recording_time < datetime('now', '-3 days')"))
 
 
 def main() -> None:
@@ -132,7 +106,7 @@ def main() -> None:
     reading = Reading(
         Measure(0.0, Unit.CELCIUS),
         Measure(0.0, Unit.PERCENT),
-        datetime.now(),
+        datetime.utcnow(),
     )
     display.clear()
     dht = DHT22(D17)

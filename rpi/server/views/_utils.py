@@ -13,4 +13,4 @@ def get_qs(request: Request) -> tuple[int, datetime]:
         raise BadParameter("Parameter needs to be an integer") from err
     if hours > 24:
         raise BadParameter("Can't look past 24 hours")
-    return hours, datetime.now() - timedelta(hours=hours)
+    return hours, datetime.utcnow() - timedelta(hours=hours)

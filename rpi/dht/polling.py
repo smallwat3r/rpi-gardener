@@ -67,7 +67,7 @@ def _poll(dht: DHT22, reading: Reading) -> Reading:
     """Poll the DHT22 sensor for new reading values."""
     reading.temperature.value = dht.temperature
     reading.humidity.value = dht.humidity
-    reading.recording_time = datetime.now()
+    reading.recording_time = datetime.utcnow()
     logger.info("Read %s, %s", str(reading.temperature),
                 str(reading.humidity))
     display.render_reading(reading)
@@ -106,7 +106,7 @@ def main() -> None:
     reading = Reading(
         Measure(0.0, Unit.CELCIUS),
         Measure(0.0, Unit.PERCENT),
-        datetime.now(),
+        datetime.utcnow(),
     )
     display.clear()
     dht = DHT22(D17)

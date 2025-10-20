@@ -2,9 +2,11 @@
 {% block title %}Dashboard{% endblock %}
 {% block css %}
   <style>
-    .plant-1 { color: #39ff14; }
-    .plant-2 { color: #ff00ff; }
-    .plant-3 { color: #bc13fe; }
+    .plant-1 { color: #9d34a0; }
+    .plant-2 { color: #00aaff; }
+    .plant-3 { color: #ff00ff; }
+    .temperature { color: #ff00ff; }
+    .humidity { color: #00ffff; }
   </style>
 {% endblock  %}
 {% block container %}
@@ -36,8 +38,8 @@
           </p>
           <div class="d-flex justify-content-between">
             <div>
-              <h5>Temperature</h5>
-              <p class="display-6"><span id="cTemperature">{{ latest["temperature"] }}</span>°C</p>
+              <h5 class="temperature">Temperature</h5>
+              <p class="display-6 temperature"><span id="cTemperature">{{ latest["temperature"] }}</span>°C</p>
               <div class="small text-muted">
                 <div>Avg: <span id="aTemperature">{{ stats["avg_temperature"] }}</span>°C</div>
                 <div>Min: <span id="minTemperature">{{ stats["min_temperature"] }}</span>°C</div>
@@ -45,8 +47,8 @@
               </div>
             </div>
             <div class="text-end">
-              <h5>Humidity</h5>
-              <p class="display-6"><span id="cHumidity">{{ latest["humidity"] }}</span>%</p>
+              <h5 class="humidity">Humidity</h5>
+              <p class="display-6 humidity"><span id="cHumidity">{{ latest["humidity"] }}</span>%</p>
               <div class="small text-muted">
                 <div>Avg: <span id="aHumidity">{{ stats["avg_humidity"] }}</span>%</div>
                 <div>Min: <span id="minHumidity">{{ stats["min_humidity"] }}</span>%</div>

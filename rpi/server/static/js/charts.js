@@ -1,4 +1,5 @@
-Chart.defaults.font.family = 'Varela Round';
+Chart.defaults.font.family = 'Inter';
+Chart.defaults.color = '#f8f9fa';
 Chart.defaults.font.size = 11;
 Chart.defaults.plugins.legend.display = false;
 Chart.overrides.line.spanGaps = true;
@@ -12,36 +13,51 @@ const chartRepr = new Chart(document.getElementById('chart'), {
     datasets: [{
       label: 'Temperature (c)',
       data: data,
-      borderColor: '#ff5f00',
+      borderColor: '#ff00ff',
       yAxisID: 'y',
       parsing: {yAxisKey: 'temperature', xAxisKey: 'epoch'},
-      shadowOffsetX: 2,
-      shadowOffsetY: 2,
-      shadowBlur: 5,
-      shadowColor: 'rgba(255, 95, 0, 0.5)',
     }, {
       label: 'Humidity (%)',
       data: data,
       borderColor: '#00ffff',
       yAxisID: 'y1',
       parsing: {yAxisKey: 'humidity', xAxisKey: 'epoch'},
-      shadowOffsetX: 2,
-      shadowOffsetY: 2,
-      shadowBlur: 5,
-      shadowColor: 'rgba(0, 255, 255, 0.5)',
     }]
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
     animation: {duration: 0},
-    scales: {x:  {type: 'time', ticks: {stepSize: 2}, time: {unit: 'second', displayFormats: {second: 'HH:mm'}}},
-             y:  {type: 'linear', display: true, position: 'left', suggestedMin: 20, suggestedMax: 30},
-             y1: {type: 'linear', display: true, position: 'right', suggestedMin: 40, suggestedMax: 65}},
+    scales: {
+      x:  {
+        type: 'time',
+        ticks: {stepSize: 2, color: '#f8f9fa'},
+        time: {unit: 'second', displayFormats: {second: 'HH:mm'}},
+        grid: {color: '#495057'}
+      },
+      y:  {
+        type: 'linear',
+        display: true,
+        position: 'left',
+        suggestedMin: 20,
+        suggestedMax: 30,
+        ticks: {color: '#f8f9fa'},
+        grid: {color: '#495057'}
+      },
+      y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        suggestedMin: 40,
+        suggestedMax: 65,
+        ticks: {color: '#f8f9fa'},
+        grid: {color: '#495057'}
+      }
+    },
     interaction: {intersect: false, mode: 'index'},
   }
 });
-const plantColors = ['#39ff14', '#ff00ff', '#bc13fe'];
+const plantColors = ['#9d34a0', '#00aaff', '#ff00ff'];
 let picoDataset = [];
 for (let index in picoLatestInit) {
   let plantId = picoLatestInit[index]['plant_id'];
@@ -50,10 +66,6 @@ for (let index in picoLatestInit) {
     data: picoData,
     borderColor: plantColors[index],
     parsing: {yAxisKey: plantId, xAxisKey: 'epoch'},
-    shadowOffsetX: 2,
-    shadowOffsetY: 2,
-    shadowBlur: 5,
-    shadowColor: `${plantColors[index]}80`,  // add alpha for shadow
   });
 };
 const picoChartRepr = new Chart(document.getElementById('picoChart'), {
@@ -63,8 +75,23 @@ const picoChartRepr = new Chart(document.getElementById('picoChart'), {
     responsive: true,
     maintainAspectRatio: false,
     animation: {duration: 0},
-    scales: {x: {type: 'time', ticks: {stepSize: 2}, time: {unit: 'second', displayFormats: {second: 'HH:mm'}}},
-             y: {type: 'linear', display: true, suggestedMin: 10, suggestedMax: 90, min: 0}},
+    scales: {
+      x: {
+        type: 'time',
+        ticks: {stepSize: 2, color: '#f8f9fa'},
+        time: {unit: 'second', displayFormats: {second: 'HH:mm'}},
+        grid: {color: '#495057'}
+      },
+      y: {
+        type: 'linear',
+        display: true,
+        suggestedMin: 10,
+        suggestedMax: 90,
+        min: 0,
+        ticks: {color: '#f8f9fa'},
+        grid: {color: '#495057'}
+      }
+    },
     interaction: {intersect: false, mode: 'index'},
     plugins: {
       legend: {

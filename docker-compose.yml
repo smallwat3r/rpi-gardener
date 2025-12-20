@@ -1,0 +1,74 @@
+services:
+  # One-time self-signed certificate generation
+  certgen:
+    image: alpine/openssl:latest
+    volumes:
+      - certs:/certs
+    command: >
+      sh -c "
+        if [ ! -f /certs/server.crt ]; then
+          echo 'Generating self-signed certificate...';
+          openssl req -x509 -nodes -days 365 -newkey rsa:2048
+            -keyout /certs/server.key
+            -out /certs/server.crt
+            -subj '/CN=rpi-gardener/O=Home/C=US'
+            -addext 'subjectAltName=DNS:localhost,DNS:rpi-gardener,IP:127.0.0.1${CERT_IP:+,IP:$CERT_IP}';
+          chmod 644 /certs/server.crt;
+          chmod 600 /certs/server.key;
+          echo 'Certificate generated successfully';
+        else
+          echo 'Certificate already exists, skipping generation';
+        fi
+      "
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    privileged: true
+    devices:
+      - /dev/gpiomem:/dev/gpiomem
+      - /dev/i2c-1:/dev/i2c-1
+    volumes:
+      - db_data:/app/data
+      - socket:/tmp
+    environment:
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - DB_PATH=/app/data/dht.sqlite3
+      - MAX_TEMPERATURE=${MAX_TEMPERATURE:-25}
+      - MIN_TEMPERATURE=${MIN_TEMPERATURE:-18}
+      - MAX_HUMIDITY=${MAX_HUMIDITY:-65}
+      - MIN_HUMIDITY=${MIN_HUMIDITY:-40}
+      - ENABLE_NOTIFICATION_SERVICE=${ENABLE_NOTIFICATION_SERVICE:-0}
+      - GMAIL_SENDER=${GMAIL_SENDER:-}
+      - GMAIL_RECIPIENTS=${GMAIL_RECIPIENTS:-}
+      - GMAIL_USERNAME=${GMAIL_USERNAME:-}
+      - GMAIL_PASSWORD=${GMAIL_PASSWORD:-}
+      - GMAIL_SUBJECT=${GMAIL_SUBJECT:-DHT-22 sensor alert!}
+    restart: unless-stopped
+    depends_on:
+      certgen:
+        condition: service_completed_successfully
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/rpi-ssl.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./rpi/server/static:/var/www/html/static:ro
+      - socket:/tmp
+      - certs:/etc/nginx/certs:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  db_data:
+    name: rpi-gardener-db
+  socket:
+    name: rpi-gardener-socket
+  certs:
+    name: rpi-gardener-certs

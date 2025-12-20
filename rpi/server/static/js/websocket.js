@@ -1,4 +1,5 @@
-const dhtLatest = new WebSocket(`ws://${location.host}/dht/latest`);
+const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+const dhtLatest = new WebSocket(`${wsProtocol}//${location.host}/dht/latest`);
 let lastEpoch = null;
 dhtLatest.onmessage = function(message) {
   let data = JSON.parse(message.data);
@@ -13,7 +14,7 @@ dhtLatest.onmessage = function(message) {
   chartRepr.update();
   lastEpoch = data.epoch;
 }
-const dhtAverage = new WebSocket(`ws://${location.host}/dht/stats?hours=${hours}`);
+const dhtAverage = new WebSocket(`${wsProtocol}//${location.host}/dht/stats?hours=${hours}`);
 dhtAverage.onmessage = function(message) {
   let data = JSON.parse(message.data);
   aTemperature.textContent = data.avg_temperature;
@@ -23,7 +24,7 @@ dhtAverage.onmessage = function(message) {
   minHumidity.textContent = data.min_humidity;
   maxHumidity.textContent = data.max_humidity;
 }
-const picoLatest = new WebSocket(`ws://${location.host}/pico/latest`);
+const picoLatest = new WebSocket(`${wsProtocol}//${location.host}/pico/latest`);
 let picoLastEpoch = null;
 picoLatest.onmessage = function(message) {
   let data = JSON.parse(message.data);

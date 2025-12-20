@@ -15,8 +15,10 @@ load_dotenv()
 # Database Configuration
 # =============================================================================
 
+DB_PATH = environ.get("DB_PATH", "dht.sqlite3")
+
 _DB_CONFIG = DbPathConfig(
-    database="dht.sqlite3",
+    database=DB_PATH,
     sql_templates_dir=Path(__file__).resolve().parent / "sql"
 )
 

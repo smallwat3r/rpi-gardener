@@ -1,155 +1,106 @@
 # RPi Gardener
 
-Note: while I try to keep the main branch of this project in a working state,
-this project is still very much work in progress.
+Monitor your plant environment with a Raspberry Pi 4 and Raspberry Pi Pico.
 
-The goal of this project is to be able to monitor the environment, to ensure
-it's suitable for growing plants.
-
-You will find in this repository all necessary files and scripts to read
-temperature and humidity data from a DHT22 sensor, wired to a Raspberry Pi 4
-Model B, as well as capacitive soil moisture sensors, wired to a Raspberry
-Pico board. 
-
-It stores the results every 2 seconds in a local Sqlite database, and renders 
-them on a bare simple frontend using ChartJS powered by Flask and web-sockets.
-It also implements a simple notification service, and render the live readings
-from both the RPi and the Pico on 128x64 OLED (SSD1306) displays.
-
-Readings from the DHT22 happens directly from the RPi. But readings from the 
-capacitative soil moisture sensors, are sent over HTTP from the Pico to the 
-RPi.
+Tracks temperature, humidity (DHT22 sensor), and soil moisture (capacitive
+sensors) with a real-time web dashboard, OLED displays, and email alerts.
 
 ![dashboard](./img/dashboard.png)
 ![installation](./img/installation.jpeg)
 
+## Features
+
+- Real-time temperature and humidity monitoring (DHT22)
+- Soil moisture tracking for up to 3 plants (Pico + capacitive sensors)
+- Web dashboard with live charts (Flask + WebSockets)
+- 128x64 OLED displays on both RPi and Pico
+- Email notifications when thresholds are crossed
+- HTTPS with self-signed certificates
+- Docker deployment
+
 ## Requirements
 
-Get and build Python 3.12 from source
+- Raspberry Pi 4 with Docker installed
+- Raspberry Pi Pico W (for soil moisture sensors)
+- DHT22 temperature/humidity sensor
+- SSD1306 OLED display (128x64)
+- Capacitive soil moisture sensors (v1.2)
 
-    sudo apt update
-    sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
-        libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev
-    wget https://python.org/ftp/python/3.12.1/Python-3.12.1.tgz
-    tar -xf Python-3.12.1.tgz 
-    cd Python-3.12.1
-    ./configure --enable-optimizations
-    sudo make altinstall
-    
-Install `nginx`
+## Quick Start
 
-    sudo apt install nginx
+### 1. Enable I2C on the Raspberry Pi
 
-Install `screen` to run commands in the background and keep them persistant
+    sudo raspi-config  # Interface Options -> I2C -> Enable
+    sudo modprobe i2c-dev
+    echo "i2c-dev" | sudo tee -a /etc/modules
 
-    sudo apt install screen
+### 2. Install Docker
 
-Create a Python virtual environment and install the Python dependencies 
-(this is a one-off command)
+    curl -fsSL https://get.docker.com | sudo sh
+    sudo usermod -aG docker $USER
+    # Log out and back in for group changes to take effect
 
-    make venv deps
-    
-Create an `.env` file at the root of the repository, and fill in the required
-values. Ensure to keep this file secret, as it contains some sensitive values.
+### 3. Configure Environment
+
+Create a `.env` file:
 
 ```sh
-# .env
+# Required
+SECRET_KEY=your-random-secret-key-here
 
+# SSL certificate (use your RPi's local IP)
+CERT_IP=192.168.1.100
+
+# Thresholds for alerts
 MAX_TEMPERATURE=25
 MIN_TEMPERATURE=18
 MAX_HUMIDITY=65
 MIN_HUMIDITY=40
 
-# flask secret key
-SECRET_KEY=a-random-secret-string
-
-# enables system notifications, set to 0 to disable
-ENABLE_NOTIFICATION_SERVICE=1 
-
-# if ENABLE_NOTIFICATION_SERVICE is set, the following values are 
-# required, else you can leave them empty.
-
-# Gmail account email sender
-GMAIL_SENDER='foo@example.com'
-# comma separated list of email recipients 
-GMAIL_RECIPIENTS='foo@example.com, bar@example.com'
-# Gmail username used for auth
-GMAIL_USERNAME='foo@example.com'
-# Gmail account password (obtained with Gmail app passwords)
-GMAIL_PASSWORD=''
-# subject title to use in email notifications
-GMAIL_SUBJECT='DHT-22 sensor alert!'
+# Email notifications (optional, set to 0 to disable)
+ENABLE_NOTIFICATION_SERVICE=0
+GMAIL_SENDER=
+GMAIL_RECIPIENTS=
+GMAIL_USERNAME=
+GMAIL_PASSWORD=
+GMAIL_SUBJECT=DHT-22 sensor alert!
 ```
 
-## Development
+### 4. Start Services
 
-Run the dht sensor polling service
-    
-    make polling
-    
-From another terminal window, run the flask server
+    docker compose up -d --build
 
-    make flask
+The dashboard will be available at `https://YOUR-RPI-IP/`
 
-You should be able to browse the app at <http://RPI-IP:5000/>
-    
-## Production(ish)
+(Accept the self-signed certificate warning in your browser)
 
-By production, I mean leaving the RPi running in the background on a
-local (secure) home network for personal access. Please do not use these
-configs for exposing your server to the Internet.
+### 5. Set Up the Pico
 
-### Link files 
+See [pico/README.md](./pico/README.md) for Pico installation instructions.
 
-Link the app static files to `/var/www/html`
+## Commands
 
-    sudo rm /var/www/html/*
-    sudo ln -s "$(pwd)/rpi/server/static" /var/www/html
-    
-Link the Nginx configuration files
+```bash
+# Start services
+docker compose up -d --build
 
-    sudo rm /etc/nginx/nginx.conf
-    sudo ln -s "$(pwd)/nginx/nginx.conf" /etc/nginx/nginx.conf
-    sudo ln -s "$(pwd)/nginx/sites-enabled/rpi.conf" /etc/nginx/sites-enabled/rpi.conf
-    
-### Services
-    
-Use `screen` in order to keep the scripts persistant over the SSH session
+# View logs
+docker compose logs -f
 
-Start with the polling service first
-   
-    screen -d -m make polling
-    
-Then start the Gunicorn server
+# View specific service logs
+docker compose logs -f app
+docker compose logs -f nginx
 
-    screen -d -m make server
-    
-You can use `screen -ls` to list the active screen sessions, and re-attach to
-any session using `screen -r <id>`, allowing you to tail logs, or kill 
-sessions.
+# Stop services
+docker compose down
 
-For the Pico service, see [here](./pico/README.md).
-
-Lastly, start Nginx 
-
-    sudo systemctl start nginx
-    
-You should be able to browse the app at <http://RPI-IP/>
-
-You can also use `./start.sh` to start all those services at once.
-
-Note: I noticed the Pico can sometimes get out of sync and stop recording/sending data
-to the RPi. To fix this I'm adding a cronjob to the RPi to force the Pico to 
-perform a soft restart and restart its loop every 3 hours:
-
-    0 */3 * * * (cd /home/pi/rpi-gardener && make mprestart)
-
-The historical data (older than 3 days) gets automatically deleted, in order to keep
-the database size healthy.
+# Restart Pico (if it loses sync)
+make mprestart
+```
 
 ## Pico API
 
-The Pico sends moisture readings via HTTP POST to the RPi:
+The Pico sends moisture readings via HTTP POST:
 
     POST /pico
     Content-Type: application/json
@@ -160,32 +111,36 @@ The Pico sends moisture readings via HTTP POST to the RPi:
       "plant-3": 52.1
     }
 
-Validation rules:
-- `plant_id` (keys): alphanumeric, hyphens, and underscores only (max 64 chars)
-- `moisture` (values): number between 0-100 (percentage)
+Validation:
+- `plant_id`: alphanumeric, hyphens, underscores (max 64 chars)
+- `moisture`: number between 0-100 (percentage)
 
-## Security
+## Data Management
 
-This project is designed for local home networks only:
-- No authentication on the dashboard or API
-- No HTTPS/TLS encryption
-- WebSocket connections are unauthenticated
-
-If exposing beyond your local network, consider adding:
-- Reverse proxy with authentication (e.g., nginx basic auth)
-- HTTPS via Let's Encrypt
-- Firewall rules
+- Historical data older than 3 days is automatically deleted
+- Database persisted in Docker volume `rpi-gardener-db`
+- Regenerate SSL certs by removing volume: `docker volume rm rpi-gardener-certs`
 
 ## Troubleshooting
 
-**Pico stops sending data**: The Pico can lose sync. A cron job restarts it
-every 3 hours (see Production section above).
+**Pico stops sending data**: The Pico can lose sync. Add a cron job to
+restart it periodically:
 
-**Database grows too large**: Data older than 3 days is auto-deleted
-during polling cycles.
+    0 */3 * * * (cd /home/pi/rpi-gardener && make mprestart)
 
-**Email notifications not working**: Ensure `GMAIL_PASSWORD` uses an
-App Password (not your account password). Check logs for SMTP errors.
+**Email notifications not working**: Ensure `GMAIL_PASSWORD` uses a
+Gmail App Password (not your account password).
+
+**Container won't start**: Check that I2C is enabled and devices exist:
+
+    ls -la /dev/i2c-* /dev/gpiomem
+
+## Security
+
+This project is designed for local home networks:
+- HTTPS with self-signed certificates
+- No authentication on dashboard or API
+- Do not expose to the internet without additional security
 
 ## Wiring
 

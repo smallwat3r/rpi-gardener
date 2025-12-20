@@ -68,7 +68,7 @@ GMAIL_SUBJECT=DHT-22 sensor alert!
 
 ### 4. Start Services
 
-    docker compose up -d --build
+    make up
 
 The dashboard will be available at `https://YOUR-RPI-IP/`
 
@@ -81,21 +81,13 @@ See [pico/README.md](./pico/README.md) for Pico installation instructions.
 ## Commands
 
 ```bash
-# Start services
-docker compose up -d --build
-
-# View logs
-docker compose logs -f
-
-# View specific service logs
-docker compose logs -f app
-docker compose logs -f nginx
-
-# Stop services
-docker compose down
-
-# Restart Pico (if it loses sync)
-make mprestart
+make up          # Start services
+make down        # Stop services
+make logs        # View all logs
+make logs-app    # View app logs only
+make restart     # Restart services
+make clean       # Stop and remove volumes
+make mprestart   # Restart Pico (if it loses sync)
 ```
 
 ## Pico API

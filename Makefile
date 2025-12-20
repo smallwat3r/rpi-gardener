@@ -53,3 +53,27 @@ mpedit:  ## Edit remote Pico file (make mpedit file=main.py)
 mprestart:  ## Restart main.py script on the Pico
 	$(MPREMOTE) soft-reset
 	$(MPREMOTE) exec --no-follow 'import main'
+
+.PHONY: up
+up:  ## Start Docker services
+	docker compose up -d --build
+
+.PHONY: down
+down:  ## Stop Docker services
+	docker compose down
+
+.PHONY: logs
+logs:  ## View Docker logs (follow mode)
+	docker compose logs -f
+
+.PHONY: logs-app
+logs-app:  ## View app container logs
+	docker compose logs -f app
+
+.PHONY: restart
+restart:  ## Restart Docker services
+	docker compose restart
+
+.PHONY: clean
+clean:  ## Stop services and remove volumes
+	docker compose down -v

@@ -6,7 +6,7 @@ faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timedelta
 from random import randint
 from sqlite3 import OperationalError
 from time import sleep
@@ -26,6 +26,10 @@ from rpi.lib.config import (
 from rpi.lib.reading import Measure, Reading, Unit
 
 logger = logging.getLogger("polling-service")
+
+# Cleanup configuration: 1 in N chance to run cleanup on each poll cycle
+CLEANUP_PROBABILITY_DENOMINATOR = 10
+CLEANUP_RETENTION_DAYS = 3
 
 
 def _init_db() -> None:
@@ -90,14 +94,19 @@ def _persist(reading: Reading) -> None:
 
 
 def _randomly_clear_records() -> None:
-    """Once in a while, clear historical data."""
-    if randint(1, 10) != 1:
+    """Once in a while, clear historical data.
+
+    Has a 1 in CLEANUP_PROBABILITY_DENOMINATOR chance to run on each poll cycle.
+    Removes readings older than CLEANUP_RETENTION_DAYS.
+    """
+    if randint(1, CLEANUP_PROBABILITY_DENOMINATOR) != 1:
         return
-    logger.info("Clearing historical data...")
+    logger.info("Clearing historical data older than %d days...",
+                CLEANUP_RETENTION_DAYS)
+    cutoff = datetime.utcnow() - timedelta(days=CLEANUP_RETENTION_DAYS)
     with db_with_config() as db:
-        db.commit(
-            Sql.raw("DELETE FROM reading "
-                    "WHERE recording_time < datetime('now', '-3 days')"))
+        db.commit(Sql.raw("DELETE FROM reading WHERE recording_time < ?"),
+                  (cutoff,))
 
 
 def main() -> None:
@@ -112,14 +121,15 @@ def main() -> None:
     dht = DHT22(D17)
     while True:
         _randomly_clear_records()
-        # the DHT library can sporadically raise RuntimeError exceptions
-        # when it encounters an issue when reading the data. Ignore those
-        # exceptions, as next tries should be successful.
-        # some custom exceptions from the polling code also use RuntimeError
-        # as their base class, so they can fall into the same suppression
-        # process (due to incorrect readings from the DHT sensor).
-        with suppress(RuntimeError):
+        try:
             _persist(_audit(_poll(dht, reading)))
+        except OutsideDHT22Bounds:
+            # Reading was outside valid sensor bounds, skip and retry
+            logger.debug("Skipping reading outside DHT22 bounds")
+        except RuntimeError as e:
+            # DHT library raises RuntimeError for transient sensor issues
+            # (e.g., checksum failures, timing issues). Log and retry.
+            logger.debug("DHT22 sensor read error: %s", e)
         sleep(POLLING_FREQUENCY_SEC)
 
 

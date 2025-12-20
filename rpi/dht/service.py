@@ -34,10 +34,16 @@ from rpi.lib.reading import Measure, Reading, State
 
 logger = logging.getLogger("dht-service")
 
-_width = 128
-_height = 64
-_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
-                           17)
+# OLED display configuration
+DISPLAY_WIDTH = 128
+DISPLAY_HEIGHT = 64
+DISPLAY_FONT_SIZE = 17
+DISPLAY_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+DISPLAY_TEXT_X_OFFSET = 23
+DISPLAY_TEXT_Y_TEMP = 0
+DISPLAY_TEXT_Y_HUMIDITY = 20
+
+_font = ImageFont.truetype(DISPLAY_FONT_PATH, DISPLAY_FONT_SIZE)
 
 
 @dataclass(frozen=True)
@@ -98,6 +104,11 @@ class _AbstractNotification(ABC):
                               **asdict(self.event))
 
 
+EMAIL_MAX_RETRIES = 3
+EMAIL_INITIAL_BACKOFF_SEC = 2
+EMAIL_TIMEOUT_SEC = 30
+
+
 class Gmail(_AbstractNotification):
     """Gmail notification handler."""
 
@@ -110,14 +121,36 @@ class Gmail(_AbstractNotification):
         return msg
 
     def send(self) -> None:
-        """Send the email."""
+        """Send the email with retry logic and exponential backoff."""
         message = self._build_message()
-        context = ssl.create_default_context()
-        with SMTP("smtp.gmail.com", 587, timeout=5) as server:
-            server.starttls(context=context)
-            server.login(GmailConfig.USERNAME, GmailConfig.PASSWORD)
-            server.send_message(message)
-        logger.info("Sent email notification for event %s", id(self.event))
+        last_error: Exception | None = None
+
+        for attempt in range(EMAIL_MAX_RETRIES):
+            try:
+                context = ssl.create_default_context()
+                with SMTP("smtp.gmail.com", 587, timeout=EMAIL_TIMEOUT_SEC) as server:
+                    server.starttls(context=context)
+                    server.login(GmailConfig.USERNAME, GmailConfig.PASSWORD)
+                    server.send_message(message)
+                logger.info("Sent email notification for event %s", id(self.event))
+                return
+            except OSError as e:
+                # Network-related errors (connection refused, timeout, etc.)
+                last_error = e
+                backoff = EMAIL_INITIAL_BACKOFF_SEC * (2 ** attempt)
+                logger.warning(
+                    "Email send attempt %d/%d failed (network error): %s. "
+                    "Retrying in %ds...",
+                    attempt + 1, EMAIL_MAX_RETRIES, e, backoff)
+                sleep(backoff)
+            except Exception as e:
+                # Auth errors or other SMTP errors - don't retry
+                logger.error("Email send failed (non-retryable): %s", e)
+                return
+
+        logger.error(
+            "Email send failed after %d attempts. Last error: %s",
+            EMAIL_MAX_RETRIES, last_error)
 
 
 def _work() -> None:
@@ -151,16 +184,18 @@ class _Display(SSD1306_I2C):
 
     def render_reading(self, reading: Reading) -> None:
         """Render a reading on the display."""
-        image = Image.new("1", (_width, _height))
+        image = Image.new("1", (DISPLAY_WIDTH, DISPLAY_HEIGHT))
         draw = ImageDraw.Draw(image)
-        draw.rectangle((0, 0, _width, _height))
-        draw.text((23, 0), f"T: {reading.temperature}", font=_font, fill=255)
-        draw.text((23, 20), f"H: {reading.humidity}", font=_font, fill=255)
+        draw.rectangle((0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT))
+        draw.text((DISPLAY_TEXT_X_OFFSET, DISPLAY_TEXT_Y_TEMP),
+                  f"T: {reading.temperature}", font=_font, fill=255)
+        draw.text((DISPLAY_TEXT_X_OFFSET, DISPLAY_TEXT_Y_HUMIDITY),
+                  f"H: {reading.humidity}", font=_font, fill=255)
         self.image(image)
         self.show()
 
 
-display = _Display(_width, _height, I2C(SCL, SDA))
+display = _Display(DISPLAY_WIDTH, DISPLAY_HEIGHT, I2C(SCL, SDA))
 
 
 @atexit.register

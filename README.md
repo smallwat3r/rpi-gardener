@@ -4,11 +4,11 @@ Note: while I try to keep the main branch of this project in a working state,
 this project is still very much work in progress.
 
 The goal of this project is to be able to monitor the environment, to ensure
-its propice for growing plants.
+it's suitable for growing plants.
 
-You will find in this repository all necessarry files and scripts to read 
-temperature and humidity data from a DHT22 sensor, wired to a Raspberry Pi 4 
-Model B, as well as capacitative soil moisture sensors, wired to a Raspberry 
+You will find in this repository all necessary files and scripts to read
+temperature and humidity data from a DHT22 sensor, wired to a Raspberry Pi 4
+Model B, as well as capacitive soil moisture sensors, wired to a Raspberry
 Pico board. 
 
 It stores the results every 2 seconds in a local Sqlite database, and renders 
@@ -146,6 +146,46 @@ perform a soft restart and restart its loop every 3 hours:
 
 The historical data (older than 3 days) gets automatically deleted, in order to keep
 the database size healthy.
+
+## Pico API
+
+The Pico sends moisture readings via HTTP POST to the RPi:
+
+    POST /pico
+    Content-Type: application/json
+
+    {
+      "plant-1": 45.2,
+      "plant-2": 67.8,
+      "plant-3": 52.1
+    }
+
+Validation rules:
+- `plant_id` (keys): alphanumeric, hyphens, and underscores only (max 64 chars)
+- `moisture` (values): number between 0-100 (percentage)
+
+## Security
+
+This project is designed for local home networks only:
+- No authentication on the dashboard or API
+- No HTTPS/TLS encryption
+- WebSocket connections are unauthenticated
+
+If exposing beyond your local network, consider adding:
+- Reverse proxy with authentication (e.g., nginx basic auth)
+- HTTPS via Let's Encrypt
+- Firewall rules
+
+## Troubleshooting
+
+**Pico stops sending data**: The Pico can lose sync. A cron job restarts it
+every 3 hours (see Production section above).
+
+**Database grows too large**: Data older than 3 days is auto-deleted
+during polling cycles.
+
+**Email notifications not working**: Ensure `GMAIL_PASSWORD` uses an
+App Password (not your account password). Check logs for SMTP errors.
 
 ## Wiring
 

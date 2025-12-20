@@ -16,8 +16,11 @@ from board import D17
 from sqlitey import Sql
 
 from rpi import logging
-from rpi.dht.service import audit_reading, display, start_worker
+from rpi.dht.service import audit_reading, start_worker
+from rpi.display import display
 from rpi.lib.config import (
+    CLEANUP_PROBABILITY_DENOMINATOR,
+    CLEANUP_RETENTION_DAYS,
     DHT22_BOUNDS,
     POLLING_FREQUENCY_SEC,
     MeasureName,
@@ -26,10 +29,6 @@ from rpi.lib.config import (
 from rpi.lib.reading import Measure, Reading, Unit
 
 logger = logging.getLogger("polling-service")
-
-# Cleanup configuration: 1 in N chance to run cleanup on each poll cycle
-CLEANUP_PROBABILITY_DENOMINATOR = 10
-CLEANUP_RETENTION_DAYS = 3
 
 
 def _init_db() -> None:

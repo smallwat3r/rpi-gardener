@@ -1,4 +1,3 @@
-import re
 from datetime import datetime
 from typing import Any
 
@@ -6,17 +5,17 @@ from flask import Blueprint, jsonify, request
 from sqlitey import Sql
 
 from rpi import logging
-from rpi.lib.config import db_with_config
+from rpi.lib.config import (
+    MOISTURE_MAX,
+    MOISTURE_MIN,
+    PLANT_ID_MAX_LENGTH,
+    PLANT_ID_PATTERN,
+    db_with_config,
+)
 from rpi.lib.reading import Measure, PicoReading, Unit
 
 logger = logging.getLogger("pico-bp")
 pico = Blueprint("pico", __name__)
-
-MOISTURE_MIN = 0.0
-MOISTURE_MAX = 100.0
-PLANT_ID_MAX_LENGTH = 64
-# Only allow alphanumeric, hyphens, and underscores to prevent XSS
-PLANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 class ValidationError(Exception):

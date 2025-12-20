@@ -1,7 +1,7 @@
 """Websocket routes for the RPi Gardener application."""
 import json
 from time import sleep
-from typing import Callable
+from typing import Any, Callable
 
 from flask_sock import Sock
 from simple_websocket import ConnectionClosed
@@ -18,7 +18,12 @@ from rpi.server.views._utils import get_qs
 logger = logging.getLogger("websockets")
 
 
-def _websocket_loop(sock: Sock, func: Callable, *args, **kwargs) -> None:
+def _websocket_loop(
+    sock: Sock,
+    func: Callable[..., Any],
+    *args: Any,
+    **kwargs: Any,
+) -> None:
     """A generic websocket loop that sends data to the client.
 
     Handles client disconnection gracefully and logs connection events.

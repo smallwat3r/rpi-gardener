@@ -5,11 +5,13 @@ exists yet. Polling frequency is set to 2 seconds, we can't make it poll
 faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
+import signal
 from contextlib import suppress
 from datetime import datetime, timedelta
 from random import randint
 from sqlite3 import OperationalError
 from time import sleep
+from types import FrameType
 
 from adafruit_dht import DHT22
 from board import D17
@@ -29,6 +31,9 @@ from rpi.lib.config import (
 from rpi.lib.reading import Measure, Reading, Unit
 
 logger = logging.getLogger("polling-service")
+
+# Flag to signal graceful shutdown
+_shutdown_requested = False
 
 
 def _init_db() -> None:
@@ -108,7 +113,31 @@ def _randomly_clear_records() -> None:
                   (cutoff,))
 
 
+def _handle_shutdown(signum: int, frame: FrameType | None) -> None:
+    """Handle shutdown signals gracefully."""
+    global _shutdown_requested
+    signal_name = signal.Signals(signum).name
+    logger.info("Received %s, initiating graceful shutdown...", signal_name)
+    _shutdown_requested = True
+
+
+def _setup_signal_handlers() -> None:
+    """Register signal handlers for graceful shutdown."""
+    signal.signal(signal.SIGTERM, _handle_shutdown)
+    signal.signal(signal.SIGINT, _handle_shutdown)
+
+
+def _cleanup(dht: DHT22) -> None:
+    """Clean up resources before exit."""
+    logger.info("Cleaning up resources...")
+    display.clear()
+    dht.exit()
+    logger.info("Shutdown complete")
+
+
 def main() -> None:
+    """Main entry point for the polling service."""
+    _setup_signal_handlers()
     _init_db()
     start_worker()
     reading = Reading(
@@ -118,18 +147,24 @@ def main() -> None:
     )
     display.clear()
     dht = DHT22(D17)
-    while True:
-        _randomly_clear_records()
-        try:
-            _persist(_audit(_poll(dht, reading)))
-        except OutsideDHT22Bounds:
-            # Reading was outside valid sensor bounds, skip and retry
-            logger.debug("Skipping reading outside DHT22 bounds")
-        except RuntimeError as e:
-            # DHT library raises RuntimeError for transient sensor issues
-            # (e.g., checksum failures, timing issues). Log and retry.
-            logger.debug("DHT22 sensor read error: %s", e)
-        sleep(POLLING_FREQUENCY_SEC)
+
+    logger.info("Polling service started")
+
+    try:
+        while not _shutdown_requested:
+            _randomly_clear_records()
+            try:
+                _persist(_audit(_poll(dht, reading)))
+            except OutsideDHT22Bounds:
+                # Reading was outside valid sensor bounds, skip and retry
+                logger.debug("Skipping reading outside DHT22 bounds")
+            except RuntimeError as e:
+                # DHT library raises RuntimeError for transient sensor issues
+                # (e.g., checksum failures, timing issues). Log and retry.
+                logger.debug("DHT22 sensor read error: %s", e)
+            sleep(POLLING_FREQUENCY_SEC)
+    finally:
+        _cleanup(dht)
 
 
 if __name__ == "__main__":

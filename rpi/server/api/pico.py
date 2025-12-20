@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 from sqlitey import Sql
 
 from rpi import logging
@@ -55,7 +55,8 @@ def _persist(reading: PicoReading) -> None:
 
 
 @pico.post("/pico")
-def receive():
+def receive() -> tuple[Response, int]:
+    """Receive and persist moisture readings from Pico device."""
     current_time = datetime.utcnow()
     data = request.get_json()
 

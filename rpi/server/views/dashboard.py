@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 
 from rpi.lib.db import (
     get_initial_dht_data,
@@ -13,12 +13,13 @@ dashboard = Blueprint("dashboard", __name__)
 
 
 @dashboard.get("/")
-def index() -> str:
+def index() -> str | Response:
+    """Render the main dashboard with sensor data."""
     try:
         hours, from_time = get_qs(request)
     except BadParameter as err:
-        flash(str(err))
-        return redirect(url_for("index"))
+        flash(str(err), "error")
+        return redirect(url_for("dashboard.index"))
     return render_template(
         "index.html",
         hours=hours,

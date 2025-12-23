@@ -1,3 +1,10 @@
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app/rpi/server/frontend
+COPY rpi/server/frontend/package*.json ./
+RUN npm ci
+COPY rpi/server/frontend/ ./
+RUN npm run build
+
 FROM python:3.12-slim-bookworm
 
 # Install system dependencies for GPIO, I2C, and display
@@ -19,6 +26,9 @@ RUN mkdir -p /app/data
 
 # Copy application code
 COPY rpi/ ./rpi/
+
+# Copy frontend build from builder stage
+COPY --from=frontend-builder /app/rpi/server/static/dist ./rpi/server/static/dist
 
 # Copy supervisor configuration
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf

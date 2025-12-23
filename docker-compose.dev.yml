@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5000:5000"
+    volumes:
+      - db_data:/app/data
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-prod}
+      - DB_PATH=/app/data/dht.sqlite3
+
+volumes:
+  db_data:
+    name: rpi-gardener-dev-db

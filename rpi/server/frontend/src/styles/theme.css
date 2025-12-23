@@ -1,0 +1,39 @@
+:root {
+  --color-bg: #212529;
+  --color-bg-card: #2b3035;
+  --color-text: #f8f9fa;
+  --color-text-muted: #6c757d;
+  --color-border: #495057;
+
+  --color-temperature: #ff00ff;
+  --color-humidity: #00ffff;
+  --color-plant-1: #9d34a0;
+  --color-plant-2: #00aaff;
+  --color-plant-3: #ff00ff;
+
+  --font-family: 'Inter', system-ui, sans-serif;
+  --font-size-base: 16px;
+  --font-size-sm: 14px;
+  --font-size-lg: 24px;
+  --font-size-display: 48px;
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+}
+
+@media (max-width: 480px) {
+  :root {
+    --font-size-base: 14px;
+    --font-size-sm: 12px;
+    --font-size-lg: 20px;
+    --font-size-display: 32px;
+    --spacing-md: 12px;
+    --spacing-lg: 16px;
+  }
+}

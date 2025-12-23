@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 from typing import Any
 
 from sqlitey import Sql
@@ -13,6 +12,7 @@ from rpi.lib.config import (
     PLANT_ID_PATTERN,
     db_with_config,
 )
+from rpi.lib.utils import utcnow
 from rpi.lib.reading import Measure, PicoReading, Unit
 
 logger = logging.getLogger("pico-api")
@@ -52,7 +52,7 @@ def _persist(reading: PicoReading) -> None:
 
 async def receive_pico_data(request: Request) -> JSONResponse:
     """Receive and persist moisture readings from Pico device."""
-    current_time = datetime.now(UTC)
+    current_time = utcnow()
 
     try:
         data = await request.json()

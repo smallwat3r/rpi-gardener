@@ -6,7 +6,7 @@ faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
 import signal
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from random import randint
 from time import sleep
 from types import FrameType
@@ -27,6 +27,7 @@ from rpi.lib.config import (
     db_with_config,
 )
 from rpi.lib.db import init_db
+from rpi.lib.utils import utcnow
 from rpi.lib.reading import Measure, Reading, Unit
 
 logger = logging.getLogger("polling-service")
@@ -63,7 +64,7 @@ def _poll(dht: DHT22, reading: Reading) -> Reading:
     """Poll the DHT22 sensor for new reading values."""
     reading.temperature.value = dht.temperature
     reading.humidity.value = dht.humidity
-    reading.recording_time = datetime.now(UTC)
+    reading.recording_time = utcnow()
     logger.info("Read %s, %s", str(reading.temperature),
                 str(reading.humidity))
     display.render_reading(reading)
@@ -95,7 +96,7 @@ def _randomly_clear_records() -> None:
         return
     logger.info("Clearing historical data older than %d days...",
                 CLEANUP_RETENTION_DAYS)
-    cutoff = datetime.now(UTC) - timedelta(days=CLEANUP_RETENTION_DAYS)
+    cutoff = utcnow() - timedelta(days=CLEANUP_RETENTION_DAYS)
     with db_with_config() as db:
         db.commit(Sql.raw("DELETE FROM reading WHERE recording_time < ?"),
                   (cutoff,))
@@ -131,7 +132,7 @@ def main() -> None:
     reading = Reading(
         Measure(0.0, Unit.CELSIUS),
         Measure(0.0, Unit.PERCENT),
-        datetime.now(UTC),
+        utcnow(),
     )
     display.clear()
     dht = DHT22(D17)

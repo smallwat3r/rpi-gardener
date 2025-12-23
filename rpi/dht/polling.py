@@ -16,7 +16,7 @@ from sqlitey import Sql
 
 from rpi import logging
 from rpi.dht.service import audit_reading, start_worker
-from rpi.display import display
+from rpi.dht.display import display
 from rpi.lib.config import (
     CLEANUP_INTERVAL_CYCLES,
     CLEANUP_RETENTION_DAYS,

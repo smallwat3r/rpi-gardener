@@ -1,6 +1,8 @@
 """Centralized configuration for the RPi Gardener application."""
 import operator
 import re
+import sqlite3
+from datetime import datetime
 from enum import IntEnum, StrEnum
 from os import environ
 from pathlib import Path
@@ -8,10 +10,15 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sqlitey import Db, DbPathConfig
 
-# Import utils early to register sqlite3 datetime adapter before any DB operations
-import rpi.lib.utils  # noqa: F401
-
 load_dotenv()
+
+
+# SQLite datetime adapter - Python 3.12+ removed the default adapters
+def _adapt_datetime(dt: datetime) -> str:
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+sqlite3.register_adapter(datetime, _adapt_datetime)
 
 # Environment variables
 DB_PATH = environ.get("DB_PATH", "dht.sqlite3")
@@ -19,6 +26,7 @@ MAX_TEMPERATURE = int(environ.get("MAX_TEMPERATURE", 25))
 MIN_TEMPERATURE = int(environ.get("MIN_TEMPERATURE", 18))
 MAX_HUMIDITY = int(environ.get("MAX_HUMIDITY", 65))
 MIN_HUMIDITY = int(environ.get("MIN_HUMIDITY", 40))
+MIN_MOISTURE = int(environ.get("MIN_MOISTURE", 30))
 NOTIFICATION_SERVICE_ENABLED = environ.get("ENABLE_NOTIFICATION_SERVICE", "0") == "1"
 
 
@@ -85,6 +93,22 @@ MOISTURE_MIN = 0.0
 MOISTURE_MAX = 100.0
 PLANT_ID_MAX_LENGTH = 64
 PLANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
+def _env_key(plant_id: str) -> str:
+    """Convert plant_id to env var name (e.g., plant-1 -> MIN_MOISTURE_PLANT_1)."""
+    return f"MIN_MOISTURE_{plant_id.upper().replace('-', '_')}"
+
+
+PLANT_MOISTURE_THRESHOLDS = {
+    plant_id: int(environ.get(_env_key(plant_id), MIN_MOISTURE))
+    for plant_id in PLANT_IDS
+}
+
+
+def get_moisture_threshold(plant_id: str) -> int:
+    """Get moisture threshold for a plant, falling back to default."""
+    return PLANT_MOISTURE_THRESHOLDS.get(plant_id, MIN_MOISTURE)
 
 
 # OLED Display

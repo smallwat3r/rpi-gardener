@@ -48,11 +48,17 @@ Create a `.env` file:
 # SSL certificate (use your RPi's local IP)
 CERT_IP=192.168.1.100
 
-# Thresholds for alerts (optional, these are defaults)
+# DHT22 thresholds (optional, these are defaults)
 MAX_TEMPERATURE=25
 MIN_TEMPERATURE=18
 MAX_HUMIDITY=65
 MIN_HUMIDITY=40
+
+# Moisture thresholds (optional)
+MIN_MOISTURE=30                # Default for all plants
+MIN_MOISTURE_PLANT_1=25        # Override for plant-1
+MIN_MOISTURE_PLANT_2=30        # Override for plant-2
+MIN_MOISTURE_PLANT_3=35        # Override for plant-3
 
 # Email notifications (optional, set to 1 to enable)
 ENABLE_NOTIFICATION_SERVICE=0
@@ -60,7 +66,7 @@ GMAIL_SENDER=
 GMAIL_RECIPIENTS=
 GMAIL_USERNAME=
 GMAIL_PASSWORD=
-GMAIL_SUBJECT=DHT-22 sensor alert!
+GMAIL_SUBJECT=Sensor alert!
 ```
 
 ### 4. Start Services

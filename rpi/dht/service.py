@@ -12,8 +12,8 @@ from typing import Deque
 
 from rpi import logging
 from rpi.lib.config import THRESHOLD_RULES
+from rpi.lib.notifications import Event, get_notifier
 from rpi.dht.models import Measure, Reading, State
-from rpi.notifications import Event, get_notifier
 
 logger = logging.getLogger("dht-service")
 
@@ -86,9 +86,13 @@ def audit_reading(reading: Reading) -> None:
             if comparator(measure.value, threshold):
                 new_state = State.IN_ALERT
                 if previous_state != State.IN_ALERT:
-                    queue.enqueue(
-                        Event(measure, threshold, reading.recording_time)
-                    )
+                    queue.enqueue(Event(
+                        sensor_name=name,
+                        value=measure.value,
+                        unit=measure.unit,
+                        threshold=threshold,
+                        recording_time=reading.recording_time,
+                    ))
                 break
 
         _alert_state[name] = new_state

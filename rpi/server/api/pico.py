@@ -12,10 +12,15 @@ from rpi.lib.config import (
     PLANT_ID_MAX_LENGTH,
     PLANT_ID_PATTERN,
     db_with_config,
+    get_moisture_threshold,
 )
+from rpi.lib.notifications import Event, get_notifier
 from rpi.lib.utils import utcnow
 
 logger = logging.getLogger("pico-api")
+
+# Track alert state per plant to avoid repeated notifications
+_alert_state: dict[str, bool] = {}
 
 
 class _ValidationError(Exception):
@@ -49,6 +54,27 @@ def _persist(plant_id: str, moisture: float, recording_time: datetime) -> None:
                   (plant_id, moisture, recording_time))
 
 
+def _audit_moisture(plant_id: str, moisture: float, recording_time: datetime) -> None:
+    """Check moisture level and send notification if plant is thirsty."""
+    threshold = get_moisture_threshold(plant_id)
+    was_in_alert = _alert_state.get(plant_id, False)
+    is_thirsty = moisture < threshold
+
+    if is_thirsty and not was_in_alert:
+        logger.info("Plant %s is thirsty (moisture: %.1f%%, threshold: %d%%)",
+                    plant_id, moisture, threshold)
+        notifier = get_notifier()
+        notifier.send(Event(
+            sensor_name=plant_id,
+            value=moisture,
+            unit="%",
+            threshold=threshold,
+            recording_time=recording_time,
+        ))
+
+    _alert_state[plant_id] = is_thirsty
+
+
 async def receive_pico_data(request: Request) -> JSONResponse:
     """Receive and persist moisture readings from Pico device."""
     current_time = utcnow()
@@ -71,6 +97,7 @@ async def receive_pico_data(request: Request) -> JSONResponse:
             plant_id = _validate_plant_id(key)
             moisture = _validate_moisture(value)
             _persist(plant_id, moisture, current_time)
+            _audit_moisture(plant_id, moisture, current_time)
             persisted += 1
         except _ValidationError as e:
             logger.warning("Validation failed for %s: %s", key, e)

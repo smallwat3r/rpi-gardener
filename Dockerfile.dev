@@ -1,0 +1,31 @@
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app/rpi/server/frontend
+COPY rpi/server/frontend/package*.json ./
+RUN npm ci
+COPY rpi/server/frontend/ ./
+RUN npm run build
+
+FROM python:3.12-slim-bookworm
+
+WORKDIR /app
+
+COPY requirements-server.txt .
+RUN pip install --no-cache-dir -r requirements-server.txt
+
+COPY rpi/ ./rpi/
+COPY scripts/ ./scripts/
+COPY scripts/entrypoint.sh /entrypoint.sh
+COPY --from=frontend-builder /app/rpi/server/static/dist ./rpi/server/static/dist
+
+RUN chmod +x /entrypoint.sh
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+ENV DB_PATH=/app/data/dht.sqlite3
+
+RUN mkdir -p /app/data
+
+EXPOSE 5000
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--worker-class", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker", "rpi.server:app"]

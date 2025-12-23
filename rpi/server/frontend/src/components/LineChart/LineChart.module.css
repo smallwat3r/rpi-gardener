@@ -1,0 +1,12 @@
+.container {
+  position: relative;
+  height: 150px;
+  width: 100%;
+  touch-action: pan-y;
+}
+
+@media (max-width: 480px) {
+  .container {
+    height: 120px;
+  }
+}

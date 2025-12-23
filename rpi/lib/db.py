@@ -13,27 +13,56 @@ from rpi.lib.config import db_with_config
 STATS_CACHE_TTL_SEC = 5.0
 
 
+def init_db() -> None:
+    """Initialize database schema (tables and indexes).
+
+    Safe to call multiple times - uses IF NOT EXISTS clauses.
+    """
+    with db_with_config() as db:
+        db.execute(Sql.template("init_reading_table.sql"))
+        db.execute(Sql.template("idx_reading.sql"))
+        db.execute(Sql.template("init_pico_reading_table.sql"))
+        db.execute(Sql.template("idx_pico_reading.sql"))
+
+
 class _TTLCache:
-    """A simple thread-safe TTL cache for database query results."""
+    """A simple thread-safe TTL cache for database query results.
+
+    Implements automatic cleanup of expired entries to prevent memory leaks.
+    Also enforces a maximum cache size to bound memory usage.
+    """
+
+    MAX_SIZE = 100  # Maximum number of entries to prevent unbounded growth
 
     def __init__(self, ttl: float) -> None:
         self._ttl = ttl
         self._cache: dict[Any, tuple[float, Any]] = {}
         self._lock = Lock()
 
+    def _cleanup_expired(self) -> None:
+        """Remove expired entries. Must be called with lock held."""
+        now = monotonic()
+        expired = [k for k, (ts, _) in self._cache.items() if now - ts >= self._ttl]
+        for key in expired:
+            del self._cache[key]
+
     def get(self, key: Any) -> tuple[bool, Any]:
         """Get a value from cache. Returns (hit, value)."""
         with self._lock:
+            self._cleanup_expired()
             if key in self._cache:
                 timestamp, value = self._cache[key]
-                if monotonic() - timestamp < self._ttl:
-                    return True, value
-                del self._cache[key]
+                return True, value
         return False, None
 
     def set(self, key: Any, value: Any) -> None:
         """Set a value in cache."""
         with self._lock:
+            self._cleanup_expired()
+            # Enforce max size by removing oldest entries if needed
+            if len(self._cache) >= self.MAX_SIZE and key not in self._cache:
+                oldest_key = min(self._cache, key=lambda k: self._cache[k][0])
+                del self._cache[oldest_key]
             self._cache[key] = (monotonic(), value)
 
 

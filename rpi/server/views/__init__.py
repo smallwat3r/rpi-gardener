@@ -1,1 +1,1 @@
-from .dashboard import dashboard  # noqa: F401
+from .spa import spa  # noqa: F401

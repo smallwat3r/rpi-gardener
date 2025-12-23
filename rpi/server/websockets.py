@@ -3,6 +3,7 @@ import json
 from time import sleep
 from typing import Any, Callable
 
+from flask import request
 from flask_sock import Sock
 from simple_websocket import ConnectionClosed
 
@@ -55,7 +56,7 @@ def init_websockets(sock: Sock) -> None:
 
     @sock.route("/dht/stats")
     def stats(sock: Sock) -> None:
-        _, from_time = get_qs(sock.request)
+        _, from_time = get_qs(request)
         _websocket_loop(sock, get_stats_dht_data, from_time)
 
     @sock.route("/pico/latest")

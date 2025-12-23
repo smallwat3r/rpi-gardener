@@ -12,6 +12,12 @@ __pycache__
 .Python
 *.egg-info
 
+# Node
+node_modules
+
+# Frontend build output (rebuilt in Docker)
+rpi/server/static/dist
+
 # Database
 *.sqlite3
 *.db
@@ -32,6 +38,6 @@ pico/
 nginx/
 
 # Docker
-Dockerfile
-docker-compose.yml
+Dockerfile*
+docker-compose*.yml
 .dockerignore

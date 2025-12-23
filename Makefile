@@ -55,8 +55,29 @@ mprestart:  ## Restart main.py script on the Pico
 	$(MPREMOTE) exec --no-follow 'import main'
 
 .PHONY: up
-up:  ## Start Docker services
+up:  ## Start Docker services (RPi production)
 	docker compose up -d --build
+
+.PHONY: dev
+dev:  ## Start Docker services (local development, no hardware)
+	docker compose -f docker-compose.dev.yml up -d --build
+
+.PHONY: dev-rebuild
+dev-rebuild:  ## Rebuild dev Docker without cache (use after FE changes)
+	docker compose -f docker-compose.dev.yml build --no-cache
+	docker compose -f docker-compose.dev.yml up -d
+
+.PHONY: dev-down
+dev-down:  ## Stop dev Docker services
+	docker compose -f docker-compose.dev.yml down
+
+.PHONY: dev-logs
+dev-logs:  ## View dev Docker logs
+	docker compose -f docker-compose.dev.yml logs -f
+
+.PHONY: dev-seed
+dev-seed:  ## Seed dev database with dummy data
+	docker compose -f docker-compose.dev.yml exec app python scripts/seed_data.py
 
 .PHONY: down
 down:  ## Stop Docker services

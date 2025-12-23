@@ -6,10 +6,8 @@ faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
 import signal
-from contextlib import suppress
 from datetime import datetime, timedelta
 from random import randint
-from sqlite3 import OperationalError
 from time import sleep
 from types import FrameType
 
@@ -28,23 +26,13 @@ from rpi.lib.config import (
     MeasureName,
     db_with_config,
 )
+from rpi.lib.db import init_db
 from rpi.lib.reading import Measure, Reading, Unit
 
 logger = logging.getLogger("polling-service")
 
 # Flag to signal graceful shutdown
 _shutdown_requested = False
-
-
-def _init_db() -> None:
-    """Init database scripts."""
-    with db_with_config() as db:
-        db.executescript(Sql.template("init_reading_table.sql"))
-        with suppress(OperationalError):
-            db.executescript(Sql.template("idx_reading.sql"))
-        db.executescript(Sql.template("init_pico_reading_table.sql"))
-        with suppress(OperationalError):
-            db.executescript(Sql.template("idx_pico_reading.sql"))
 
 
 class OutsideDHT22Bounds(RuntimeError):
@@ -138,7 +126,7 @@ def _cleanup(dht: DHT22) -> None:
 def main() -> None:
     """Main entry point for the polling service."""
     _setup_signal_handlers()
-    _init_db()
+    init_db()
     start_worker()
     reading = Reading(
         Measure(0.0, Unit.CELCIUS),

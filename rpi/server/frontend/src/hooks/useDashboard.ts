@@ -10,19 +10,29 @@ export function useDashboard(initialHours: number = 3) {
   const [error, setError] = useState<string | null>(null);
   const lastDhtEpoch = useRef<number | null>(null);
   const lastPicoEpoch = useRef<number | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const result = await fetchDashboardData(hours);
+      if (!mountedRef.current) return;
       setData(result);
       lastDhtEpoch.current = result.latest?.epoch ?? null;
       lastPicoEpoch.current = result.pico_latest?.[0]?.epoch ?? null;
     } catch (err) {
+      if (!mountedRef.current) return;
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [hours]);
 

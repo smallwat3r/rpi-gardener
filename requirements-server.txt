@@ -1,4 +1,6 @@
-starlette
-uvicorn[standard]
+# Core server dependencies (no hardware libs)
+cachetools
 python-dotenv
 sqlitey
+starlette
+uvicorn[standard]

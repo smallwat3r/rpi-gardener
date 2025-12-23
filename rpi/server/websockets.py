@@ -1,6 +1,6 @@
 """WebSocket routes for the RPi Gardener application."""
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Callable
 
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -12,9 +12,9 @@ from rpi.lib.db import (
     get_latest_pico_data,
     get_stats_dht_data,
 )
+from rpi.lib.params import parse_hours
 
 _logger = logging.getLogger("websockets")
-_DEFAULT_HOURS = 3
 
 
 async def _stream_data(
@@ -42,11 +42,8 @@ async def _stream_data(
 
 def _parse_hours(websocket: WebSocket) -> datetime:
     """Parse hours query param and return from_time datetime."""
-    try:
-        hours = int(websocket.query_params.get("hours", _DEFAULT_HOURS))
-    except ValueError:
-        hours = _DEFAULT_HOURS
-    return datetime.utcnow() - timedelta(hours=max(1, min(24, hours)))
+    _, from_time = parse_hours(websocket.query_params, strict=False)
+    return from_time
 
 
 async def ws_dht_latest(websocket: WebSocket) -> None:

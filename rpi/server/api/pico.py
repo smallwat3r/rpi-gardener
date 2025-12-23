@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlitey import Sql
@@ -52,7 +52,7 @@ def _persist(reading: PicoReading) -> None:
 
 async def receive_pico_data(request: Request) -> JSONResponse:
     """Receive and persist moisture readings from Pico device."""
-    current_time = datetime.utcnow()
+    current_time = datetime.now(UTC)
 
     try:
         data = await request.json()

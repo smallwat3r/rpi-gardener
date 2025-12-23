@@ -4,7 +4,7 @@ from enum import Enum, StrEnum, auto
 
 
 class Unit(StrEnum):
-    CELCIUS = "c"
+    CELSIUS = "c"
     PERCENT = "%"
 
 

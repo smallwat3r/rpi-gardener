@@ -6,7 +6,6 @@ The service is responsible for:
 - Processing events via a background worker thread
 """
 from collections import deque
-from dataclasses import dataclass
 from threading import Thread
 from time import sleep
 from typing import Deque
@@ -17,6 +16,9 @@ from rpi.lib.reading import Measure, Reading, State
 from rpi.notifications import Event, get_notifier
 
 logger = logging.getLogger("dht-service")
+
+# Persistent alert state tracking across polling cycles
+_alert_state: dict[str, State] = {}
 
 
 class EventQueue:
@@ -66,30 +68,28 @@ def start_worker() -> None:
     Thread(target=_event_handler, daemon=True).start()
 
 
-@dataclass
-class _StateTracker:
-    """Tracks alert state for temperature and humidity."""
-    temperature: State = State.OK
-    humidity: State = State.OK
-
-
 def audit_reading(reading: Reading) -> None:
     """Audit reading values against thresholds and enqueue notification events.
 
     Compares reading values against configured threshold rules. When a threshold
     is crossed and the measure wasn't already in alert state, queues a
-    notification event.
+    notification event. State is tracked in a module-level dictionary to persist
+    across polling cycles independent of reading object lifecycle.
     """
-    tracker = _StateTracker()
     for name, rules in THRESHOLD_RULES.items():
+        measure: Measure = getattr(reading, name)
+        previous_state = _alert_state.get(name, State.OK)
+        new_state = State.OK
+
         for rule in rules:
             comparator, threshold = rule
-            measure: Measure = getattr(reading, name)
             if comparator(measure.value, threshold):
-                setattr(tracker, name, State.IN_ALERT)
-                if measure.state != State.IN_ALERT:
+                new_state = State.IN_ALERT
+                if previous_state != State.IN_ALERT:
                     queue.enqueue(
                         Event(measure, threshold, reading.recording_time)
                     )
                 break
-        getattr(reading, name).state = getattr(tracker, name)
+
+        _alert_state[name] = new_state
+        measure.state = new_state

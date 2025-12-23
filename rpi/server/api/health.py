@@ -1,5 +1,5 @@
 """Health check endpoint for monitoring service status."""
-from datetime import datetime
+from datetime import UTC, datetime
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -54,7 +54,7 @@ async def health_check(request: Request) -> JSONResponse:
 
     status = {
         "status": "healthy" if db_ok else "unhealthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "checks": {
             "database": {"ok": db_ok, "status": db_status},
             "dht_sensor": {"ok": dht_ok, "last_reading": dht_last},

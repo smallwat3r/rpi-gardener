@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timedelta
 from sqlite3 import DatabaseError
 
 from starlette.requests import Request
@@ -12,33 +11,16 @@ from rpi.lib.db import (
     get_latest_pico_data,
     get_stats_dht_data,
 )
+from rpi.lib.params import InvalidParameter, parse_hours
 
 logger = logging.getLogger(__name__)
-
-_MIN_HOURS = 1
-_MAX_HOURS = 24
-_DEFAULT_HOURS = 3
-
-
-class _BadParameter(Exception): ...
-
-
-def _get_qs(request: Request) -> tuple[int, datetime]:
-    """Parse and validate hours query parameter."""
-    try:
-        hours = int(request.query_params.get("hours", _DEFAULT_HOURS))
-    except ValueError as err:
-        raise _BadParameter("Parameter needs to be an integer") from err
-    if not (_MIN_HOURS <= hours <= _MAX_HOURS):
-        raise _BadParameter(f"Hours must be between {_MIN_HOURS} and {_MAX_HOURS}")
-    return hours, datetime.utcnow() - timedelta(hours=hours)
 
 
 async def get_dashboard(request: Request) -> JSONResponse:
     """Return dashboard data as JSON for SPA consumption."""
     try:
-        hours, from_time = _get_qs(request)
-    except _BadParameter as err:
+        hours, from_time = parse_hours(request.query_params)
+    except InvalidParameter as err:
         return JSONResponse({"error": str(err)}, status_code=400)
 
     try:

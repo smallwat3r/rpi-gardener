@@ -6,7 +6,7 @@ faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
 import signal
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from random import randint
 from time import sleep
 from types import FrameType
@@ -63,7 +63,7 @@ def _poll(dht: DHT22, reading: Reading) -> Reading:
     """Poll the DHT22 sensor for new reading values."""
     reading.temperature.value = dht.temperature
     reading.humidity.value = dht.humidity
-    reading.recording_time = datetime.utcnow()
+    reading.recording_time = datetime.now(UTC)
     logger.info("Read %s, %s", str(reading.temperature),
                 str(reading.humidity))
     display.render_reading(reading)
@@ -95,7 +95,7 @@ def _randomly_clear_records() -> None:
         return
     logger.info("Clearing historical data older than %d days...",
                 CLEANUP_RETENTION_DAYS)
-    cutoff = datetime.utcnow() - timedelta(days=CLEANUP_RETENTION_DAYS)
+    cutoff = datetime.now(UTC) - timedelta(days=CLEANUP_RETENTION_DAYS)
     with db_with_config() as db:
         db.commit(Sql.raw("DELETE FROM reading WHERE recording_time < ?"),
                   (cutoff,))
@@ -129,9 +129,9 @@ def main() -> None:
     init_db()
     start_worker()
     reading = Reading(
-        Measure(0.0, Unit.CELCIUS),
+        Measure(0.0, Unit.CELSIUS),
         Measure(0.0, Unit.PERCENT),
-        datetime.utcnow(),
+        datetime.now(UTC),
     )
     display.clear()
     dht = DHT22(D17)

@@ -1,7 +1,7 @@
+# Full RPi deployment (server + hardware)
+-r requirements-server.txt
+
+# Hardware-specific dependencies
 adafruit-circuitpython-dht
 adafruit-circuitpython-ssd1306
-starlette
-uvicorn[standard]
-python-dotenv
 pillow
-sqlitey

@@ -75,8 +75,8 @@ dev-logs:  ## View dev Docker logs
 	docker compose -f docker-compose.dev.yml logs -f
 
 .PHONY: dev-seed
-dev-seed:  ## Seed dev database with dummy data
-	docker compose -f docker-compose.dev.yml exec app python scripts/seed_data.py
+dev-seed:  ## Seed dev database with dummy data (clears existing)
+	docker compose -f docker-compose.dev.yml exec app python scripts/seed_data.py -clear
 
 .PHONY: down
 down:  ## Stop Docker services

@@ -14,6 +14,17 @@ interface PicoCardProps {
 }
 
 export function PicoCard({ latest, chartData }: PicoCardProps) {
+  if (!latest.length) {
+    return (
+      <article class={styles.card} aria-labelledby="pico-card-header">
+        <h2 id="pico-card-header" class={styles.header}>RPi Pico Moisture</h2>
+        <div class={styles.body}>
+          <p class={styles.noData}>No data available</p>
+        </div>
+      </article>
+    );
+  }
+
   const datasets = latest.map((plant, idx) => ({
     label: `${plant.plant_id} %`,
     data: chartData as unknown as Record<string, number>[],

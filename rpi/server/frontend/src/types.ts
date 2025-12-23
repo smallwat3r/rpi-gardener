@@ -29,8 +29,8 @@ export interface PicoChartDataPoint {
 export interface DashboardData {
   hours: number;
   data: DHTReading[];
-  stats: DHTStats;
-  latest: DHTReading;
+  stats: DHTStats | null;
+  latest: DHTReading | null;
   pico_data: PicoChartDataPoint[];
   pico_latest: PicoReading[];
 }

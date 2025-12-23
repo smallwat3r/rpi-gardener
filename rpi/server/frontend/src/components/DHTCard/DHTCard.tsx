@@ -4,12 +4,22 @@ import { StatDisplay } from '@/components/StatDisplay';
 import styles from './DHTCard.module.css';
 
 interface DHTCardProps {
-  latest: DHTReading;
-  stats: DHTStats;
+  latest: DHTReading | null;
+  stats: DHTStats | null;
   chartData: DHTReading[];
 }
 
 export function DHTCard({ latest, stats, chartData }: DHTCardProps) {
+  if (!latest || !stats) {
+    return (
+      <article class={styles.card} aria-labelledby="dht-card-header">
+        <h2 id="dht-card-header" class={styles.header}>RPi 4 DHT22</h2>
+        <div class={styles.body}>
+          <p class={styles.noData}>No data available</p>
+        </div>
+      </article>
+    );
+  }
   const datasets = [
     {
       label: 'Temperature (c)',

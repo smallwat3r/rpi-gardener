@@ -6,36 +6,50 @@ from datetime import timedelta
 
 from sqlitey import Sql
 
-from rpi.lib.config import db_with_config
+from rpi.lib.config import PLANT_IDS, db_with_config
 from rpi.lib.db import init_db
 from rpi.lib.utils import utcnow
 
-PLANTS = ["plant-1", "plant-2", "plant-3"]
+
+def _random_walk(current: float, drift: float, min_val: float, max_val: float) -> float:
+    """Generate next value using random walk with bounds."""
+    change = random.gauss(0, drift)
+    new_val = current + change
+    return max(min_val, min(max_val, new_val))
 
 
 def generate_dht_data(num_records: int, interval: timedelta) -> list[tuple]:
-    """Generate DHT sensor readings."""
+    """Generate realistic DHT sensor readings using random walk."""
     now = utcnow()
     data = []
+
+    temperature = random.uniform(20.0, 23.0)
+    humidity = random.uniform(45.0, 55.0)
+
     for i in range(num_records):
-        recording_time = now - (interval * (num_records - i))
-        temperature = round(20 + random.uniform(-2, 5) + (i % 20) * 0.1, 1)
-        humidity = round(50 + random.uniform(-5, 10) + (i % 15) * 0.2, 1)
-        data.append((temperature, humidity, recording_time))
+        recording_time = now - (interval * (num_records - 1 - i))
+        temperature = _random_walk(temperature, drift=0.15, min_val=15.0, max_val=30.0)
+        humidity = _random_walk(humidity, drift=0.3, min_val=30.0, max_val=70.0)
+        data.append((round(temperature, 1), round(humidity, 1), recording_time))
+
     return data
 
 
 def generate_pico_data(num_records: int, interval: timedelta) -> list[tuple]:
-    """Generate Pico moisture readings."""
+    """Generate realistic Pico moisture readings using random walk."""
     now = utcnow()
     data = []
+
+    moisture = {plant_id: random.uniform(40.0, 70.0) for plant_id in PLANT_IDS}
+
     for i in range(num_records):
-        recording_time = now - (interval * (num_records - i))
-        for j, plant_id in enumerate(PLANTS):
-            base_moisture = 60 - (j * 15)
-            moisture = round(base_moisture + random.uniform(-10, 10) - (i % 30) * 0.3, 1)
-            moisture = max(5.0, min(95.0, moisture))
-            data.append((plant_id, moisture, recording_time))
+        recording_time = now - (interval * (num_records - 1 - i))
+        for plant_id in PLANT_IDS:
+            moisture[plant_id] = _random_walk(
+                moisture[plant_id], drift=0.5, min_val=10.0, max_val=90.0
+            )
+            data.append((plant_id, round(moisture[plant_id], 1), recording_time))
+
     return data
 
 
@@ -46,7 +60,7 @@ def seed_data(hours: int = 6, clear: bool = False) -> None:
     interval = timedelta(minutes=2)
     num_records = (hours * 60) // 2
 
-    with db_with_config() as db:
+    with db_with_config(autocommit=True) as db:
         if clear:
             print("Clearing existing data...")
             db.execute(Sql.raw("DELETE FROM reading"))
@@ -55,7 +69,7 @@ def seed_data(hours: int = 6, clear: bool = False) -> None:
         print(f"Generating {num_records} DHT readings...")
         dht_data = generate_dht_data(num_records, interval)
 
-        print(f"Generating {num_records * len(PLANTS)} Pico readings...")
+        print(f"Generating {num_records * len(PLANT_IDS)} Pico readings...")
         pico_data = generate_pico_data(num_records, interval)
 
         print("Inserting DHT data...")

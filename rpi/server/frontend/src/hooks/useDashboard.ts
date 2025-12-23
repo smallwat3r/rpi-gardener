@@ -25,7 +25,7 @@ export function useDashboard(initialHours: number = 3) {
       if (!mountedRef.current) return;
       setData(result);
       lastDhtEpoch.current = result.latest?.epoch ?? null;
-      lastPicoEpoch.current = result.pico_latest?.[0]?.epoch ?? null;
+      lastPicoEpoch.current = result.pico_latest[0]?.epoch ?? null;
     } catch (err) {
       if (!mountedRef.current) return;
       setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -40,8 +40,8 @@ export function useDashboard(initialHours: number = 3) {
     loadData();
   }, [loadData]);
 
-  const handleDhtLatest = useCallback((reading: DHTReading) => {
-    if (reading.epoch === lastDhtEpoch.current) return;
+  const handleDhtLatest = useCallback((reading: DHTReading | null) => {
+    if (!reading || reading.epoch === lastDhtEpoch.current) return;
     lastDhtEpoch.current = reading.epoch;
     setData((prev) => {
       if (!prev) return prev;
@@ -50,12 +50,13 @@ export function useDashboard(initialHours: number = 3) {
     });
   }, []);
 
-  const handleDhtStats = useCallback((stats: DHTStats) => {
+  const handleDhtStats = useCallback((stats: DHTStats | null) => {
+    if (!stats) return;
     setData((prev) => (prev ? { ...prev, stats } : prev));
   }, []);
 
-  const handlePicoLatest = useCallback((picoReadings: PicoReading[]) => {
-    if (!picoReadings.length || picoReadings[0].epoch === lastPicoEpoch.current) return;
+  const handlePicoLatest = useCallback((picoReadings: PicoReading[] | null) => {
+    if (!picoReadings?.length || picoReadings[0].epoch === lastPicoEpoch.current) return;
     lastPicoEpoch.current = picoReadings[0].epoch;
     setData((prev) => {
       if (!prev) return prev;

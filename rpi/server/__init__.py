@@ -1,22 +1,21 @@
-from os import environ
+from starlette.applications import Starlette
+from starlette.routing import Mount, Route, WebSocketRoute
 
-from flask import Flask
-from flask_sock import Sock
+from .api.dashboard import get_dashboard
+from .api.health import health_check
+from .api.pico import receive_pico_data
+from .spa import serve_spa, serve_static
+from .websockets import ws_dht_latest, ws_dht_stats, ws_pico_latest
 
-from rpi.lib.config import FLASK_SECRET_KEY
+routes = [
+    Route("/health", health_check),
+    Route("/pico", receive_pico_data, methods=["POST"]),
+    Route("/api/dashboard", get_dashboard),
+    WebSocketRoute("/dht/latest", ws_dht_latest),
+    WebSocketRoute("/dht/stats", ws_dht_stats),
+    WebSocketRoute("/pico/latest", ws_pico_latest),
+    Route("/", serve_spa),
+    Route("/{path:path}", serve_static),
+]
 
-from .api import dashboard_api, health, pico
-from .spa import spa
-from .websockets import init_websockets
-
-app = Flask(__name__)
-app.config["TEMPLATES_AUTO_RELOAD"] = bool(environ.get("RELOAD"))
-app.secret_key = FLASK_SECRET_KEY
-
-app.register_blueprint(health)
-app.register_blueprint(pico)
-app.register_blueprint(dashboard_api)
-app.register_blueprint(spa)
-
-sock = Sock(app)
-init_websockets(sock)
+app = Starlette(routes=routes)

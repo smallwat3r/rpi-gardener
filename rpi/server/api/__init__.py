@@ -1,3 +1,3 @@
-from .dashboard import dashboard_api  # noqa: F401
-from .health import health  # noqa: F401
-from .pico import pico  # noqa: F401
+from .dashboard import get_dashboard  # noqa: F401
+from .health import health_check  # noqa: F401
+from .pico import receive_pico_data  # noqa: F401

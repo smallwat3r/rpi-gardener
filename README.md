@@ -45,19 +45,16 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 Create a `.env` file:
 
 ```sh
-# Required
-SECRET_KEY=your-random-secret-key-here
-
 # SSL certificate (use your RPi's local IP)
 CERT_IP=192.168.1.100
 
-# Thresholds for alerts
+# Thresholds for alerts (optional, these are defaults)
 MAX_TEMPERATURE=25
 MIN_TEMPERATURE=18
 MAX_HUMIDITY=65
 MIN_HUMIDITY=40
 
-# Email notifications (optional, set to 0 to disable)
+# Email notifications (optional, set to 1 to enable)
 ENABLE_NOTIFICATION_SERVICE=0
 GMAIL_SENDER=
 GMAIL_RECIPIENTS=

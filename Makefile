@@ -32,14 +32,13 @@ mpdeps:  ## Install Micropython requirements in virtual environment
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install --no-cache-dir -r requirements-mp.txt
 
-.PHONY: flask
-flask:  ## Start the Flask server (for development)
-	RELOAD=1 $(PYTHON) -m flask --app $(RPI).server:app run --host 0.0.0.0 --debug
+.PHONY: serve
+serve:  ## Start the server (for development)
+	$(PYTHON) -m uvicorn $(RPI).server:app --host 0.0.0.0 --reload
 
 .PHONY: server
-server:  ## Start the Flask server with Gunicorn (binded for Nginx)
-	$(PYTHON) -m gunicorn $(RPI).server:app --bind=unix:/tmp/gunicorn.sock \
-		--workers 3 --threads 2
+server:  ## Start the server with uvicorn (binded for Nginx)
+	$(PYTHON) -m uvicorn $(RPI).server:app --uds /tmp/uvicorn.sock --workers 3
 
 .PHONY: polling
 polling:  ## Start the polling service

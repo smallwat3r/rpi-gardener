@@ -1,14 +1,14 @@
 """Health check endpoint for monitoring service status."""
 from datetime import datetime
 
-from flask import Blueprint, Response, jsonify
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from rpi import logging
 from rpi.lib.config import db_with_config
 from rpi.lib.db import get_latest_dht_data, get_latest_pico_data
 
 logger = logging.getLogger("health")
-health = Blueprint("health", __name__)
 
 
 def _check_database() -> tuple[bool, str]:
@@ -46,8 +46,7 @@ def _check_pico_sensor() -> tuple[bool, str | None]:
         return False, str(e)
 
 
-@health.get("/health")
-def healthcheck() -> tuple[Response, int]:
+async def health_check(request: Request) -> JSONResponse:
     """Return health status of the application and its dependencies."""
     db_ok, db_status = _check_database()
     dht_ok, dht_last = _check_dht_sensor()
@@ -63,5 +62,4 @@ def healthcheck() -> tuple[Response, int]:
         },
     }
 
-    http_status = 200 if db_ok else 503
-    return jsonify(status), http_status
+    return JSONResponse(status, status_code=200 if db_ok else 503)

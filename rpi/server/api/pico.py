@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Any
 
-from flask import Blueprint, Response, jsonify, request
 from sqlitey import Sql
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from rpi import logging
 from rpi.lib.config import (
@@ -14,8 +15,7 @@ from rpi.lib.config import (
 )
 from rpi.lib.reading import Measure, PicoReading, Unit
 
-logger = logging.getLogger("pico-bp")
-pico = Blueprint("pico", __name__)
+logger = logging.getLogger("pico-api")
 
 
 class _ValidationError(Exception):
@@ -23,11 +23,7 @@ class _ValidationError(Exception):
 
 
 def _validate_plant_id(plant_id: Any) -> str:
-    """Validate plant_id is a safe, non-empty string within length limits.
-
-    Only alphanumeric characters, hyphens, and underscores are allowed
-    to prevent XSS when rendered in HTML templates.
-    """
+    """Validate plant_id is a safe, non-empty string within length limits."""
     if not isinstance(plant_id, str):
         raise _ValidationError(f"plant_id must be a string, got {type(plant_id).__name__}")
     if not plant_id or len(plant_id) > PLANT_ID_MAX_LENGTH:
@@ -54,19 +50,19 @@ def _persist(reading: PicoReading) -> None:
                    reading.recording_time))
 
 
-@pico.post("/pico")
-def receive() -> tuple[Response, int]:
+async def receive_pico_data(request: Request) -> JSONResponse:
     """Receive and persist moisture readings from Pico device."""
     current_time = datetime.utcnow()
-    data = request.get_json()
 
-    if data is None:
+    try:
+        data = await request.json()
+    except Exception:
         logger.warning("Received empty or invalid JSON payload")
-        return jsonify({"error": "Invalid JSON payload"}), 400
+        return JSONResponse({"error": "Invalid JSON payload"}, status_code=400)
 
     if not isinstance(data, dict):
         logger.warning("Received non-dict JSON: %s", type(data).__name__)
-        return jsonify({"error": "Expected JSON object"}), 400
+        return JSONResponse({"error": "Expected JSON object"}, status_code=400)
 
     logger.info("Received Pico data: %s", data)
     persisted = 0
@@ -85,6 +81,6 @@ def receive() -> tuple[Response, int]:
             continue
 
     if persisted == 0 and data:
-        return jsonify({"error": "No valid readings in payload"}), 400
+        return JSONResponse({"error": "No valid readings in payload"}, status_code=400)
 
-    return jsonify({"persisted": persisted}), 201
+    return JSONResponse({"persisted": persisted}, status_code=201)

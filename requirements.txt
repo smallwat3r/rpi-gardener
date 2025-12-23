@@ -1,10 +1,7 @@
 adafruit-circuitpython-dht
 adafruit-circuitpython-ssd1306
-flask
-flask-sock
-gevent
-gevent-websocket
-gunicorn
+starlette
+uvicorn[standard]
 python-dotenv
 pillow
 sqlitey

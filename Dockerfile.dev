@@ -28,4 +28,4 @@ RUN mkdir -p /app/data
 EXPOSE 5000
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--worker-class", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker", "rpi.server:app"]
+CMD ["uvicorn", "rpi.server:app", "--host", "0.0.0.0", "--port", "5000"]

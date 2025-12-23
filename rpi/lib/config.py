@@ -116,10 +116,3 @@ class GmailConfig:
     USERNAME = environ.get("GMAIL_USERNAME", "")
     PASSWORD = environ.get("GMAIL_PASSWORD", "")
     SUBJECT = environ.get("GMAIL_SUBJECT", "Sensor alert!")
-
-
-# =============================================================================
-# Flask Configuration
-# =============================================================================
-
-FLASK_SECRET_KEY = environ["SECRET_KEY"]

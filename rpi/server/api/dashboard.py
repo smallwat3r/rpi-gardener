@@ -11,7 +11,7 @@ from rpi.lib.db import (
     get_latest_pico_data,
     get_stats_dht_data,
 )
-from rpi.lib.params import InvalidParameter, parse_hours
+from rpi.server.params import InvalidParameter, parse_hours
 
 logger = logging.getLogger(__name__)
 

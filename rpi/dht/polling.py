@@ -35,7 +35,7 @@ logger = logging.getLogger("polling-service")
 _shutdown_requested = False
 
 
-class OutsideDHT22Bounds(RuntimeError):
+class _OutsideDHT22Bounds(RuntimeError):
     """Reading from DHT22 sensor is outside of allowed bounds."""
 
 
@@ -55,7 +55,7 @@ def _check_dht_boundaries(reading: Reading) -> Reading:
         if measure < bmin or measure > bmax:
             logger.error("%s reading outside bounds of DHT22 sensor: %s",
                          name.capitalize(), str(reading.temperature))
-            raise OutsideDHT22Bounds()
+            raise _OutsideDHT22Bounds()
     return reading
 
 
@@ -143,7 +143,7 @@ def main() -> None:
             _randomly_clear_records()
             try:
                 _persist(_audit(_poll(dht, reading)))
-            except OutsideDHT22Bounds:
+            except _OutsideDHT22Bounds:
                 # Reading was outside valid sensor bounds, skip and retry
                 logger.debug("Skipping reading outside DHT22 bounds")
             except RuntimeError as e:

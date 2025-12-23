@@ -1,5 +1,6 @@
 """Websocket routes for the RPi Gardener application."""
 import json
+from datetime import datetime, timedelta
 from time import sleep
 from typing import Any, Callable
 
@@ -14,9 +15,19 @@ from rpi.lib.db import (
     get_latest_pico_data,
     get_stats_dht_data,
 )
-from rpi.server.views._utils import get_qs
 
 logger = logging.getLogger("websockets")
+
+_DEFAULT_HOURS = 3
+
+
+def _get_from_time() -> datetime:
+    """Parse hours from query string and return the from_time datetime."""
+    try:
+        hours = int(request.args.get("hours", _DEFAULT_HOURS))
+    except ValueError:
+        hours = _DEFAULT_HOURS
+    return datetime.utcnow() - timedelta(hours=max(1, min(24, hours)))
 
 
 def _websocket_loop(
@@ -56,7 +67,7 @@ def init_websockets(sock: Sock) -> None:
 
     @sock.route("/dht/stats")
     def stats(sock: Sock) -> None:
-        _, from_time = get_qs(request)
+        from_time = _get_from_time()
         _websocket_loop(sock, get_stats_dht_data, from_time)
 
     @sock.route("/pico/latest")

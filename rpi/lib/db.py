@@ -10,7 +10,7 @@ from sqlitey import Sql, SqlRow, dict_factory
 from rpi.lib.config import db_with_config
 
 # Cache TTL in seconds - stats don't change frequently, so cache for 5 seconds
-STATS_CACHE_TTL_SEC = 5.0
+_STATS_CACHE_TTL_SEC = 5.0
 
 
 def init_db() -> None:
@@ -66,7 +66,7 @@ class _TTLCache:
             self._cache[key] = (monotonic(), value)
 
 
-_stats_cache = _TTLCache(STATS_CACHE_TTL_SEC)
+_stats_cache = _TTLCache(_STATS_CACHE_TTL_SEC)
 
 
 def get_initial_dht_data(from_time: datetime) -> list[SqlRow]:

@@ -6,7 +6,7 @@ from flask_sock import Sock
 from rpi.lib.config import FLASK_SECRET_KEY
 
 from .api import dashboard_api, health, pico
-from .views import spa
+from .spa import spa
 from .websockets import init_websockets
 
 app = Flask(__name__)

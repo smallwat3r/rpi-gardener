@@ -12,7 +12,7 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 
 - Real-time temperature and humidity monitoring (DHT22)
 - Soil moisture tracking for up to 3 plants (Pico + capacitive sensors)
-- Web dashboard with live charts (Flask + WebSockets)
+- Modern web dashboard with live charts
 - 128x64 OLED displays on both RPi and Pico
 - Email notifications when thresholds are crossed
 - HTTPS with self-signed certificates
@@ -81,7 +81,7 @@ See [pico/README.md](./pico/README.md) for Pico installation instructions.
 ## Commands
 
 ```bash
-make up          # Start services
+make up          # Start services (production)
 make down        # Stop services
 make logs        # View all logs
 make logs-app    # View app logs only
@@ -89,6 +89,32 @@ make restart     # Restart services
 make clean       # Stop and remove volumes
 make mprestart   # Restart Pico (if it loses sync)
 ```
+
+## Local Development
+
+Run the dashboard locally without RPi hardware using Docker:
+
+```bash
+# Copy and configure environment
+cp .env.example .env
+
+# Start dev environment
+make dev
+
+# Seed database with sample data
+make dev-seed
+
+# View logs
+make dev-logs
+
+# Stop dev environment
+make dev-down
+
+# Rebuild after frontend changes
+make dev-rebuild
+```
+
+The dev dashboard will be available at `http://localhost:5000/`
 
 ## Pico API
 

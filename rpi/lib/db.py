@@ -7,10 +7,14 @@ from cachetools import TTLCache
 from sqlitey import Sql, SqlRow, dict_factory
 
 from rpi.lib.config import db_with_config
+from rpi.lib.utils import register_sqlite_adapters
 
 # Cache TTL in seconds - stats don't change frequently, so cache for 5 seconds
 _STATS_CACHE_TTL_SEC = 5.0
 _STATS_CACHE_MAX_SIZE = 100
+
+# Register adapters on module import
+register_sqlite_adapters()
 
 
 def init_db() -> None:

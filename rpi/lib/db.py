@@ -14,9 +14,9 @@ def init_db() -> None:
     with db_with_config() as db:
         db.execute(Sql.raw("PRAGMA journal_mode=WAL"))
         db.execute(Sql.template("init_reading_table.sql"))
-        db.execute(Sql.template("idx_reading.sql"))
+        db.executescript(Sql.template("idx_reading.sql"))
         db.execute(Sql.template("init_pico_reading_table.sql"))
-        db.execute(Sql.template("idx_pico_reading.sql"))
+        db.executescript(Sql.template("idx_pico_reading.sql"))
 
 
 def get_initial_dht_data(from_time: datetime) -> list[SqlRow]:

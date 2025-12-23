@@ -93,6 +93,8 @@ def _clear_old_records() -> None:
     with db_with_config() as db:
         db.commit(Sql.raw("DELETE FROM reading WHERE recording_time < ?"),
                   (cutoff,))
+        db.commit(Sql.raw("DELETE FROM pico_reading WHERE recording_time < ?"),
+                  (cutoff,))
 
 
 def _handle_shutdown(signum: int, frame: FrameType | None) -> None:

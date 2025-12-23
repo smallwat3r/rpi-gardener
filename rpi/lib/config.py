@@ -8,6 +8,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sqlitey import Db, DbPathConfig
 
+# Import utils early to register sqlite3 datetime adapter before any DB operations
+import rpi.lib.utils  # noqa: F401
+
 load_dotenv()
 
 

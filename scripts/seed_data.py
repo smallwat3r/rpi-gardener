@@ -2,19 +2,20 @@
 """Seed the database with dummy data for development."""
 import argparse
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from sqlitey import Sql
 
-from rpi.lib.db import init_db
 from rpi.lib.config import db_with_config
+from rpi.lib.db import init_db
+from rpi.lib.utils import utcnow
 
 PLANTS = ["plant-1", "plant-2", "plant-3"]
 
 
 def generate_dht_data(num_records: int, interval: timedelta) -> list[tuple]:
     """Generate DHT sensor readings."""
-    now = datetime.now(timezone.utc)
+    now = utcnow()
     data = []
     for i in range(num_records):
         recording_time = now - (interval * (num_records - i))
@@ -26,7 +27,7 @@ def generate_dht_data(num_records: int, interval: timedelta) -> list[tuple]:
 
 def generate_pico_data(num_records: int, interval: timedelta) -> list[tuple]:
     """Generate Pico moisture readings."""
-    now = datetime.now(timezone.utc)
+    now = utcnow()
     data = []
     for i in range(num_records):
         recording_time = now - (interval * (num_records - i))

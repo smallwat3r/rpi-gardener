@@ -8,7 +8,6 @@ services:
     volumes:
       - db_data:/app/data
     environment:
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-prod}
       - DB_PATH=/app/data/dht.sqlite3
 
 volumes:

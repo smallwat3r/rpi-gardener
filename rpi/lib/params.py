@@ -23,7 +23,6 @@ def parse_hours(params: Any, *, strict: bool = True) -> tuple[int, datetime]:
 
     Returns:
         Tuple of (hours, from_time) where from_time is now minus hours.
-        The from_time is a naive UTC datetime for SQLite compatibility.
 
     Raises:
         InvalidParameter: If strict=True and parameter is invalid.

@@ -1,5 +1,4 @@
 # Core server dependencies (no hardware libs)
-cachetools
 python-dotenv
 sqlitey
 starlette

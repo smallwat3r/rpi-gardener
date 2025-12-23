@@ -27,7 +27,7 @@ from rpi.lib.config import (
 )
 from rpi.lib.db import init_db
 from rpi.lib.utils import utcnow
-from rpi.lib.reading import Measure, Reading, Unit
+from rpi.dht.models import Measure, Reading, Unit
 
 logger = logging.getLogger("polling-service")
 

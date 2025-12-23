@@ -20,7 +20,7 @@ from rpi.lib.config import (
     GmailConfig,
     NOTIFICATION_SERVICE_ENABLED,
 )
-from rpi.lib.reading import Measure
+from rpi.dht.models import Measure
 
 logger = logging.getLogger("notifications")
 

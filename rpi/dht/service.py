@@ -12,7 +12,7 @@ from typing import Deque
 
 from rpi import logging
 from rpi.lib.config import THRESHOLD_RULES
-from rpi.lib.reading import Measure, Reading, State
+from rpi.dht.models import Measure, Reading, State
 from rpi.notifications import Event, get_notifier
 
 logger = logging.getLogger("dht-service")

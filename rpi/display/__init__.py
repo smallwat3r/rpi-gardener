@@ -19,7 +19,7 @@ from rpi.lib.config import (
     DISPLAY_TEXT_Y_TEMP,
     DISPLAY_WIDTH,
 )
-from rpi.lib.reading import Reading
+from rpi.dht.models import Reading
 
 _font = ImageFont.truetype(DISPLAY_FONT_PATH, DISPLAY_FONT_SIZE)
 

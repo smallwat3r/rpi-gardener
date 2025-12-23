@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 
 from sqlitey import Sql
@@ -13,7 +14,6 @@ from rpi.lib.config import (
     db_with_config,
 )
 from rpi.lib.utils import utcnow
-from rpi.lib.reading import Measure, PicoReading, Unit
 
 logger = logging.getLogger("pico-api")
 
@@ -43,11 +43,10 @@ def _validate_moisture(value: Any) -> float:
     return float(value)
 
 
-def _persist(reading: PicoReading) -> None:
+def _persist(plant_id: str, moisture: float, recording_time: datetime) -> None:
     with db_with_config() as db:
         db.commit(Sql.raw("INSERT INTO pico_reading VALUES (?, ?, ?)"),
-                  (reading.plant_id, reading.moisture.value,
-                   reading.recording_time))
+                  (plant_id, moisture, recording_time))
 
 
 async def receive_pico_data(request: Request) -> JSONResponse:
@@ -71,7 +70,7 @@ async def receive_pico_data(request: Request) -> JSONResponse:
         try:
             plant_id = _validate_plant_id(key)
             moisture = _validate_moisture(value)
-            _persist(PicoReading(plant_id, Measure(moisture, Unit.PERCENT), current_time))
+            _persist(plant_id, moisture, current_time)
             persisted += 1
         except _ValidationError as e:
             logger.warning("Validation failed for %s: %s", key, e)

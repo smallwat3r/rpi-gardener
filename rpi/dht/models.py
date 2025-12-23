@@ -1,5 +1,6 @@
-from datetime import datetime
+"""Domain models for DHT22 sensor readings."""
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum, StrEnum, auto
 
 
@@ -27,11 +28,4 @@ class Measure:
 class Reading:
     temperature: Measure
     humidity: Measure
-    recording_time: datetime
-
-
-@dataclass
-class PicoReading:
-    plant_id: str
-    moisture: Measure
     recording_time: datetime

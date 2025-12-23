@@ -44,7 +44,7 @@ def db_with_config(**kwargs) -> Db:
 
 # Polling
 POLLING_FREQUENCY_SEC = 2
-CLEANUP_PROBABILITY_DENOMINATOR = 10  # 1 in N chance to run cleanup on each poll cycle
+CLEANUP_INTERVAL_CYCLES = 1800  # Run cleanup every N poll cycles (~1 hour at 2s intervals)
 CLEANUP_RETENTION_DAYS = 3
 
 

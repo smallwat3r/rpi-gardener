@@ -7,7 +7,6 @@ seconds, else cache results would be returned.
 """
 import signal
 from datetime import timedelta
-from random import randint
 from time import sleep
 from types import FrameType
 
@@ -19,7 +18,7 @@ from rpi import logging
 from rpi.dht.service import audit_reading, start_worker
 from rpi.display import display
 from rpi.lib.config import (
-    CLEANUP_PROBABILITY_DENOMINATOR,
+    CLEANUP_INTERVAL_CYCLES,
     CLEANUP_RETENTION_DAYS,
     DHT22_BOUNDS,
     POLLING_FREQUENCY_SEC,
@@ -86,14 +85,8 @@ def _persist(reading: Reading) -> None:
                    reading.recording_time))
 
 
-def _randomly_clear_records() -> None:
-    """Once in a while, clear historical data.
-
-    Has a 1 in CLEANUP_PROBABILITY_DENOMINATOR chance to run on each poll cycle.
-    Removes readings older than CLEANUP_RETENTION_DAYS.
-    """
-    if randint(1, CLEANUP_PROBABILITY_DENOMINATOR) != 1:
-        return
+def _clear_old_records() -> None:
+    """Clear historical data older than CLEANUP_RETENTION_DAYS."""
     logger.info("Clearing historical data older than %d days...",
                 CLEANUP_RETENTION_DAYS)
     cutoff = utcnow() - timedelta(days=CLEANUP_RETENTION_DAYS)
@@ -139,9 +132,11 @@ def main() -> None:
 
     logger.info("Polling service started")
 
+    poll_count = 0
     try:
         while not _shutdown_requested:
-            _randomly_clear_records()
+            if poll_count % CLEANUP_INTERVAL_CYCLES == 0:
+                _clear_old_records()
             try:
                 _persist(_audit(_poll(dht, reading)))
             except _OutsideDHT22Bounds:
@@ -151,6 +146,7 @@ def main() -> None:
                 # DHT library raises RuntimeError for transient sensor issues
                 # (e.g., checksum failures, timing issues). Log and retry.
                 logger.debug("DHT22 sensor read error: %s", e)
+            poll_count += 1
             sleep(POLLING_FREQUENCY_SEC)
     finally:
         _cleanup(dht)

@@ -20,6 +20,7 @@ sys.modules["PIL.ImageFont"] = MagicMock()
 
 from rpi.dht.models import Measure, Reading, State, Unit
 from rpi.lib.alerts import reset_alert_tracker
+from rpi.lib.config import set_settings
 
 
 @pytest.fixture(autouse=True)
@@ -34,6 +35,13 @@ def reset_alerts():
     reset_alert_tracker()
     yield
     reset_alert_tracker()
+
+
+@pytest.fixture(autouse=True)
+def reset_settings():
+    """Reset global settings after each test to avoid cross-test pollution."""
+    yield
+    set_settings(None)
 
 
 @pytest.fixture

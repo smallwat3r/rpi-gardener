@@ -19,7 +19,7 @@ from typing import Any, AsyncIterator, TypedDict
 
 import aiosqlite
 
-from rpi.lib.config import settings
+from rpi.lib.config import get_settings
 from rpi.logging import get_logger
 
 _logger = get_logger("lib.db")
@@ -88,7 +88,7 @@ class Database:
     """Async database connection wrapper."""
 
     def __init__(self, db_path: str | None = None):
-        self._db_path = db_path or settings.db_path
+        self._db_path = db_path or get_settings().db_path
         self._connection: aiosqlite.Connection | None = None
         self._in_transaction = False
 
@@ -97,7 +97,7 @@ class Database:
         if self._connection is None:
             self._connection = await aiosqlite.connect(
                 self._db_path,
-                timeout=settings.db_timeout_sec,
+                timeout=get_settings().db_timeout_sec,
             )
             self._connection.row_factory = _dict_factory
 
@@ -218,7 +218,7 @@ async def init_db() -> None:
     if _db is None:
         _db = Database()
         await _db.connect()
-        _logger.info("Opened persistent database connection: %s", settings.db_path)
+        _logger.info("Opened persistent database connection: %s", get_settings().db_path)
 
     await _db._connection.execute("PRAGMA journal_mode=WAL")
     await _db._connection.execute(_INIT_READING_SQL)

@@ -8,7 +8,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from rpi.lib.db import (get_latest_dht_data, get_latest_pico_data,
                         get_stats_dht_data)
-from rpi.lib.config import settings
+from rpi.lib.config import get_settings
 from rpi.logging import get_logger
 from rpi.server.validators import parse_hours
 
@@ -128,7 +128,7 @@ async def _stream_data(
         heartbeat_task = asyncio.create_task(_send_heartbeat(websocket, client_id))
 
         while True:
-            await asyncio.sleep(settings.polling.frequency_sec)
+            await asyncio.sleep(get_settings().polling.frequency_sec)
             try:
                 data = await fetch_fn()
                 await websocket.send_json(data)

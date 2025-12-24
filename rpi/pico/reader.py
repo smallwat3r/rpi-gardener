@@ -10,7 +10,7 @@ import aioserial
 
 from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.alerts import Namespace, ThresholdViolation, get_alert_tracker
-from rpi.lib.config import get_moisture_threshold, parse_pico_plant_id, settings
+from rpi.lib.config import get_moisture_threshold, get_settings, parse_pico_plant_id
 from rpi.lib.notifications import get_notifier
 from rpi.lib.utils import utcnow
 from rpi.logging import configure, get_logger
@@ -59,8 +59,9 @@ def _validate_moisture(value: float) -> float:
     """Validate moisture value is a number within valid bounds."""
     if not isinstance(value, (int, float)):
         raise ValidationError(f"moisture must be a number, got {type(value).__name__}")
-    min_val = settings.pico.moisture_min
-    max_val = settings.pico.moisture_max
+    pico_cfg = get_settings().pico
+    min_val = pico_cfg.moisture_min
+    max_val = pico_cfg.moisture_max
     if not (min_val <= value <= max_val):
         raise ValidationError(
             f"moisture must be between {min_val} and {max_val}, got {value}")
@@ -136,13 +137,14 @@ async def read_serial() -> None:
     """Read lines from serial port asynchronously."""
     await init_db()
     _register_pico_alerts()
-    serial_port = settings.pico.serial_port
+    pico_cfg = get_settings().pico
+    serial_port = pico_cfg.serial_port
     logger.info("Opening serial port %s", serial_port)
 
     ser = aioserial.AioSerial(
         port=serial_port,
-        baudrate=settings.pico.serial_baud,
-        timeout=settings.pico.serial_timeout_sec,
+        baudrate=pico_cfg.serial_baud,
+        timeout=pico_cfg.serial_timeout_sec,
     )
     logger.info("Connected to Pico on %s", serial_port)
 
@@ -165,7 +167,7 @@ async def read_serial() -> None:
             try:
                 await asyncio.wait_for(
                     asyncio.gather(*_pending_tasks, return_exceptions=True),
-                    timeout=settings.notifications.timeout_sec,
+                    timeout=get_settings().notifications.timeout_sec,
                 )
             except TimeoutError:
                 logger.warning("Timed out waiting for pending notifications")

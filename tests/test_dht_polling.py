@@ -17,7 +17,7 @@ class TestDHTPollingServiceAudit:
         """Create a DHTPollingService instance for testing."""
         with patch("rpi.dht.polling.init_db"), \
              patch("rpi.dht.polling.start_worker"), \
-             patch("rpi.dht.polling.display"):
+             patch("rpi.dht.polling.get_display"):
             svc = DHTPollingService()
             return svc
 
@@ -115,12 +115,12 @@ class TestDHTPollingServicePoll:
         """Create a DHTPollingService instance for testing."""
         with patch("rpi.dht.polling.init_db"), \
              patch("rpi.dht.polling.start_worker"), \
-             patch("rpi.dht.polling.display"):
+             patch("rpi.dht.polling.get_display"):
             svc = DHTPollingService()
             return svc
 
     @pytest.mark.asyncio
-    @patch("rpi.dht.polling.display")
+    @patch("rpi.dht.polling.get_display")
     @patch("rpi.dht.polling.utcnow")
     @patch("asyncio.to_thread")
     async def test_poll_updates_reading(self, mock_to_thread, mock_time, mock_display, service, frozen_time):
@@ -139,7 +139,7 @@ class TestDHTPollingServicePoll:
         assert result.temperature.value == 25.5
         assert result.humidity.value == 60.0
         assert result.recording_time == frozen_time
-        mock_display.render_reading.assert_called_once()
+        mock_display.return_value.render_reading.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_poll_returns_none_without_dht(self, service):
@@ -157,7 +157,7 @@ class TestDHTPollingServicePersist:
         """Create a DHTPollingService instance for testing."""
         with patch("rpi.dht.polling.init_db"), \
              patch("rpi.dht.polling.start_worker"), \
-             patch("rpi.dht.polling.display"):
+             patch("rpi.dht.polling.get_display"):
             svc = DHTPollingService()
             return svc
 
@@ -189,7 +189,7 @@ class TestDHTPollingServiceClearOldRecords:
         """Create a DHTPollingService instance for testing."""
         with patch("rpi.dht.polling.init_db"), \
              patch("rpi.dht.polling.start_worker"), \
-             patch("rpi.dht.polling.display"):
+             patch("rpi.dht.polling.get_display"):
             svc = DHTPollingService()
             return svc
 
@@ -225,7 +225,7 @@ class TestDHTPollingServiceErrorHandling:
         """Create a DHTPollingService instance for testing."""
         with patch("rpi.dht.polling.init_db"), \
              patch("rpi.dht.polling.start_worker"), \
-             patch("rpi.dht.polling.display"):
+             patch("rpi.dht.polling.get_display"):
             svc = DHTPollingService()
             return svc
 

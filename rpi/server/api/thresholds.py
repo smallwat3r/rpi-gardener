@@ -3,12 +3,12 @@
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from rpi.lib.config import settings
+from rpi.lib.config import get_settings
 
 
 async def get_thresholds(request: Request) -> JSONResponse:
     """Return current threshold configuration."""
-    thresholds = settings.thresholds
+    thresholds = get_settings().thresholds
     return JSONResponse({
         "temperature": {
             "min": thresholds.min_temperature,

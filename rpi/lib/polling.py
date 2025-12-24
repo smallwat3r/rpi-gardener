@@ -10,7 +10,7 @@ from datetime import timedelta
 from types import FrameType
 from typing import Generic, TypeVar
 
-from rpi.lib.config import settings
+from rpi.lib.config import get_settings
 from rpi.lib.utils import utcnow
 from rpi.logging import get_logger
 
@@ -46,9 +46,10 @@ class PollingService(ABC, Generic[T]):
             cleanup_retention_days: Delete data older than this many days.
         """
         self.name = name
-        self.frequency_sec = frequency_sec or settings.polling.frequency_sec
-        self.cleanup_interval_cycles = cleanup_interval_cycles or settings.polling.cleanup_interval_cycles
-        self.cleanup_retention_days = cleanup_retention_days or settings.polling.cleanup_retention_days
+        polling_cfg = get_settings().polling
+        self.frequency_sec = frequency_sec or polling_cfg.frequency_sec
+        self.cleanup_interval_cycles = cleanup_interval_cycles or polling_cfg.cleanup_interval_cycles
+        self.cleanup_retention_days = cleanup_retention_days or polling_cfg.cleanup_retention_days
         self._shutdown_requested = False
         self._logger = get_logger(f"polling.{name}")
 

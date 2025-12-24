@@ -10,7 +10,7 @@ import asyncio
 from adafruit_dht import DHT22
 from board import D17
 
-from rpi.dht.display import display
+from rpi.dht.display import get_display
 from rpi.dht.models import Measure, Reading, Unit
 from rpi.dht.audit import audit_reading, start_worker
 from rpi.lib.db import close_db, get_db, init_db
@@ -42,12 +42,12 @@ class DHTPollingService(PollingService[Reading]):
         """Initialize DHT22 sensor and database."""
         await init_db()
         start_worker()
-        display.clear()
+        get_display().clear()
         self._dht = DHT22(D17)
 
     async def cleanup(self) -> None:
         """Clean up DHT22 sensor, display, and database connection."""
-        display.clear()
+        get_display().clear()
         if self._dht:
             self._dht.exit()
         await close_db()
@@ -67,7 +67,7 @@ class DHTPollingService(PollingService[Reading]):
 
         logger.info("Read %s, %s", str(self._reading.temperature),
                     str(self._reading.humidity))
-        display.render_reading(self._reading)
+        get_display().render_reading(self._reading)
         return self._reading
 
     async def audit(self, reading: Reading) -> bool:

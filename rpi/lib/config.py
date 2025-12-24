@@ -189,13 +189,31 @@ class Settings:
         )
 
 
-# Global settings instance (created once at module import)
-settings = Settings.from_env()
+# Lazy-initialized settings (created on first access, not at import)
+_settings: Settings | None = None
+
+
+def get_settings() -> Settings:
+    """Get the global settings instance, initializing on first call.
+
+    This lazy initialization allows tests to set up environment variables
+    before settings are read, and supports settings override via set_settings().
+    """
+    global _settings
+    if _settings is None:
+        _settings = Settings.from_env()
+    return _settings
+
+
+def set_settings(settings: Settings | None) -> None:
+    """Override the global settings (primarily for testing)."""
+    global _settings
+    _settings = settings
 
 
 def get_moisture_threshold(plant_id: int) -> int:
     """Get moisture threshold for a plant, falling back to default."""
-    return settings.thresholds.get_moisture_threshold(plant_id)
+    return get_settings().thresholds.get_moisture_threshold(plant_id)
 
 
 def parse_pico_plant_id(raw_id: str) -> int | None:
@@ -211,14 +229,15 @@ ThresholdRule = tuple[Callable[[float, float], bool], int]
 
 def get_threshold_rules() -> dict[MeasureName, tuple[ThresholdRule, ...]]:
     """Get threshold rules based on current settings."""
+    s = get_settings()
     return {
         MeasureName.TEMPERATURE: (
-            (operator.lt, settings.thresholds.min_temperature),
-            (operator.gt, settings.thresholds.max_temperature),
+            (operator.lt, s.thresholds.min_temperature),
+            (operator.gt, s.thresholds.max_temperature),
         ),
         MeasureName.HUMIDITY: (
-            (operator.lt, settings.thresholds.min_humidity),
-            (operator.gt, settings.thresholds.max_humidity),
+            (operator.lt, s.thresholds.min_humidity),
+            (operator.gt, s.thresholds.max_humidity),
         ),
     }
 
@@ -233,7 +252,7 @@ def validate_config() -> None:
     Raises ConfigurationError if any validation fails.
     """
     errors: list[str] = []
-    s = settings
+    s = get_settings()
 
     # Threshold sanity checks
     if s.thresholds.min_temperature >= s.thresholds.max_temperature:

@@ -13,7 +13,7 @@ from smtplib import SMTP
 from typing import TYPE_CHECKING, Callable
 
 from rpi.lib.config import (MeasureName, NotificationBackend, PlantId,
-                            settings)
+                            get_settings)
 from rpi.logging import get_logger
 
 if TYPE_CHECKING:
@@ -69,7 +69,7 @@ class AbstractNotifier(ABC):
         ensuring retries don't block other async tasks.
         """
         last_error: Exception | None = None
-        max_retries = settings.notifications.max_retries
+        max_retries = get_settings().notifications.max_retries
 
         for attempt in range(max_retries):
             try:
@@ -77,7 +77,7 @@ class AbstractNotifier(ABC):
                 return
             except OSError as e:
                 last_error = e
-                backoff = settings.notifications.initial_backoff_sec * (2 ** attempt)
+                backoff = get_settings().notifications.initial_backoff_sec * (2 ** attempt)
                 logger.warning(
                     "%s send attempt %d/%d failed: %s. Retrying in %ds...",
                     backend_name, attempt + 1, max_retries, e, backoff)
@@ -96,7 +96,7 @@ class GmailNotifier(AbstractNotifier):
 
     def _build_message(self, violation: "ThresholdViolation") -> EmailMessage:
         """Build the email message."""
-        gmail = settings.notifications.gmail
+        gmail = get_settings().notifications.gmail
         msg = EmailMessage()
         msg.add_header("From", gmail.sender)
         msg.add_header("To", gmail.recipients)
@@ -107,8 +107,9 @@ class GmailNotifier(AbstractNotifier):
     async def send(self, violation: "ThresholdViolation") -> None:
         """Send the email with retry logic and exponential backoff."""
         message = self._build_message(violation)
-        gmail = settings.notifications.gmail
-        timeout = settings.notifications.timeout_sec
+        cfg = get_settings().notifications
+        gmail = cfg.gmail
+        timeout = cfg.timeout_sec
 
         def do_send() -> None:
             context = ssl.create_default_context()
@@ -153,8 +154,9 @@ class SlackNotifier(AbstractNotifier):
         """Send notification to Slack webhook with retry logic."""
         payload = self._build_payload(violation)
         data = json.dumps(payload).encode("utf-8")
-        webhook_url = settings.notifications.slack.webhook_url
-        timeout = settings.notifications.timeout_sec
+        cfg = get_settings().notifications
+        webhook_url = cfg.slack.webhook_url
+        timeout = cfg.timeout_sec
 
         def do_send() -> None:
             req = urllib.request.Request(
@@ -201,11 +203,12 @@ _BACKEND_MAP: dict[NotificationBackend, type[AbstractNotifier]] = {
 
 def get_notifier() -> AbstractNotifier:
     """Factory function to get the configured notifier."""
-    if not settings.notifications.enabled:
+    cfg = get_settings().notifications
+    if not cfg.enabled:
         return NoOpNotifier()
 
     notifiers = []
-    for backend in settings.notifications.backends:
+    for backend in cfg.backends:
         if backend in _BACKEND_MAP:
             notifiers.append(_BACKEND_MAP[backend]())
         else:

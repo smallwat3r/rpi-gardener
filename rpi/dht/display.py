@@ -11,9 +11,18 @@ from busio import I2C
 from PIL import Image, ImageDraw, ImageFont
 
 from rpi.dht.models import Reading
-from rpi.lib.config import settings
+from rpi.lib.config import get_settings
 
-_font = ImageFont.truetype(settings.display.font_path, settings.display.font_size)
+_font: ImageFont.FreeTypeFont | None = None
+
+
+def _get_font() -> ImageFont.FreeTypeFont:
+    """Get the font, loading it lazily on first use."""
+    global _font
+    if _font is None:
+        s = get_settings()
+        _font = ImageFont.truetype(s.display.font_path, s.display.font_size)
+    return _font
 
 
 class Display(SSD1306_I2C):
@@ -21,8 +30,8 @@ class Display(SSD1306_I2C):
 
     def __init__(self) -> None:
         """Initialize the display with I2C connection."""
-        display = settings.display
-        super().__init__(display.width, display.height, I2C(SCL, SDA))
+        cfg = get_settings().display
+        super().__init__(cfg.width, cfg.height, I2C(SCL, SDA))
 
     def clear(self) -> None:
         """Clear the display."""
@@ -31,31 +40,39 @@ class Display(SSD1306_I2C):
 
     def render_reading(self, reading: Reading) -> None:
         """Render a reading on the display."""
-        display = settings.display
-        image = Image.new("1", (display.width, display.height))
+        cfg = get_settings().display
+        image = Image.new("1", (cfg.width, cfg.height))
         draw = ImageDraw.Draw(image)
-        draw.rectangle((0, 0, display.width, display.height))
+        draw.rectangle((0, 0, cfg.width, cfg.height))
         draw.text(
-            (display.text_x_offset, display.text_y_temp),
+            (cfg.text_x_offset, cfg.text_y_temp),
             f"T: {reading.temperature}",
-            font=_font,
+            font=_get_font(),
             fill=255
         )
         draw.text(
-            (display.text_x_offset, display.text_y_humidity),
+            (cfg.text_x_offset, cfg.text_y_humidity),
             f"H: {reading.humidity}",
-            font=_font,
+            font=_get_font(),
             fill=255
         )
         self.image(image)
         self.show()
 
 
-# Global display instance
-display = Display()
+_display: Display | None = None
+
+
+def get_display() -> Display:
+    """Get the display instance, creating it lazily."""
+    global _display
+    if _display is None:
+        _display = Display()
+    return _display
 
 
 @atexit.register
 def _clear_display():
     """Hook to clear the display screen when the program exits."""
-    display.clear()
+    if _display is not None:
+        _display.clear()

@@ -10,6 +10,8 @@ const Y_AXES = [{ position: 'left' as const, min: 0, max: 100 }];
 
 const ALERT_COLOR = '#ef4444';
 
+const formatPlantLabel = (plantId: number | string): string => `Plant ${plantId}`;
+
 interface PicoCardProps {
   latest: PicoReading[];
   chartData: PicoChartDataPoint[];
@@ -22,13 +24,13 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
     [chartData]
   );
 
-  const getMoistureStatus = (plantId: string, moisture: number): 'ok' | 'alert' => {
+  const getMoistureStatus = (plantId: number | string, moisture: number): 'ok' | 'alert' => {
     if (!thresholds) return 'ok';
     const minThreshold = thresholds.moisture[plantId] ?? 30;
     return moisture < minThreshold ? 'alert' : 'ok';
   };
 
-  const getPlantThresholds = (plantId: string): ThresholdLine[] => {
+  const getPlantThresholds = (plantId: number | string): ThresholdLine[] => {
     if (!thresholds) return [];
     const minThreshold = thresholds.moisture[plantId] ?? 30;
     return [
@@ -36,10 +38,10 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
     ];
   };
 
-  const getPlantSeries = (plantId: string): SeriesConfig[] => [
+  const getPlantSeries = (plantId: number | string): SeriesConfig[] => [
     {
-      name: plantId,
-      dataKey: plantId,
+      name: formatPlantLabel(plantId),
+      dataKey: String(plantId),
       color: PLANT_COLOR,
       yAxisIndex: 0,
     },
@@ -64,10 +66,11 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
         <div class={styles.charts}>
           {latest.map((plant) => {
             const status = getMoistureStatus(plant.plant_id, plant.moisture);
+            const label = formatPlantLabel(plant.plant_id);
             return (
-              <section key={plant.plant_id} class={styles.chartSection} aria-label={`${plant.plant_id} moisture`}>
+              <section key={plant.plant_id} class={styles.chartSection} aria-label={`${label} moisture`}>
                 <div class={styles.chartHeader}>
-                  <h3 style={{ color: PLANT_COLOR }}>{plant.plant_id}</h3>
+                  <h3 style={{ color: PLANT_COLOR }}>{label}</h3>
                   <p class={styles.display} style={{ color: PLANT_COLOR }} aria-live="polite">
                     {plant.moisture}%
                   </p>

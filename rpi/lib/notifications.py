@@ -4,6 +4,7 @@ Provides an abstract notification interface with pluggable backends.
 Supports Gmail and Slack notifications, or both simultaneously.
 """
 import asyncio
+import atexit
 import json
 import ssl
 import urllib.request
@@ -33,6 +34,7 @@ from rpi.lib.config import (
 logger = logging.getLogger("notifications")
 
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="notifier")
+atexit.register(_executor.shutdown, wait=False)
 
 SENSOR_LABELS = {
     MeasureName.TEMPERATURE: "Temperature",

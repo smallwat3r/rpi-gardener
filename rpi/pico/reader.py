@@ -27,6 +27,9 @@ from rpi.lib.utils import utcnow
 logger = logging.getLogger("pico-serial")
 
 
+_pending_tasks: set[asyncio.Task] = set()
+
+
 async def _send_notification_async(event: Event) -> None:
     """Send notification for moisture alert asynchronously."""
     notifier = get_notifier()
@@ -37,7 +40,9 @@ def _schedule_notification(event: Event) -> None:
     """Schedule async notification without blocking."""
     try:
         loop = asyncio.get_running_loop()
-        loop.create_task(_send_notification_async(event))
+        task = loop.create_task(_send_notification_async(event))
+        _pending_tasks.add(task)
+        task.add_done_callback(_pending_tasks.discard)
     except RuntimeError:
         # No running loop, send synchronously (shouldn't happen in normal operation)
         notifier = get_notifier()
@@ -139,12 +144,20 @@ async def read_serial() -> None:
     ser = aioserial.AioSerial(port=PICO_SERIAL_PORT, baudrate=PICO_SERIAL_BAUD)
     logger.info("Connected to Pico on %s", PICO_SERIAL_PORT)
 
-    while True:
-        line = await ser.readline_async()
-        try:
-            _handle_line(line.decode("utf-8"))
-        except UnicodeDecodeError as e:
-            logger.warning("Failed to decode line: %s", e)
+    try:
+        while True:
+            line = await ser.readline_async()
+            try:
+                _handle_line(line.decode("utf-8"))
+            except UnicodeDecodeError as e:
+                logger.warning("Failed to decode line: %s", e)
+    finally:
+        ser.close()
+        logger.info("Serial port %s closed", PICO_SERIAL_PORT)
+        # Wait for pending notification tasks to complete
+        if _pending_tasks:
+            logger.info("Waiting for %d pending notification(s)", len(_pending_tasks))
+            await asyncio.gather(*_pending_tasks, return_exceptions=True)
 
 
 def main() -> None:

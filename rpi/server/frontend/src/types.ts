@@ -15,7 +15,7 @@ export interface DHTStats {
 }
 
 export interface PicoReading {
-  plant_id: string;
+  plant_id: number;
   moisture: number;
   recording_time: string;
   epoch: number;

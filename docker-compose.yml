@@ -32,18 +32,9 @@ services:
     volumes:
       - db_data:/app/data
       - socket:/tmp
+    env_file: .env
     environment:
       - DB_PATH=/app/data/dht.sqlite3
-      - MAX_TEMPERATURE=${MAX_TEMPERATURE:-25}
-      - MIN_TEMPERATURE=${MIN_TEMPERATURE:-18}
-      - MAX_HUMIDITY=${MAX_HUMIDITY:-65}
-      - MIN_HUMIDITY=${MIN_HUMIDITY:-40}
-      - ENABLE_NOTIFICATION_SERVICE=${ENABLE_NOTIFICATION_SERVICE:-0}
-      - GMAIL_SENDER=${GMAIL_SENDER:-}
-      - GMAIL_RECIPIENTS=${GMAIL_RECIPIENTS:-}
-      - GMAIL_USERNAME=${GMAIL_USERNAME:-}
-      - GMAIL_PASSWORD=${GMAIL_PASSWORD:-}
-      - GMAIL_SUBJECT=${GMAIL_SUBJECT:-DHT-22 sensor alert!}
     restart: unless-stopped
     depends_on:
       certgen:

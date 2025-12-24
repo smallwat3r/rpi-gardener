@@ -3,13 +3,11 @@ from starlette.routing import Route, WebSocketRoute
 
 from .api.dashboard import get_dashboard
 from .api.health import health_check
-from .api.pico import receive_pico_data
 from .api.thresholds import get_thresholds
 from .websockets import ws_dht_latest, ws_dht_stats, ws_pico_latest
 
 routes = [
     Route("/health", health_check),
-    Route("/pico", receive_pico_data, methods=["POST"]),
     Route("/api/dashboard", get_dashboard),
     Route("/api/thresholds", get_thresholds),
     WebSocketRoute("/dht/latest", ws_dht_latest),

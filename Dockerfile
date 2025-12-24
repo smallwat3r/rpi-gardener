@@ -7,17 +7,19 @@ RUN npm run build
 
 FROM python:3.12-slim-bookworm
 
-# Install system dependencies for GPIO, I2C, and display
+# Install system dependencies for GPIO, I2C, display, and build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgpiod2 \
     i2c-tools \
     fonts-dejavu-core \
+    gcc \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Install Python dependencies
-COPY requirements.txt .
+COPY requirements.txt requirements-server.txt ./
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir supervisor
 

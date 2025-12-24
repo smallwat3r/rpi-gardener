@@ -1,18 +1,19 @@
 services:
   # One-time self-signed certificate generation
   certgen:
-    image: alpine/openssl:latest
+    image: alpine:latest
     volumes:
       - certs:/certs
     command: >
       sh -c "
+        apk add --no-cache openssl &&
         if [ ! -f /certs/server.crt ]; then
           echo 'Generating self-signed certificate...';
           openssl req -x509 -nodes -days 365 -newkey rsa:2048
             -keyout /certs/server.key
             -out /certs/server.crt
             -subj '/CN=rpi-gardener/O=Home/C=US'
-            -addext 'subjectAltName=DNS:localhost,DNS:rpi-gardener,IP:127.0.0.1${CERT_IP:+,IP:$CERT_IP}';
+            -addext 'subjectAltName=DNS:localhost,DNS:rpi-gardener,IP:127.0.0.1${CERT_IP:+,IP:$$CERT_IP}';
           chmod 644 /certs/server.crt;
           chmod 600 /certs/server.key;
           echo 'Certificate generated successfully';

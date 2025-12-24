@@ -114,9 +114,10 @@ class TestGmailNotifier:
         mock_server.send_message.assert_called_once()
 
     @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
     @patch("rpi.lib.notifications.SMTP")
     @patch("rpi.lib.notifications.ssl.create_default_context")
-    async def test_retry_on_network_error(self, mock_ssl, mock_smtp, frozen_time):
+    async def test_retry_on_network_error(self, mock_ssl, mock_smtp, mock_sleep, frozen_time):
         mock_server = MagicMock()
         mock_server.send_message.side_effect = [OSError("Network error"), None]
         mock_smtp.return_value.__enter__.return_value = mock_server
@@ -197,9 +198,10 @@ class TestSlackNotifier:
         mock_urlopen.assert_called_once()
 
     @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
     @patch("rpi.lib.notifications.urllib.request.urlopen")
     @patch("rpi.lib.notifications.urllib.request.Request")
-    async def test_retry_on_network_error(self, mock_request, mock_urlopen, frozen_time):
+    async def test_retry_on_network_error(self, mock_request, mock_urlopen, mock_sleep, frozen_time):
         mock_success = MagicMock()
         mock_success.status = 200
         mock_urlopen.side_effect = [

@@ -3,10 +3,12 @@
 Provides an abstract notification interface with pluggable backends.
 Supports Gmail and Slack notifications, or both simultaneously.
 """
+import asyncio
 import json
 import ssl
 import urllib.request
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 from email.message import EmailMessage
@@ -27,6 +29,8 @@ from rpi.lib.config import (
 )
 
 logger = logging.getLogger("notifications")
+
+_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="notifier")
 
 SENSOR_LABELS = {
     "temperature": "Temperature",
@@ -67,7 +71,12 @@ class AbstractNotifier(ABC):
 
     @abstractmethod
     def send(self, event: Event) -> None:
-        """Send a notification for the given event."""
+        """Send a notification for the given event (blocking)."""
+
+    async def send_async(self, event: Event) -> None:
+        """Send a notification asynchronously without blocking the event loop."""
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(_executor, self.send, event)
 
     def _send_with_retry(self, send_fn: Callable[[], None], backend_name: str) -> None:
         """Execute send function with retry logic and exponential backoff."""

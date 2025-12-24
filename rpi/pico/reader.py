@@ -11,9 +11,12 @@ import aioserial
 from sqlitey import Sql
 
 from rpi import logging
+from rpi.lib.alerts import AlertTracker
 from rpi.lib.config import (
     MOISTURE_MAX,
     MOISTURE_MIN,
+    PICO_SERIAL_BAUD,
+    PICO_SERIAL_PORT,
     PLANT_ID_MAX_LENGTH,
     PLANT_ID_PATTERN,
     db_with_config,
@@ -24,11 +27,25 @@ from rpi.lib.utils import utcnow
 
 logger = logging.getLogger("pico-serial")
 
-SERIAL_PORT = "/dev/ttyACM0"
-SERIAL_BAUD = 115200
 
-# Track alert state per plant to avoid repeated notifications
-_alert_state: dict[str, bool] = {}
+async def _send_notification_async(event: Event) -> None:
+    """Send notification for moisture alert asynchronously."""
+    notifier = get_notifier()
+    await notifier.send_async(event)
+
+
+def _schedule_notification(event: Event) -> None:
+    """Schedule async notification without blocking."""
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(_send_notification_async(event))
+    except RuntimeError:
+        # No running loop, send synchronously (shouldn't happen in normal operation)
+        notifier = get_notifier()
+        notifier.send(event)
+
+
+_alert_tracker = AlertTracker(on_alert=_schedule_notification)
 
 
 class ValidationError(Exception):
@@ -66,22 +83,16 @@ def _persist(plant_id: str, moisture: float, recording_time) -> None:
 def _audit_moisture(plant_id: str, moisture: float, recording_time) -> None:
     """Check moisture level and send notification if plant is thirsty."""
     threshold = get_moisture_threshold(plant_id)
-    was_in_alert = _alert_state.get(plant_id, False)
     is_thirsty = moisture < threshold
 
-    if is_thirsty and not was_in_alert:
-        logger.info("Plant %s is thirsty (moisture: %.1f%%, threshold: %d%%)",
-                    plant_id, moisture, threshold)
-        notifier = get_notifier()
-        notifier.send(Event(
-            sensor_name=plant_id,
-            value=moisture,
-            unit="%",
-            threshold=threshold,
-            recording_time=recording_time,
-        ))
-
-    _alert_state[plant_id] = is_thirsty
+    _alert_tracker.check(
+        sensor_name=plant_id,
+        value=moisture,
+        unit="%",
+        threshold=threshold,
+        is_violated=is_thirsty,
+        recording_time=recording_time,
+    )
 
 
 def _process_readings(data: dict) -> int:
@@ -125,10 +136,10 @@ def _handle_line(line: str) -> None:
 
 async def read_serial() -> None:
     """Read lines from serial port asynchronously."""
-    logger.info("Opening serial port %s", SERIAL_PORT)
+    logger.info("Opening serial port %s", PICO_SERIAL_PORT)
 
-    ser = aioserial.AioSerial(port=SERIAL_PORT, baudrate=SERIAL_BAUD)
-    logger.info("Connected to Pico on %s", SERIAL_PORT)
+    ser = aioserial.AioSerial(port=PICO_SERIAL_PORT, baudrate=PICO_SERIAL_BAUD)
+    logger.info("Connected to Pico on %s", PICO_SERIAL_PORT)
 
     while True:
         line = await ser.readline_async()

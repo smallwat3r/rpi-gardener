@@ -107,6 +107,8 @@ MOISTURE_MIN = 0.0
 MOISTURE_MAX = 100.0
 PLANT_ID_MAX_LENGTH = 64
 PLANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+PICO_SERIAL_PORT = environ.get("PICO_SERIAL_PORT", "/dev/ttyACM0")
+PICO_SERIAL_BAUD = int(environ.get("PICO_SERIAL_BAUD", "115200"))
 
 
 def _env_key(plant_id: str) -> str:
@@ -139,3 +141,73 @@ DISPLAY_TEXT_Y_HUMIDITY = 20
 EMAIL_MAX_RETRIES = 3
 EMAIL_INITIAL_BACKOFF_SEC = 2
 EMAIL_TIMEOUT_SEC = 30
+
+
+class ConfigurationError(Exception):
+    """Raised when configuration validation fails."""
+
+
+def validate_config() -> None:
+    """Validate configuration values at startup.
+
+    Raises ConfigurationError if any validation fails.
+    """
+    errors: list[str] = []
+
+    # Threshold sanity checks
+    if MIN_TEMPERATURE >= MAX_TEMPERATURE:
+        errors.append(
+            f"MIN_TEMPERATURE ({MIN_TEMPERATURE}) must be less than "
+            f"MAX_TEMPERATURE ({MAX_TEMPERATURE})"
+        )
+
+    if MIN_HUMIDITY >= MAX_HUMIDITY:
+        errors.append(
+            f"MIN_HUMIDITY ({MIN_HUMIDITY}) must be less than "
+            f"MAX_HUMIDITY ({MAX_HUMIDITY})"
+        )
+
+    # DHT22 bounds validation
+    temp_min, temp_max = DHT22_BOUNDS[MeasureName.TEMPERATURE]
+    if not (temp_min <= MIN_TEMPERATURE < MAX_TEMPERATURE <= temp_max):
+        errors.append(
+            f"Temperature thresholds must be within sensor bounds [{temp_min}, {temp_max}]"
+        )
+
+    hum_min, hum_max = DHT22_BOUNDS[MeasureName.HUMIDITY]
+    if not (hum_min <= MIN_HUMIDITY < MAX_HUMIDITY <= hum_max):
+        errors.append(
+            f"Humidity thresholds must be within sensor bounds [{hum_min}, {hum_max}]"
+        )
+
+    # Moisture thresholds validation
+    for plant_id, threshold in PLANT_MOISTURE_THRESHOLDS.items():
+        if not (MOISTURE_MIN <= threshold <= MOISTURE_MAX):
+            errors.append(
+                f"Moisture threshold for {plant_id} ({threshold}) must be "
+                f"between {MOISTURE_MIN} and {MOISTURE_MAX}"
+            )
+
+    # Notification config validation
+    if NOTIFICATION_SERVICE_ENABLED:
+        if NotificationBackend.GMAIL in NOTIFICATION_BACKENDS:
+            missing = []
+            if not GmailConfig.SENDER:
+                missing.append("GMAIL_SENDER")
+            if not GmailConfig.RECIPIENTS:
+                missing.append("GMAIL_RECIPIENTS")
+            if not GmailConfig.USERNAME:
+                missing.append("GMAIL_USERNAME")
+            if not GmailConfig.PASSWORD:
+                missing.append("GMAIL_PASSWORD")
+            if missing:
+                errors.append(f"Gmail enabled but missing: {', '.join(missing)}")
+
+        if NotificationBackend.SLACK in NOTIFICATION_BACKENDS:
+            if not SlackConfig.WEBHOOK_URL:
+                errors.append("Slack enabled but SLACK_WEBHOOK_URL is not set")
+
+    if errors:
+        raise ConfigurationError(
+            "Configuration validation failed:\n  - " + "\n  - ".join(errors)
+        )

@@ -1,5 +1,6 @@
 """WebSocket routes for the RPi Gardener application."""
 import asyncio
+from contextlib import suppress
 from datetime import datetime
 from typing import Any, Callable
 
@@ -37,7 +38,13 @@ async def _stream_data(
             except Exception as e:
                 _logger.error("Error streaming to client %s: %s", client_id, e)
     except WebSocketDisconnect:
-        _logger.info("Client %s disconnected", client_id)
+        _logger.info("Client %s disconnected from %s", client_id, endpoint)
+    except asyncio.CancelledError:
+        _logger.info("Connection to client %s cancelled (shutdown)", client_id)
+        raise
+    finally:
+        with suppress(Exception):
+            await websocket.close()
 
 
 def _parse_hours(websocket: WebSocket) -> datetime:

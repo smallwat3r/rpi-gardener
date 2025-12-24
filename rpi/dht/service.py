@@ -9,14 +9,22 @@ from queue import Queue
 from threading import Thread
 
 from rpi import logging
+from rpi.lib.alerts import AlertState, AlertTracker
 from rpi.lib.config import THRESHOLD_RULES
 from rpi.lib.notifications import Event, get_notifier
 from rpi.dht.models import Measure, Reading, State
 
 logger = logging.getLogger("dht-service")
 
-_alert_state: dict[str, State] = {}
 _queue: Queue[Event] = Queue()
+
+
+def _enqueue_event(event: Event) -> None:
+    """Enqueue an event for processing by the background worker."""
+    _queue.put(event)
+
+
+_alert_tracker = AlertTracker(on_alert=_enqueue_event)
 
 
 def _event_worker() -> None:
@@ -34,32 +42,33 @@ def start_worker() -> None:
     Thread(target=_event_worker, daemon=True).start()
 
 
-def _check_threshold(measure: Measure, rules: tuple) -> tuple[State, int | None]:
-    """Check if measure violates any threshold rule."""
-    for comparator, threshold in rules:
-        if comparator(measure.value, threshold):
-            return State.IN_ALERT, threshold
-    return State.OK, None
-
-
 def audit_reading(reading: Reading) -> None:
     """Audit reading values against thresholds and enqueue notification events."""
     for name, rules in THRESHOLD_RULES.items():
         measure: Measure = getattr(reading, name)
-        previous_state = _alert_state.get(name, State.OK)
 
-        new_state, threshold = _check_threshold(measure, rules)
-
-        if new_state == State.IN_ALERT and previous_state != State.IN_ALERT:
-            logger.info("%s crossed threshold: %.1f %s (threshold: %d)",
-                        name, measure.value, measure.unit, threshold)
-            _queue.put(Event(
+        # Check each rule for this measure
+        for comparator, threshold in rules:
+            is_violated = comparator(measure.value, threshold)
+            if is_violated:
+                alert_state = _alert_tracker.check(
+                    sensor_name=name,
+                    value=measure.value,
+                    unit=str(measure.unit),
+                    threshold=threshold,
+                    is_violated=True,
+                    recording_time=reading.recording_time,
+                )
+                measure.state = State.IN_ALERT if alert_state == AlertState.IN_ALERT else State.OK
+                break
+        else:
+            # No threshold violated
+            _alert_tracker.check(
                 sensor_name=name,
                 value=measure.value,
-                unit=measure.unit,
-                threshold=threshold,
+                unit=str(measure.unit),
+                threshold=0,
+                is_violated=False,
                 recording_time=reading.recording_time,
-            ))
-
-        _alert_state[name] = new_state
-        measure.state = new_state
+            )
+            measure.state = State.OK

@@ -8,10 +8,10 @@ from datetime import datetime
 from enum import Enum, auto
 from typing import Callable
 
-from rpi import logging
 from rpi.lib.notifications import Event
+from rpi.logging import get_logger
 
-logger = logging.getLogger("alerts")
+logger = get_logger("lib.alerts")
 
 
 class AlertState(Enum):

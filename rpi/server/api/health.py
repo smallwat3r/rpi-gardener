@@ -4,11 +4,11 @@ from datetime import UTC, datetime
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from rpi import logging
 from rpi.lib.config import db_with_config
+from rpi.logging import get_logger
 from rpi.lib.db import get_latest_dht_data, get_latest_pico_data
 
-logger = logging.getLogger("health")
+logger = get_logger("server.api.health")
 
 
 def _check_database() -> tuple[bool, str]:

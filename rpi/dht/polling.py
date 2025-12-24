@@ -14,8 +14,8 @@ from adafruit_dht import DHT22
 from board import D17
 from sqlitey import Sql
 
-from rpi import logging
 from rpi.dht.service import audit_reading, start_worker
+from rpi.logging import configure, get_logger
 from rpi.dht.display import display
 from rpi.lib.config import (
     CLEANUP_INTERVAL_CYCLES,
@@ -29,7 +29,7 @@ from rpi.lib.db import init_db
 from rpi.lib.utils import utcnow
 from rpi.dht.models import Measure, Reading, Unit
 
-logger = logging.getLogger("polling-service")
+logger = get_logger("dht.polling")
 
 # Flag to signal graceful shutdown
 _shutdown_requested = False
@@ -121,6 +121,7 @@ def _cleanup(dht: DHT22) -> None:
 
 def main() -> None:
     """Main entry point for the polling service."""
+    configure()
     _setup_signal_handlers()
     init_db()
     start_worker()

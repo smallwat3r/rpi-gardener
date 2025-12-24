@@ -1,4 +1,5 @@
 """Shared pytest fixtures for the test suite."""
+import logging
 import sys
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
@@ -18,6 +19,12 @@ sys.modules["PIL.ImageDraw"] = MagicMock()
 sys.modules["PIL.ImageFont"] = MagicMock()
 
 from rpi.dht.models import Measure, Reading, State, Unit
+
+
+@pytest.fixture(autouse=True)
+def configure_caplog(caplog):
+    """Ensure caplog captures logs from the rpi namespace."""
+    caplog.set_level(logging.INFO, logger="rpi")
 
 
 @pytest.fixture

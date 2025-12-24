@@ -17,7 +17,6 @@ from smtplib import SMTP
 from time import sleep
 from typing import Callable
 
-from rpi import logging
 from rpi.lib.config import (
     EMAIL_INITIAL_BACKOFF_SEC,
     EMAIL_MAX_RETRIES,
@@ -30,8 +29,9 @@ from rpi.lib.config import (
     PlantId,
     SlackConfig,
 )
+from rpi.logging import get_logger
 
-logger = logging.getLogger("notifications")
+logger = get_logger("lib.notifications")
 
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="notifier")
 atexit.register(_executor.shutdown, wait=False)

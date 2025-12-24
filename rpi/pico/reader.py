@@ -10,8 +10,8 @@ import aioserial
 
 from sqlitey import Sql
 
-from rpi import logging
 from rpi.lib.alerts import AlertTracker
+from rpi.logging import configure, get_logger
 from rpi.lib.config import (
     MOISTURE_MAX,
     MOISTURE_MIN,
@@ -24,7 +24,7 @@ from rpi.lib.config import (
 from rpi.lib.notifications import Event, get_notifier
 from rpi.lib.utils import utcnow
 
-logger = logging.getLogger("pico-serial")
+logger = get_logger("pico.reader")
 
 
 _pending_tasks: set[asyncio.Task] = set()
@@ -162,6 +162,7 @@ async def read_serial() -> None:
 
 def main() -> None:
     """Start the async serial reader."""
+    configure()
     asyncio.run(read_serial())
 
 

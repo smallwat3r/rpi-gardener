@@ -1,4 +1,3 @@
-import logging
 from sqlite3 import DatabaseError
 
 from starlette.requests import Request
@@ -11,9 +10,10 @@ from rpi.lib.db import (
     get_latest_pico_data,
     get_stats_dht_data,
 )
+from rpi.logging import get_logger
 from rpi.server.validators import InvalidParameter, parse_hours
 
-logger = logging.getLogger(__name__)
+logger = get_logger("server.api.dashboard")
 
 
 async def get_dashboard(request: Request) -> JSONResponse:

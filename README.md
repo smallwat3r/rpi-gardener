@@ -94,6 +94,8 @@ make restart     # Restart services
 make clean       # Stop and remove volumes
 make pico        # Start Pico serial reader (local dev)
 make mprestart   # Restart Pico (if it loses sync)
+make devdeps     # Install dev dependencies (pytest)
+make test        # Run test suite
 ```
 
 ## Local Development

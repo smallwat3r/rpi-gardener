@@ -12,7 +12,7 @@ from datetime import datetime
 from email.message import EmailMessage
 from smtplib import SMTP
 from time import sleep
-from typing import Callable, Protocol
+from typing import Callable
 
 from rpi import logging
 from rpi.lib.config import (
@@ -60,13 +60,6 @@ class Event:
             f"Threshold: {self.threshold:.0f}{self.unit}\n"
             f"Time: {time_str}"
         )
-
-
-class Notifier(Protocol):
-    """Protocol for notification backends."""
-
-    def send(self, event: Event) -> None:
-        """Send a notification for the given event."""
 
 
 class AbstractNotifier(ABC):

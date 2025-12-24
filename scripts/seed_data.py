@@ -5,7 +5,7 @@ import asyncio
 import random
 from datetime import timedelta
 
-from rpi.lib.db import get_db, init_db
+from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.config import PlantId
 from rpi.lib.utils import utcnow
 
@@ -78,6 +78,7 @@ async def seed_data(hours: int = 6, clear: bool = False) -> None:
         print("Inserting Pico data...")
         await db.executemany("INSERT INTO pico_reading VALUES (?, ?, ?)", pico_data)
 
+    await close_db()
     print("Done!")
 
 

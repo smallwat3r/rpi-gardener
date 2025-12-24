@@ -2,6 +2,14 @@
 
 Provides async database operations using aiosqlite for non-blocking
 database access throughout the application.
+
+Two connection patterns are supported:
+- Persistent connection: Call init_db() at startup to open a connection
+  that is reused for all queries. Used by polling services (DHT, Pico)
+  to avoid connection overhead on their 2-second polling loops.
+- Connection-per-request: If init_db() is not called, get_db() creates
+  a temporary connection for each use. Used by the web server for
+  concurrent request handling.
 """
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -12,6 +20,9 @@ from typing import Any, AsyncIterator, TypedDict
 import aiosqlite
 
 from rpi.lib.config import settings
+from rpi.logging import get_logger
+
+_logger = get_logger("lib.db")
 
 # SQL templates directory
 _SQL_DIR = Path(__file__).resolve().parent / "sql"
@@ -32,6 +43,9 @@ _DHT_LATEST_SQL = _load_template("dht_latest_recording.sql")
 _DHT_STATS_SQL = _load_template("dht_stats.sql")
 _PICO_CHART_SQL = _load_template("pico_chart.sql")
 _PICO_LATEST_SQL = _load_template("pico_latest_recording.sql")
+
+# Global persistent database connection
+_db: "Database | None" = None
 
 
 class DHTReading(TypedDict):
@@ -133,31 +147,59 @@ class Database:
 
 @asynccontextmanager
 async def get_db() -> AsyncIterator[Database]:
-    """Get a database connection that auto-closes.
+    """Get a database connection.
+
+    Uses the persistent connection if initialized via init_db(),
+    otherwise creates a temporary connection (useful for tests).
 
     Usage:
         async with get_db() as db:
             await db.execute("INSERT INTO ...")
     """
-    db = Database()
-    await db.connect()
-    try:
-        yield db
-    finally:
-        await db.close()
+    global _db
+    if _db is not None:
+        # Use persistent connection (no close on exit)
+        yield _db
+    else:
+        # Fallback: create temporary connection (for tests or pre-init usage)
+        db = Database()
+        await db.connect()
+        try:
+            yield db
+        finally:
+            await db.close()
 
 
 async def init_db() -> None:
-    """Initialize database schema (tables and indexes).
+    """Initialize database with persistent connection and schema.
 
+    Opens a persistent connection that will be reused for all queries.
     Safe to call multiple times - uses IF NOT EXISTS clauses.
+    Call close_db() on shutdown to close the connection.
     """
-    async with get_db() as db:
-        await db._connection.execute("PRAGMA journal_mode=WAL")
-        await db._connection.execute(_INIT_READING_SQL)
-        await db.executescript(_IDX_READING_SQL)
-        await db._connection.execute(_INIT_PICO_SQL)
-        await db.executescript(_IDX_PICO_SQL)
+    global _db
+    if _db is None:
+        _db = Database()
+        await _db.connect()
+        _logger.info("Opened persistent database connection: %s", settings.db_path)
+
+    await _db._connection.execute("PRAGMA journal_mode=WAL")
+    await _db._connection.execute(_INIT_READING_SQL)
+    await _db.executescript(_IDX_READING_SQL)
+    await _db._connection.execute(_INIT_PICO_SQL)
+    await _db.executescript(_IDX_PICO_SQL)
+
+
+async def close_db() -> None:
+    """Close the persistent database connection.
+
+    Should be called on application shutdown.
+    """
+    global _db
+    if _db is not None:
+        await _db.close()
+        _logger.info("Closed persistent database connection")
+        _db = None
 
 
 async def get_initial_dht_data(from_time: datetime) -> list[DHTReading]:

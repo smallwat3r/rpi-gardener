@@ -13,7 +13,7 @@ from board import D17
 from rpi.dht.display import display
 from rpi.dht.models import Measure, Reading, Unit
 from rpi.dht.audit import audit_reading, start_worker
-from rpi.lib.db import get_db, init_db
+from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.config import DHT22_BOUNDS, MeasureName
 from rpi.lib.polling import PollingService
 from rpi.lib.utils import utcnow
@@ -46,10 +46,11 @@ class DHTPollingService(PollingService[Reading]):
         self._dht = DHT22(D17)
 
     async def cleanup(self) -> None:
-        """Clean up DHT22 sensor and display."""
+        """Clean up DHT22 sensor, display, and database connection."""
         display.clear()
         if self._dht:
             self._dht.exit()
+        await close_db()
 
     async def poll(self) -> Reading | None:
         """Poll the DHT22 sensor for new reading values."""

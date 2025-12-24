@@ -8,7 +8,7 @@ import json
 
 import aioserial
 
-from rpi.lib.db import get_db, init_db
+from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.alerts import Namespace, ThresholdViolation, get_alert_tracker
 from rpi.lib.config import get_moisture_threshold, parse_pico_plant_id, settings
 from rpi.lib.notifications import get_notifier
@@ -161,6 +161,7 @@ async def read_serial() -> None:
         if _pending_tasks:
             logger.info("Waiting for %d pending notification(s)", len(_pending_tasks))
             await asyncio.gather(*_pending_tasks, return_exceptions=True)
+        await close_db()
 
 
 def main() -> None:

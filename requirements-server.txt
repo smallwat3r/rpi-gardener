@@ -1,5 +1,0 @@
-# Core server dependencies (no hardware libs)
-python-dotenv
-sqlitey
-starlette
-uvicorn[standard]

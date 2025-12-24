@@ -9,62 +9,46 @@ help:  ## Show this help menu
 	@grep --no-filename -E '^[a-zA-Z_%-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "%-25s %s\n", $$1, $$2}'
 
-VENV           = .venv
-VENV_PYTHON    = $(VENV)/bin/python
-SYSTEM_PYTHON  = $(shell which python3.12)
-PYTHON         = $(wildcard $(VENV_PYTHON))
-MPREMOTE       = $(VENV)/bin/mpremote
-
-$(VENV_PYTHON):
-	rm -rf $(VENV)
-	$(SYSTEM_PYTHON) -m venv $(VENV)
-
-.PHONY: venv
-venv: $(VENV_PYTHON)  ## Create a Python virtual environment
-
 .PHONY: deps
-deps:  ## Install Python requirements in virtual environment
-	$(PYTHON) -m pip install --upgrade pip
-	$(PYTHON) -m pip install --no-cache-dir -r requirements.txt
+deps:  ## Install Python requirements (server + hardware)
+	uv sync --extra hardware
 
 .PHONY: mpdeps
-mpdeps:  ## Install Micropython requirements in virtual environment
-	$(PYTHON) -m pip install --upgrade pip
-	$(PYTHON) -m pip install --no-cache-dir -r requirements-mp.txt
+mpdeps:  ## Install Micropython tooling requirements
+	uv sync --extra micropython
 
 .PHONY: devdeps
 devdeps:  ## Install development dependencies (includes pytest)
-	$(PYTHON) -m pip install --upgrade pip
-	$(PYTHON) -m pip install --no-cache-dir -r requirements-dev.txt
+	uv sync --extra dev
 
 .PHONY: test
 test:  ## Run pytest test suite
-	$(PYTHON) -m pytest tests/ -v
+	uv run pytest tests/ -v
 
 .PHONY: serve
 serve:  ## Start the server (for development)
-	$(PYTHON) -m uvicorn $(RPI).server:app --host 0.0.0.0 --reload
+	uv run uvicorn $(RPI).server:app --host 0.0.0.0 --reload
 
 .PHONY: server
 server:  ## Start the server with uvicorn (binded for Nginx)
-	$(PYTHON) -m uvicorn $(RPI).server:app --uds /tmp/uvicorn.sock --workers 3
+	uv run uvicorn $(RPI).server:app --uds /tmp/uvicorn.sock --workers 3
 
 .PHONY: polling
 polling:  ## Start the DHT polling service
-	$(PYTHON) -m $(RPI).dht.polling
+	uv run python -m $(RPI).dht.polling
 
 .PHONY: pico
 pico:  ## Start the Pico serial reader
-	$(PYTHON) -m $(RPI).pico.reader
+	uv run python -m $(RPI).pico.reader
 
 .PHONY: mpedit
 mpedit:  ## Edit remote Pico file (make mpedit file=main.py)
-	EDITOR=vim $(MPREMOTE) edit $(file)
+	EDITOR=vim uv run mpremote edit $(file)
 
 .PHONY: mprestart
 mprestart:  ## Restart main.py script on the Pico
-	$(MPREMOTE) soft-reset
-	$(MPREMOTE) exec --no-follow 'import main'
+	uv run mpremote soft-reset
+	uv run mpremote exec --no-follow 'import main'
 
 .PHONY: up
 up:  ## Start Docker services (RPi production)

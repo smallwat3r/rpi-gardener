@@ -9,8 +9,9 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
-COPY requirements-server.txt .
-RUN pip install --no-cache-dir -r requirements-server.txt
+COPY pyproject.toml .
+RUN pip install --no-cache-dir uv \
+    && uv pip install --system --no-cache "."
 
 COPY rpi/ ./rpi/
 COPY docker/entrypoint.sh /entrypoint.sh

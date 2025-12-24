@@ -1,2 +1,0 @@
-mpremote
-rshell

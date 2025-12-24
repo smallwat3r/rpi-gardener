@@ -18,10 +18,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install Python dependencies
-COPY requirements.txt requirements-server.txt ./
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir supervisor
+# Install uv and Python dependencies
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir uv \
+    && uv pip install --system --no-cache ".[hardware]" \
+    && uv pip install --system --no-cache supervisor
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data

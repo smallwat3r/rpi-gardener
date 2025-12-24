@@ -1,21 +1,14 @@
 # This module uses Micropython and needs to be set-up on the Raspberry Pico
 # board, to read values from capacitive soil moisture sensors (v1.2).
 import gc
-import network
 import ujson
-import urequests
 import utime
 from machine import ADC, Pin, I2C
 
 from ssd1306 import SSD1306_I2C
 
-import secrets
-
 # Configuration
 POLLING_INTERVAL_SEC = 2
-WIFI_CONNECT_TIMEOUT_SEC = 10
-WIFI_RETRY_DELAY_SEC = 5
-HTTP_TIMEOUT_SEC = 10
 
 # Display configuration
 DISPLAY_WIDTH = 128
@@ -77,54 +70,6 @@ class Display(SSD1306_I2C):
         self.show()
 
 
-def connect_wifi():
-    """Connect to WiFi with retry logic."""
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-
-    if wlan.isconnected():
-        return wlan
-
-    print("Connecting to WiFi...")
-    wlan.connect(secrets.SSID, secrets.SSID_PASSWORD)
-
-    start = utime.time()
-    while not wlan.isconnected():
-        if utime.time() - start > WIFI_CONNECT_TIMEOUT_SEC:
-            print("WiFi connection timeout")
-            return None
-        utime.sleep(0.5)
-
-    print(f"Connected: {wlan.ifconfig()[0]}")
-    return wlan
-
-
-def ensure_wifi_connected(wlan):
-    """Ensure WiFi is connected, reconnect if necessary."""
-    if wlan is None or not wlan.isconnected():
-        print("WiFi disconnected, reconnecting...")
-        return connect_wifi()
-    return wlan
-
-
-def send_readings(readings):
-    """Send readings to RPi server with error handling."""
-    response = None
-    try:
-        response = urequests.post(
-            f"{secrets.RPI_HOST}/pico",
-            headers={"content-type": "application/json"},
-            data=ujson.dumps(readings),
-        )
-        if response.status_code != 201:
-            print(f"Server error: {response.status_code}")
-    except OSError as e:
-        print(f"HTTP request failed: {e}")
-    finally:
-        if response:
-            response.close()
-
-
 def read_moisture(plant):
     """Read moisture level from a plant sensor, clamped to 0-100%."""
     raw = plant.pin.read_u16()
@@ -138,7 +83,6 @@ def init_display():
         i2c = I2C(0, scl=Pin(1), sda=Pin(0), freq=DISPLAY_I2C_FREQ)
         return Display(DISPLAY_WIDTH, DISPLAY_HEIGHT, i2c)
     except OSError:
-        print("Display not available")
         return None
 
 
@@ -156,23 +100,18 @@ def update_display(display, readings):
 
 
 def main():
-    """Main loop for reading sensors and sending data."""
-    wlan = connect_wifi()
+    """Main loop for reading sensors and sending data via USB serial."""
     display = init_display()
 
     while True:
-        wlan = ensure_wifi_connected(wlan)
-
         readings = {}
         for plant in plants:
             readings[plant.name] = read_moisture(plant)
 
         update_display(display, readings)
 
-        if wlan and wlan.isconnected():
-            send_readings(readings)
-        else:
-            print("Skipping send: no WiFi")
+        # Send JSON over USB serial (stdout)
+        print(ujson.dumps(readings))
 
         utime.sleep(POLLING_INTERVAL_SEC)
         gc.collect()

@@ -41,8 +41,12 @@ server:  ## Start the server with uvicorn (binded for Nginx)
 	$(PYTHON) -m uvicorn $(RPI).server:app --uds /tmp/uvicorn.sock --workers 3
 
 .PHONY: polling
-polling:  ## Start the polling service
+polling:  ## Start the DHT polling service
 	$(PYTHON) -m $(RPI).dht.polling
+
+.PHONY: pico
+pico:  ## Start the Pico serial reader
+	$(PYTHON) -m $(RPI).pico.polling
 
 .PHONY: mpedit
 mpedit:  ## Edit remote Pico file (make mpedit file=main.py)

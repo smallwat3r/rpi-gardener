@@ -4,16 +4,24 @@ Python code for the Raspberry Pi 4.
 
 ## Services
 
-### Polling Service (`dht/`)
+### DHT22 Polling Service (`dht/`)
 
 Reads temperature and humidity from the DHT22 sensor every 2 seconds.
 Handles graceful shutdown on SIGTERM/SIGINT.
 
     make polling
 
+### Pico Serial Reader (`pico/`)
+
+Reads soil moisture data from a Pico microcontroller via USB serial.
+Parses JSON lines and persists readings to the database.
+
+    make pico
+
 ### Web Server (`server/`)
 
-Web dashboard with real-time charts and REST API. Uses Starlette (ASGI).
+REST API and WebSocket server for the dashboard. Uses Starlette (ASGI).
+The frontend SPA is served by NGINX.
 
     make serve     # Development (with reload)
     make server    # Production (uvicorn)
@@ -22,11 +30,9 @@ Web dashboard with real-time charts and REST API. Uses Starlette (ASGI).
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/` | GET | Dashboard SPA |
 | `/health` | GET | Service health check |
 | `/api/dashboard` | GET | Dashboard data (JSON) |
 | `/api/thresholds` | GET | Configured alert thresholds (JSON) |
-| `/pico` | POST | Receive Pico moisture readings |
 | `/dht/latest` | WS | Real-time DHT22 readings |
 | `/dht/stats` | WS | Real-time DHT22 statistics |
 | `/pico/latest` | WS | Real-time Pico readings |

@@ -8,31 +8,31 @@ The service is responsible for:
 import asyncio
 
 from rpi.dht.models import Measure, Reading, State
-from rpi.lib.alerts import (AlertState, Namespace, ThresholdViolation,
-                            get_alert_tracker)
+from rpi.lib.alerts import AlertEvent, AlertState, Namespace, get_alert_tracker
 from rpi.lib.config import get_threshold_rules
 from rpi.lib.notifications import get_notifier
 from rpi.logging import get_logger
 
 logger = get_logger("dht.audit")
 
-_queue: asyncio.Queue[ThresholdViolation] | None = None
+_queue: asyncio.Queue[AlertEvent] | None = None
 _worker_task: asyncio.Task | None = None
 
 
-def _enqueue_event(violation: ThresholdViolation) -> None:
-    """Enqueue a violation for processing by the background worker."""
+def _enqueue_event(event: AlertEvent) -> None:
+    """Enqueue an alert event for processing by the background worker."""
     if _queue is not None:
-        _queue.put_nowait(violation)
+        _queue.put_nowait(event)
 
 
 async def _event_worker() -> None:
     """Process events from the queue asynchronously."""
     notifier = get_notifier()
     while True:
-        violation = await _queue.get()
-        logger.info("Processing alert for %s", violation.sensor_name)
-        await notifier.send(violation)
+        event = await _queue.get()
+        event_type = "resolution" if event.is_resolved else "alert"
+        logger.info("Processing %s for %s", event_type, event.sensor_name)
+        await notifier.send(event)
         _queue.task_done()
 
 

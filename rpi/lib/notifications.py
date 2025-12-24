@@ -17,7 +17,7 @@ from rpi.lib.config import (MeasureName, NotificationBackend, PlantId,
 from rpi.logging import get_logger
 
 if TYPE_CHECKING:
-    from rpi.lib.alerts import ThresholdViolation
+    from rpi.lib.alerts import AlertEvent
 
 logger = get_logger("lib.notifications")
 
@@ -39,14 +39,21 @@ def get_sensor_label(sensor_name: str | int) -> str:
     return str(sensor_name).replace("-", " ").title()
 
 
-def format_alert_message(violation: "ThresholdViolation") -> str:
-    """Format a threshold violation as a notification message."""
-    label = get_sensor_label(violation.sensor_name)
-    time_str = violation.recording_time.strftime("%H:%M:%S")
+def format_alert_message(event: "AlertEvent") -> str:
+    """Format an alert event as a notification message."""
+    label = get_sensor_label(event.sensor_name)
+    time_str = event.recording_time.strftime("%H:%M:%S")
+
+    if event.is_resolved:
+        return (
+            f"{label} resolved\n\n"
+            f"Current value: {event.value:.1f}{event.unit}\n"
+            f"Time: {time_str}"
+        )
     return (
         f"{label} alert!\n\n"
-        f"Current value: {violation.value:.1f}{violation.unit}\n"
-        f"Threshold: {violation.threshold:.0f}{violation.unit}\n"
+        f"Current value: {event.value:.1f}{event.unit}\n"
+        f"Threshold: {event.threshold:.0f}{event.unit}\n"
         f"Time: {time_str}"
     )
 
@@ -55,8 +62,8 @@ class AbstractNotifier(ABC):
     """Abstract base class for notification backends."""
 
     @abstractmethod
-    async def send(self, violation: "ThresholdViolation") -> None:
-        """Send a notification for the given violation."""
+    async def send(self, event: "AlertEvent") -> None:
+        """Send a notification for the given alert event."""
 
     async def _send_with_retry(
         self,
@@ -94,19 +101,18 @@ class AbstractNotifier(ABC):
 class GmailNotifier(AbstractNotifier):
     """Gmail notification backend."""
 
-    def _build_message(self, violation: "ThresholdViolation") -> EmailMessage:
-        """Build the email message."""
+    def _build_email(self, subject: str, body: str) -> EmailMessage:
+        """Build an email message with the given subject and body."""
         gmail = get_settings().notifications.gmail
         msg = EmailMessage()
         msg.add_header("From", gmail.sender)
         msg.add_header("To", gmail.recipients)
-        msg.add_header("Subject", gmail.subject)
-        msg.set_content(format_alert_message(violation))
+        msg.add_header("Subject", subject)
+        msg.set_content(body)
         return msg
 
-    async def send(self, violation: "ThresholdViolation") -> None:
-        """Send the email with retry logic and exponential backoff."""
-        message = self._build_message(violation)
+    async def _send_email(self, message: EmailMessage, sensor_name: str | int) -> None:
+        """Send an email with retry logic and exponential backoff."""
         cfg = get_settings().notifications
         gmail = cfg.gmail
         timeout = cfg.timeout_sec
@@ -117,42 +123,34 @@ class GmailNotifier(AbstractNotifier):
                 server.starttls(context=context)
                 server.login(gmail.username, gmail.password)
                 server.send_message(message)
-            logger.info("Sent email notification for %s", violation.sensor_name)
+            logger.info("Sent email notification for %s", sensor_name)
 
         await self._send_with_retry(do_send, "Email")
+
+    async def send(self, event: "AlertEvent") -> None:
+        """Send email notification."""
+        base_subject = get_settings().notifications.gmail.subject
+        subject = f"{base_subject} - Resolved" if event.is_resolved else base_subject
+        message = self._build_email(subject, format_alert_message(event))
+        await self._send_email(message, event.sensor_name)
 
 
 class SlackNotifier(AbstractNotifier):
     """Slack webhook notification backend."""
 
-    def _build_payload(self, violation: "ThresholdViolation") -> dict:
-        """Build the Slack message payload."""
-        label = get_sensor_label(violation.sensor_name)
-        time_str = violation.recording_time.strftime("%H:%M:%S")
+    def _build_payload(self, title: str, fields: list[dict], time_str: str) -> dict:
+        """Build a Slack message payload."""
         return {
-            "text": f"{label} alert!",
+            "text": title,
             "blocks": [
-                {
-                    "type": "header",
-                    "text": {"type": "plain_text", "text": f"{label} Alert"}
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {"type": "mrkdwn", "text": f"*Current:*\n{violation.value:.1f}{violation.unit}"},
-                        {"type": "mrkdwn", "text": f"*Threshold:*\n{violation.threshold:.0f}{violation.unit}"},
-                    ]
-                },
-                {
-                    "type": "context",
-                    "elements": [{"type": "mrkdwn", "text": f":clock1: {time_str}"}]
-                }
+                {"type": "header", "text": {"type": "plain_text", "text": title}},
+                {"type": "section", "fields": fields},
+                {"type": "context", "elements": [{"type": "mrkdwn", "text": f":clock1: {time_str}"}]},
             ]
         }
 
-    async def send(self, violation: "ThresholdViolation") -> None:
-        """Send notification to Slack webhook with retry logic."""
-        payload = self._build_payload(violation)
+    async def _send_slack(self, payload: dict, sensor_name: str | int) -> None:
+        """Send a Slack message with retry logic."""
         data = json.dumps(payload).encode("utf-8")
         cfg = get_settings().notifications
         webhook_url = cfg.slack.webhook_url
@@ -168,9 +166,29 @@ class SlackNotifier(AbstractNotifier):
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 if resp.status != 200:
                     raise OSError(f"Slack API returned status {resp.status}")
-            logger.info("Sent Slack notification for %s", violation.sensor_name)
+            logger.info("Sent Slack notification for %s", sensor_name)
 
         await self._send_with_retry(do_send, "Slack")
+
+    async def send(self, event: "AlertEvent") -> None:
+        """Send Slack notification."""
+        label = get_sensor_label(event.sensor_name)
+        time_str = event.recording_time.strftime("%H:%M:%S")
+
+        if event.is_resolved:
+            title = f"{label} Resolved"
+            fields = [
+                {"type": "mrkdwn", "text": f"*Current:*\n{event.value:.1f}{event.unit}"},
+            ]
+        else:
+            title = f"{label} Alert"
+            fields = [
+                {"type": "mrkdwn", "text": f"*Current:*\n{event.value:.1f}{event.unit}"},
+                {"type": "mrkdwn", "text": f"*Threshold:*\n{event.threshold:.0f}{event.unit}"},
+            ]
+
+        payload = self._build_payload(title, fields, time_str)
+        await self._send_slack(payload, event.sensor_name)
 
 
 class CompositeNotifier(AbstractNotifier):
@@ -179,10 +197,10 @@ class CompositeNotifier(AbstractNotifier):
     def __init__(self, notifiers: list[AbstractNotifier]):
         self._notifiers = notifiers
 
-    async def send(self, violation: "ThresholdViolation") -> None:
+    async def send(self, event: "AlertEvent") -> None:
         """Send notification to all configured backends concurrently."""
         await asyncio.gather(
-            *(notifier.send(violation) for notifier in self._notifiers),
+            *(notifier.send(event) for notifier in self._notifiers),
             return_exceptions=True,
         )
 
@@ -190,9 +208,10 @@ class CompositeNotifier(AbstractNotifier):
 class NoOpNotifier(AbstractNotifier):
     """No-op notifier that logs but doesn't send notifications."""
 
-    async def send(self, violation: "ThresholdViolation") -> None:
-        """Log the violation but don't send a notification."""
-        logger.info("Notification service disabled, ignoring alert for %s", violation.sensor_name)
+    async def send(self, event: "AlertEvent") -> None:
+        """Log the event but don't send a notification."""
+        event_type = "resolution" if event.is_resolved else "alert"
+        logger.info("Notification service disabled, ignoring %s for %s", event_type, event.sensor_name)
 
 
 _BACKEND_MAP: dict[NotificationBackend, type[AbstractNotifier]] = {

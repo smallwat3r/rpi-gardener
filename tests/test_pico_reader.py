@@ -202,14 +202,15 @@ class TestAuditMoisture:
         # First alert
         _audit_moisture(PlantId.PLANT_1, 20.0, frozen_time)
         await asyncio.sleep(0)
-        # Recovery
+        # Recovery (also triggers notification now)
         _audit_moisture(PlantId.PLANT_1, 50.0, frozen_time)
         await asyncio.sleep(0)
         # New alert
         _audit_moisture(PlantId.PLANT_1, 25.0, frozen_time)
         await asyncio.sleep(0)
 
-        assert notifier.send.call_count == 2
+        # 3 notifications: alert, resolution, alert
+        assert notifier.send.call_count == 3
 
     @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")

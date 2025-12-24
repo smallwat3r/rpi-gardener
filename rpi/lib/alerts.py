@@ -27,25 +27,26 @@ class Namespace(Enum):
 
 
 @dataclass
-class ThresholdViolation:
-    """Details about a threshold violation."""
+class AlertEvent:
+    """Details about an alert state transition."""
     namespace: Namespace
     sensor_name: str | int
     value: float
     unit: str
-    threshold: float
+    threshold: float | None  # None for resolution events
     recording_time: datetime
+    is_resolved: bool = False
 
 
 # Type alias for alert callbacks
-AlertCallback: TypeAlias = Callable[[ThresholdViolation], None]
+AlertCallback: TypeAlias = Callable[[AlertEvent], None]
 
 
 class AlertTracker:
     """Tracks alert states per sensor and triggers callbacks on state transitions.
 
     This prevents notification spam by only calling the callback when a sensor
-    transitions from OK to IN_ALERT (not on every reading that exceeds threshold).
+    transitions between states (not on every reading).
 
     Supports multiple namespaces (DHT, Pico) to keep sensor states organized.
     """
@@ -60,7 +61,7 @@ class AlertTracker:
 
         Args:
             namespace: The namespace to register for.
-            callback: Function called when a sensor transitions to alert state.
+            callback: Function called when a sensor transitions state.
         """
         self._callbacks[namespace] = callback
         logger.debug("Registered alert callback for namespace %s", namespace.value)
@@ -97,23 +98,39 @@ class AlertTracker:
         previous_state = self._states.get(key, AlertState.OK)
         new_state = AlertState.IN_ALERT if is_violated else AlertState.OK
 
+        callback = self._callbacks.get(namespace)
+
         if new_state == AlertState.IN_ALERT and previous_state != AlertState.IN_ALERT:
             logger.info(
                 "[%s] %s crossed threshold: %.1f%s (threshold: %.0f)",
                 namespace.value, sensor_name, value, unit, threshold
             )
-
-            callback = self._callbacks.get(namespace)
             if callback:
-                violation = ThresholdViolation(
+                callback(AlertEvent(
                     namespace=namespace,
                     sensor_name=sensor_name,
                     value=value,
                     unit=unit,
                     threshold=threshold,
                     recording_time=recording_time,
-                )
-                callback(violation)
+                    is_resolved=False,
+                ))
+
+        elif new_state == AlertState.OK and previous_state == AlertState.IN_ALERT:
+            logger.info(
+                "[%s] %s returned to normal: %.1f%s",
+                namespace.value, sensor_name, value, unit
+            )
+            if callback:
+                callback(AlertEvent(
+                    namespace=namespace,
+                    sensor_name=sensor_name,
+                    value=value,
+                    unit=unit,
+                    threshold=None,
+                    recording_time=recording_time,
+                    is_resolved=True,
+                ))
 
         self._states[key] = new_state
         return new_state

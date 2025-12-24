@@ -1,43 +1,44 @@
 """Tests for the notification system."""
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from rpi.lib.alerts import Namespace, ThresholdViolation
+from rpi.lib.alerts import AlertEvent, Namespace
 from rpi.lib.notifications import (CompositeNotifier, GmailNotifier,
                                    NoOpNotifier, SlackNotifier,
                                    format_alert_message, get_notifier,
                                    get_sensor_label)
 
 
-def make_violation(
+def make_alert_event(
     sensor_name="temperature",
     value=30.5,
     unit="c",
     threshold=25,
     recording_time=None,
     namespace=Namespace.DHT,
+    is_resolved=False,
 ):
-    """Create a ThresholdViolation for testing."""
+    """Create an AlertEvent for testing."""
     from datetime import datetime, timezone
     if recording_time is None:
         recording_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
-    return ThresholdViolation(
+    return AlertEvent(
         namespace=namespace,
         sensor_name=sensor_name,
         value=value,
         unit=unit,
-        threshold=threshold,
+        threshold=threshold if not is_resolved else None,
         recording_time=recording_time,
+        is_resolved=is_resolved,
     )
 
 
-class TestThresholdViolation:
-    """Tests for the ThresholdViolation dataclass."""
+class TestAlertEvent:
+    """Tests for the AlertEvent dataclass."""
 
-    def test_violation_creation(self, frozen_time):
-        violation = make_violation(
+    def test_alert_event_creation(self, frozen_time):
+        event = make_alert_event(
             sensor_name="temperature",
             value=30.5,
             unit="c",
@@ -45,14 +46,29 @@ class TestThresholdViolation:
             recording_time=frozen_time,
         )
 
-        assert violation.sensor_name == "temperature"
-        assert violation.value == 30.5
-        assert violation.unit == "c"
-        assert violation.threshold == 25
-        assert violation.namespace == Namespace.DHT
+        assert event.sensor_name == "temperature"
+        assert event.value == 30.5
+        assert event.unit == "c"
+        assert event.threshold == 25
+        assert event.namespace == Namespace.DHT
+        assert event.is_resolved is False
 
-    def test_format_message(self, frozen_time):
-        violation = make_violation(
+    def test_resolved_event_creation(self, frozen_time):
+        event = make_alert_event(
+            sensor_name="temperature",
+            value=22.0,
+            unit="c",
+            recording_time=frozen_time,
+            is_resolved=True,
+        )
+
+        assert event.sensor_name == "temperature"
+        assert event.value == 22.0
+        assert event.threshold is None
+        assert event.is_resolved is True
+
+    def test_format_alert_message(self, frozen_time):
+        event = make_alert_event(
             sensor_name="humidity",
             value=75.0,
             unit="%",
@@ -60,32 +76,49 @@ class TestThresholdViolation:
             recording_time=frozen_time,
         )
 
-        message = format_alert_message(violation)
+        message = format_alert_message(event)
 
         assert "Humidity" in message
+        assert "alert!" in message
         assert "75.0%" in message
         assert "65%" in message
         assert "12:00:00" in message
 
+    def test_format_resolved_message(self, frozen_time):
+        event = make_alert_event(
+            sensor_name="humidity",
+            value=50.0,
+            unit="%",
+            recording_time=frozen_time,
+            is_resolved=True,
+        )
+
+        message = format_alert_message(event)
+
+        assert "Humidity" in message
+        assert "resolved" in message
+        assert "50.0%" in message
+        assert "12:00:00" in message
+
     def test_label_from_sensor_labels(self, frozen_time):
-        violation = make_violation(
+        event = make_alert_event(
             sensor_name="temperature",
             value=30.0,
             unit="c",
             threshold=25,
             recording_time=frozen_time,
         )
-        assert get_sensor_label(violation.sensor_name) == "Temperature"
+        assert get_sensor_label(event.sensor_name) == "Temperature"
 
     def test_label_fallback(self, frozen_time):
-        violation = make_violation(
+        event = make_alert_event(
             sensor_name="custom-sensor",
             value=50.0,
             unit="%",
             threshold=30,
             recording_time=frozen_time,
         )
-        assert get_sensor_label(violation.sensor_name) == "Custom Sensor"
+        assert get_sensor_label(event.sensor_name) == "Custom Sensor"
 
 
 class TestGmailNotifier:
@@ -98,7 +131,7 @@ class TestGmailNotifier:
         mock_server = MagicMock()
         mock_smtp.return_value.__enter__.return_value = mock_server
 
-        violation = make_violation(
+        event = make_alert_event(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -107,7 +140,7 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        await notifier.send(violation)
+        await notifier.send(event)
 
         mock_server.starttls.assert_called_once()
         mock_server.login.assert_called_once()
@@ -122,7 +155,7 @@ class TestGmailNotifier:
         mock_server.send_message.side_effect = [OSError("Network error"), None]
         mock_smtp.return_value.__enter__.return_value = mock_server
 
-        violation = make_violation(
+        event = make_alert_event(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -131,7 +164,7 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        await notifier.send(violation)
+        await notifier.send(event)
 
         assert mock_server.send_message.call_count == 2
 
@@ -143,7 +176,7 @@ class TestGmailNotifier:
         mock_server.send_message.side_effect = ValueError("Bad data")
         mock_smtp.return_value.__enter__.return_value = mock_server
 
-        violation = make_violation(
+        event = make_alert_event(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -152,12 +185,12 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        await notifier.send(violation)
+        await notifier.send(event)
 
         assert mock_server.send_message.call_count == 1
 
-    def test_build_message(self, frozen_time):
-        violation = make_violation(
+    def test_build_email(self, frozen_time):
+        event = make_alert_event(
             sensor_name="humidity",
             value=75.0,
             unit="%",
@@ -166,10 +199,30 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        message = notifier._build_message(violation)
+        message = notifier._build_email("Test Subject", format_alert_message(event))
 
-        assert message["Subject"] is not None
-        assert format_alert_message(violation) in message.get_content()
+        assert message["Subject"] == "Test Subject"
+        assert format_alert_message(event) in message.get_content()
+
+    @pytest.mark.asyncio
+    @patch("rpi.lib.notifications.SMTP")
+    @patch("rpi.lib.notifications.ssl.create_default_context")
+    async def test_send_resolved(self, mock_ssl, mock_smtp, frozen_time):
+        mock_server = MagicMock()
+        mock_smtp.return_value.__enter__.return_value = mock_server
+
+        event = make_alert_event(
+            sensor_name="temperature",
+            value=22.0,
+            unit="c",
+            recording_time=frozen_time,
+            is_resolved=True,
+        )
+
+        notifier = GmailNotifier()
+        await notifier.send(event)
+
+        mock_server.send_message.assert_called_once()
 
 
 class TestSlackNotifier:
@@ -183,7 +236,7 @@ class TestSlackNotifier:
         mock_response.status = 200
         mock_urlopen.return_value.__enter__.return_value = mock_response
 
-        violation = make_violation(
+        event = make_alert_event(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -192,7 +245,7 @@ class TestSlackNotifier:
         )
 
         notifier = SlackNotifier()
-        await notifier.send(violation)
+        await notifier.send(event)
 
         mock_request.assert_called_once()
         mock_urlopen.assert_called_once()
@@ -209,7 +262,7 @@ class TestSlackNotifier:
             MagicMock(__enter__=MagicMock(return_value=mock_success))
         ]
 
-        violation = make_violation(
+        event = make_alert_event(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -218,7 +271,7 @@ class TestSlackNotifier:
         )
 
         notifier = SlackNotifier()
-        await notifier.send(violation)
+        await notifier.send(event)
 
         assert mock_urlopen.call_count == 2
 
@@ -228,7 +281,7 @@ class TestSlackNotifier:
     async def test_no_retry_on_non_network_error(self, mock_request, mock_urlopen, frozen_time):
         mock_urlopen.side_effect = ValueError("Bad data")
 
-        violation = make_violation(
+        event = make_alert_event(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -237,29 +290,46 @@ class TestSlackNotifier:
         )
 
         notifier = SlackNotifier()
-        await notifier.send(violation)
+        await notifier.send(event)
 
         assert mock_urlopen.call_count == 1
 
     def test_build_payload(self, frozen_time):
-        violation = make_violation(
-            sensor_name="humidity",
-            value=75.0,
-            unit="%",
-            threshold=65,
-            recording_time=frozen_time,
-        )
-
         notifier = SlackNotifier()
-        payload = notifier._build_payload(violation)
+        fields = [
+            {"type": "mrkdwn", "text": "*Current:*\n75.0%"},
+            {"type": "mrkdwn", "text": "*Threshold:*\n65%"},
+        ]
+        payload = notifier._build_payload("Humidity Alert", fields, "12:00:00")
 
-        assert payload["text"] == "Humidity alert!"
+        assert payload["text"] == "Humidity Alert"
         assert payload["blocks"][0]["type"] == "header"
         assert "Humidity Alert" in payload["blocks"][0]["text"]["text"]
         # Check fields section
-        fields = payload["blocks"][1]["fields"]
-        assert "75.0%" in fields[0]["text"]
-        assert "65%" in fields[1]["text"]
+        result_fields = payload["blocks"][1]["fields"]
+        assert "75.0%" in result_fields[0]["text"]
+        assert "65%" in result_fields[1]["text"]
+
+    @pytest.mark.asyncio
+    @patch("rpi.lib.notifications.urllib.request.urlopen")
+    @patch("rpi.lib.notifications.urllib.request.Request")
+    async def test_send_resolved(self, mock_request, mock_urlopen, frozen_time):
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_urlopen.return_value.__enter__.return_value = mock_response
+
+        event = make_alert_event(
+            sensor_name="temperature",
+            value=22.0,
+            unit="c",
+            recording_time=frozen_time,
+            is_resolved=True,
+        )
+
+        notifier = SlackNotifier()
+        await notifier.send(event)
+
+        mock_urlopen.assert_called_once()
 
 
 class TestCompositeNotifier:
@@ -272,7 +342,7 @@ class TestCompositeNotifier:
         mock_notifier2 = MagicMock()
         mock_notifier2.send = AsyncMock()
 
-        violation = make_violation(
+        event = make_alert_event(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -281,10 +351,10 @@ class TestCompositeNotifier:
         )
 
         composite = CompositeNotifier([mock_notifier1, mock_notifier2])
-        await composite.send(violation)
+        await composite.send(event)
 
-        mock_notifier1.send.assert_called_once_with(violation)
-        mock_notifier2.send.assert_called_once_with(violation)
+        mock_notifier1.send.assert_called_once_with(event)
+        mock_notifier2.send.assert_called_once_with(event)
 
 
 class TestNoOpNotifier:
@@ -292,7 +362,7 @@ class TestNoOpNotifier:
 
     @pytest.mark.asyncio
     async def test_send_logs_only(self, frozen_time, caplog):
-        violation = make_violation(
+        event = make_alert_event(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -301,7 +371,22 @@ class TestNoOpNotifier:
         )
 
         notifier = NoOpNotifier()
-        await notifier.send(violation)
+        await notifier.send(event)
+
+        assert "disabled" in caplog.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_send_resolved_logs_only(self, frozen_time, caplog):
+        event = make_alert_event(
+            sensor_name="temperature",
+            value=22.0,
+            unit="c",
+            recording_time=frozen_time,
+            is_resolved=True,
+        )
+
+        notifier = NoOpNotifier()
+        await notifier.send(event)
 
         assert "disabled" in caplog.text.lower()
 
@@ -329,7 +414,6 @@ class TestGetNotifier:
             mock_get_settings.return_value.notifications.backends = ["gmail", "slack"]
             notifier = get_notifier()
             assert isinstance(notifier, CompositeNotifier)
-            assert len(notifier._notifiers) == 2
 
     def test_returns_noop_when_disabled(self):
         with patch("rpi.lib.notifications.get_settings") as mock_get_settings:

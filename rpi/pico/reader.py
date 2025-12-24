@@ -9,7 +9,7 @@ import json
 import aioserial
 
 from rpi.lib.db import close_db, get_db, init_db
-from rpi.lib.alerts import Namespace, ThresholdViolation, get_alert_tracker
+from rpi.lib.alerts import AlertEvent, Namespace, get_alert_tracker
 from rpi.lib.config import get_moisture_threshold, get_settings, parse_pico_plant_id
 from rpi.lib.notifications import get_notifier
 from rpi.lib.utils import utcnow
@@ -21,16 +21,16 @@ logger = get_logger("pico.reader")
 _pending_tasks: set[asyncio.Task] = set()
 
 
-async def _send_notification(violation: ThresholdViolation) -> None:
-    """Send notification for moisture alert."""
+async def _send_notification(event: AlertEvent) -> None:
+    """Send notification for alert event."""
     notifier = get_notifier()
-    await notifier.send(violation)
+    await notifier.send(event)
 
 
-def _schedule_notification(violation: ThresholdViolation) -> None:
+def _schedule_notification(event: AlertEvent) -> None:
     """Schedule async notification without blocking."""
     loop = asyncio.get_running_loop()
-    task = loop.create_task(_send_notification(violation))
+    task = loop.create_task(_send_notification(event))
     _pending_tasks.add(task)
     task.add_done_callback(_pending_tasks.discard)
 

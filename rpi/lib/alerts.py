@@ -7,7 +7,7 @@ transitions (to prevent notification spam).
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
-from typing import Callable
+from typing import Callable, TypeAlias
 
 from rpi.logging import get_logger
 
@@ -38,7 +38,7 @@ class ThresholdViolation:
 
 
 # Type alias for alert callbacks
-AlertCallback = Callable[[ThresholdViolation], None]
+AlertCallback: TypeAlias = Callable[[ThresholdViolation], None]
 
 
 class AlertTracker:

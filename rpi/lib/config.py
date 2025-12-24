@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from os import environ
-from typing import Callable
+from typing import Callable, TypeAlias
 
 from dotenv import load_dotenv
 
@@ -224,7 +224,7 @@ def parse_pico_plant_id(raw_id: str) -> int | None:
     return None
 
 
-ThresholdRule = tuple[Callable[[float, float], bool], int]
+ThresholdRule: TypeAlias = tuple[Callable[[float, float], bool], int]
 
 
 def get_threshold_rules() -> dict[MeasureName, tuple[ThresholdRule, ...]]:

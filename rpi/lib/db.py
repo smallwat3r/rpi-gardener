@@ -28,7 +28,7 @@ class DHTStats(TypedDict):
 
 class PicoReading(TypedDict):
     """Pico moisture reading from the database."""
-    plant_id: str
+    plant_id: int
     moisture: float
     recording_time: str
     epoch: int

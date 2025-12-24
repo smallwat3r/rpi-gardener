@@ -17,10 +17,9 @@ from rpi.lib.config import (
     MOISTURE_MIN,
     PICO_SERIAL_BAUD,
     PICO_SERIAL_PORT,
-    PLANT_ID_MAX_LENGTH,
-    PLANT_ID_PATTERN,
     db_with_config,
     get_moisture_threshold,
+    parse_pico_plant_id,
 )
 from rpi.lib.notifications import Event, get_notifier
 from rpi.lib.utils import utcnow
@@ -52,14 +51,13 @@ class ValidationError(Exception):
     """Raised when input validation fails."""
 
 
-def _validate_plant_id(plant_id: str) -> str:
-    """Validate plant_id is a safe, non-empty string within length limits."""
-    if not isinstance(plant_id, str):
-        raise ValidationError(f"plant_id must be a string, got {type(plant_id).__name__}")
-    if not plant_id or len(plant_id) > PLANT_ID_MAX_LENGTH:
-        raise ValidationError(f"plant_id must be 1-{PLANT_ID_MAX_LENGTH} characters")
-    if not PLANT_ID_PATTERN.match(plant_id):
-        raise ValidationError("plant_id must contain only alphanumeric, hyphens, or underscores")
+def _parse_plant_id(raw_id: str) -> int:
+    """Parse and validate plant_id from Pico's 'plant-N' format."""
+    if not isinstance(raw_id, str):
+        raise ValidationError(f"plant_id must be a string, got {type(raw_id).__name__}")
+    plant_id = parse_pico_plant_id(raw_id)
+    if plant_id is None:
+        raise ValidationError(f"plant_id must be in 'plant-N' format, got '{raw_id}'")
     return plant_id
 
 
@@ -73,14 +71,14 @@ def _validate_moisture(value: float) -> float:
     return float(value)
 
 
-def _persist(plant_id: str, moisture: float, recording_time) -> None:
+def _persist(plant_id: int, moisture: float, recording_time) -> None:
     """Persist a moisture reading to the database."""
     with db_with_config() as db:
         db.commit(Sql.raw("INSERT INTO pico_reading VALUES (?, ?, ?)"),
                   (plant_id, moisture, recording_time))
 
 
-def _audit_moisture(plant_id: str, moisture: float, recording_time) -> None:
+def _audit_moisture(plant_id: int, moisture: float, recording_time) -> None:
     """Check moisture level and send notification if plant is thirsty."""
     threshold = get_moisture_threshold(plant_id)
     is_thirsty = moisture < threshold
@@ -102,7 +100,7 @@ def _process_readings(data: dict) -> int:
 
     for key, value in data.items():
         try:
-            plant_id = _validate_plant_id(key)
+            plant_id = _parse_plant_id(key)
             moisture = _validate_moisture(value)
             _persist(plant_id, moisture, current_time)
             _audit_moisture(plant_id, moisture, current_time)

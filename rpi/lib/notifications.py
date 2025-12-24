@@ -46,7 +46,7 @@ SENSOR_LABELS = {
 @dataclass(frozen=True)
 class Event:
     """A notification event triggered when a threshold is crossed."""
-    sensor_name: str
+    sensor_name: str | int
     value: float
     unit: str
     threshold: float
@@ -55,7 +55,11 @@ class Event:
     @property
     def label(self) -> str:
         """Human-readable sensor label."""
-        return SENSOR_LABELS.get(self.sensor_name, self.sensor_name.replace("-", " ").title())
+        if self.sensor_name in SENSOR_LABELS:
+            return SENSOR_LABELS[self.sensor_name]
+        if isinstance(self.sensor_name, int):
+            return f"Plant {self.sensor_name}"
+        return self.sensor_name.replace("-", " ").title()
 
     def format_message(self) -> str:
         """Format the notification message for email/plain text."""

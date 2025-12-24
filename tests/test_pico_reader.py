@@ -9,40 +9,33 @@ from rpi.pico.reader import (
     ValidationError,
     _audit_moisture,
     _handle_line,
+    _parse_plant_id,
     _process_readings,
     _validate_moisture,
-    _validate_plant_id,
 )
 
 
-class TestValidatePlantId:
-    """Tests for plant ID validation."""
+class TestParsePlantId:
+    """Tests for plant ID parsing."""
 
     def test_valid_plant_id(self):
-        assert _validate_plant_id(PlantId.PLANT_1) == PlantId.PLANT_1
-        assert _validate_plant_id("PLANT_2") == "PLANT_2"
-        assert _validate_plant_id("sensor123") == "sensor123"
+        assert _parse_plant_id("plant-1") == 1
+        assert _parse_plant_id("plant-2") == 2
+        assert _parse_plant_id("plant-99") == 99
 
-    def test_empty_plant_id_raises(self):
-        with pytest.raises(ValidationError, match="must be 1-64 characters"):
-            _validate_plant_id("")
-
-    def test_too_long_plant_id_raises(self):
-        long_id = "a" * 65
-        with pytest.raises(ValidationError, match="must be 1-64 characters"):
-            _validate_plant_id(long_id)
-
-    def test_invalid_chars_raises(self):
-        with pytest.raises(ValidationError, match="alphanumeric, hyphens, or underscores"):
-            _validate_plant_id("plant 1")
-        with pytest.raises(ValidationError, match="alphanumeric, hyphens, or underscores"):
-            _validate_plant_id("plant@1")
+    def test_invalid_format_raises(self):
+        with pytest.raises(ValidationError, match="must be in 'plant-N' format"):
+            _parse_plant_id("invalid")
+        with pytest.raises(ValidationError, match="must be in 'plant-N' format"):
+            _parse_plant_id("plant_1")
+        with pytest.raises(ValidationError, match="must be in 'plant-N' format"):
+            _parse_plant_id("")
 
     def test_non_string_raises(self):
         with pytest.raises(ValidationError, match="must be a string"):
-            _validate_plant_id(123)
+            _parse_plant_id(123)
         with pytest.raises(ValidationError, match="must be a string"):
-            _validate_plant_id(None)
+            _parse_plant_id(None)
 
 
 class TestValidateMoisture:
@@ -88,8 +81,8 @@ class TestHandleLine:
     @patch.object(reader, "_process_readings")
     def test_valid_json_processed(self, mock_process):
         mock_process.return_value = 1
-        _handle_line(f'{{"{PlantId.PLANT_1}": 50.0}}')
-        mock_process.assert_called_once_with({PlantId.PLANT_1: 50.0})
+        _handle_line('{"plant-1": 50.0}')
+        mock_process.assert_called_once_with({"plant-1": 50.0})
 
 
 class TestProcessReadings:
@@ -101,7 +94,7 @@ class TestProcessReadings:
     def test_valid_readings_persisted(self, mock_time, mock_audit, mock_persist, frozen_time):
         mock_time.return_value = frozen_time
 
-        count = _process_readings({PlantId.PLANT_1: 50.0, PlantId.PLANT_2: 60.0})
+        count = _process_readings({"plant-1": 50.0, "plant-2": 60.0})
 
         assert count == 2
         assert mock_persist.call_count == 2
@@ -114,9 +107,9 @@ class TestProcessReadings:
         mock_time.return_value = frozen_time
 
         count = _process_readings({
-            PlantId.PLANT_1: 50.0,  # valid
-            "": 60.0,               # invalid plant_id
-            PlantId.PLANT_2: 150.0,  # invalid moisture
+            "plant-1": 50.0,   # valid
+            "": 60.0,          # invalid plant_id
+            "plant-2": 150.0,  # invalid moisture
         })
 
         assert count == 1
@@ -129,7 +122,7 @@ class TestProcessReadings:
         mock_time.return_value = frozen_time
         mock_persist.side_effect = [Exception("DB error"), None]
 
-        count = _process_readings({PlantId.PLANT_1: 50.0, PlantId.PLANT_2: 60.0})
+        count = _process_readings({"plant-1": 50.0, "plant-2": 60.0})
 
         # First fails, second succeeds
         assert count == 1

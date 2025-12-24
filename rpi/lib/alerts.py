@@ -23,7 +23,7 @@ class AlertState(Enum):
 @dataclass
 class ThresholdViolation:
     """Details about a threshold violation."""
-    sensor_name: str
+    sensor_name: str | int
     value: float
     unit: str
     threshold: float
@@ -43,12 +43,12 @@ class AlertTracker:
         Args:
             on_alert: Callback invoked when a sensor transitions to alert state.
         """
-        self._states: dict[str, AlertState] = {}
+        self._states: dict[str | int, AlertState] = {}
         self._on_alert = on_alert
 
     def check(
         self,
-        sensor_name: str,
+        sensor_name: str | int,
         value: float,
         unit: str,
         threshold: float,
@@ -87,11 +87,11 @@ class AlertTracker:
         self._states[sensor_name] = new_state
         return new_state
 
-    def get_state(self, sensor_name: str) -> AlertState:
+    def get_state(self, sensor_name: str | int) -> AlertState:
         """Get current alert state for a sensor."""
         return self._states.get(sensor_name, AlertState.OK)
 
-    def reset(self, sensor_name: str | None = None) -> None:
+    def reset(self, sensor_name: str | int | None = None) -> None:
         """Reset alert state for one or all sensors.
 
         Args:

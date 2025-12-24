@@ -102,13 +102,14 @@ THRESHOLD_RULES = {
 
 
 # Pico
-class PlantId(StrEnum):
-    PLANT_1 = "plant-1"
-    PLANT_2 = "plant-2"
-    PLANT_3 = "plant-3"
+class PlantId(IntEnum):
+    PLANT_1 = 1
+    PLANT_2 = 2
+    PLANT_3 = 3
 
 
 PLANT_IDS = list(PlantId)
+PICO_PLANT_ID_PATTERN = re.compile(r"^plant-(\d+)$")
 MOISTURE_MIN = 0.0
 MOISTURE_MAX = 100.0
 PLANT_ID_MAX_LENGTH = 64
@@ -117,20 +118,28 @@ PICO_SERIAL_PORT = environ.get("PICO_SERIAL_PORT", "/dev/ttyACM0")
 PICO_SERIAL_BAUD = int(environ.get("PICO_SERIAL_BAUD", "115200"))
 
 
-def _env_key(plant_id: str) -> str:
-    """Convert plant_id to env var name (e.g., plant-1 -> MIN_MOISTURE_PLANT_1)."""
-    return f"MIN_MOISTURE_{plant_id.upper().replace('-', '_')}"
+def _env_key(plant_id: PlantId) -> str:
+    """Convert plant_id to env var name (e.g., PlantId.PLANT_1 -> MIN_MOISTURE_PLANT_1)."""
+    return f"MIN_MOISTURE_PLANT_{plant_id.value}"
 
 
-PLANT_MOISTURE_THRESHOLDS = {
+PLANT_MOISTURE_THRESHOLDS: dict[int, int] = {
     plant_id: int(environ.get(_env_key(plant_id), MIN_MOISTURE))
-    for plant_id in PLANT_IDS
+    for plant_id in PlantId
 }
 
 
-def get_moisture_threshold(plant_id: str) -> int:
+def get_moisture_threshold(plant_id: int) -> int:
     """Get moisture threshold for a plant, falling back to default."""
     return PLANT_MOISTURE_THRESHOLDS.get(plant_id, MIN_MOISTURE)
+
+
+def parse_pico_plant_id(raw_id: str) -> int | None:
+    """Parse Pico's 'plant-N' format to integer N. Returns None if invalid."""
+    match = PICO_PLANT_ID_PATTERN.match(raw_id)
+    if match:
+        return int(match.group(1))
+    return None
 
 
 # OLED Display

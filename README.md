@@ -16,7 +16,6 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - Visual alerts when sensor values exceed configured thresholds
 - 128x64 OLED displays on both RPi and Pico
 - Email and Slack notifications when thresholds are crossed
-- HTTPS with self-signed certificates
 - Docker deployment
 
 ## Requirements

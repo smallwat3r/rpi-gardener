@@ -102,7 +102,13 @@ THRESHOLD_RULES = {
 
 
 # Pico
-PLANT_IDS = ["plant-1", "plant-2", "plant-3"]
+class PlantId(StrEnum):
+    PLANT_1 = "plant-1"
+    PLANT_2 = "plant-2"
+    PLANT_3 = "plant-3"
+
+
+PLANT_IDS = list(PlantId)
 MOISTURE_MIN = 0.0
 MOISTURE_MAX = 100.0
 PLANT_ID_MAX_LENGTH = 64

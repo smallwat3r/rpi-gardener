@@ -1,4 +1,5 @@
 """Database queries for the RPi Gardener application."""
+from collections import defaultdict
 from datetime import datetime
 from typing import TypedDict
 
@@ -70,9 +71,18 @@ def get_stats_dht_data(from_time: datetime) -> DHTStats | None:
 
 
 def get_initial_pico_data(from_time: datetime) -> list[PicoChartDataPoint]:
-    """Return all Pico sensor data from a given time, grouped by epoch."""
+    """Return all Pico sensor data from a given time, pivoted by plant_id."""
     with db_with_config(row_factory=dict_factory) as db:
-        return db.fetchall(Sql.template("pico_chart.sql"), (from_time, ))
+        rows = db.fetchall(Sql.template("pico_chart.sql"), (from_time,))
+
+    # Pivot: group by epoch, with plant_id as columns
+    pivoted: dict[int, PicoChartDataPoint] = defaultdict(dict)
+    for row in rows:
+        epoch = row["epoch"]
+        pivoted[epoch]["epoch"] = epoch
+        pivoted[epoch][row["plant_id"]] = row["moisture"]
+
+    return list(pivoted.values())
 
 
 def get_latest_pico_data() -> list[PicoReading]:

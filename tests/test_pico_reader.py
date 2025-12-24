@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from rpi.lib.config import PlantId
 from rpi.pico import reader
 from rpi.pico.reader import (
     ValidationError,
@@ -18,7 +19,7 @@ class TestValidatePlantId:
     """Tests for plant ID validation."""
 
     def test_valid_plant_id(self):
-        assert _validate_plant_id("plant-1") == "plant-1"
+        assert _validate_plant_id(PlantId.PLANT_1) == PlantId.PLANT_1
         assert _validate_plant_id("PLANT_2") == "PLANT_2"
         assert _validate_plant_id("sensor123") == "sensor123"
 
@@ -87,8 +88,8 @@ class TestHandleLine:
     @patch.object(reader, "_process_readings")
     def test_valid_json_processed(self, mock_process):
         mock_process.return_value = 1
-        _handle_line('{"plant-1": 50.0}')
-        mock_process.assert_called_once_with({"plant-1": 50.0})
+        _handle_line(f'{{"{PlantId.PLANT_1}": 50.0}}')
+        mock_process.assert_called_once_with({PlantId.PLANT_1: 50.0})
 
 
 class TestProcessReadings:
@@ -100,7 +101,7 @@ class TestProcessReadings:
     def test_valid_readings_persisted(self, mock_time, mock_audit, mock_persist, frozen_time):
         mock_time.return_value = frozen_time
 
-        count = _process_readings({"plant-1": 50.0, "plant-2": 60.0})
+        count = _process_readings({PlantId.PLANT_1: 50.0, PlantId.PLANT_2: 60.0})
 
         assert count == 2
         assert mock_persist.call_count == 2
@@ -113,9 +114,9 @@ class TestProcessReadings:
         mock_time.return_value = frozen_time
 
         count = _process_readings({
-            "plant-1": 50.0,      # valid
-            "": 60.0,             # invalid plant_id
-            "plant-2": 150.0,    # invalid moisture
+            PlantId.PLANT_1: 50.0,  # valid
+            "": 60.0,               # invalid plant_id
+            PlantId.PLANT_2: 150.0,  # invalid moisture
         })
 
         assert count == 1
@@ -128,7 +129,7 @@ class TestProcessReadings:
         mock_time.return_value = frozen_time
         mock_persist.side_effect = [Exception("DB error"), None]
 
-        count = _process_readings({"plant-1": 50.0, "plant-2": 60.0})
+        count = _process_readings({PlantId.PLANT_1: 50.0, PlantId.PLANT_2: 60.0})
 
         # First fails, second succeeds
         assert count == 1
@@ -149,10 +150,10 @@ class TestAuditMoisture:
         notifier = MagicMock()
         mock_get_notifier.return_value = notifier
 
-        _audit_moisture("plant-1", 50.0, frozen_time)
+        _audit_moisture(PlantId.PLANT_1, 50.0, frozen_time)
 
         notifier.send.assert_not_called()
-        assert reader._alert_tracker.get_state("plant-1") == AlertState.OK
+        assert reader._alert_tracker.get_state(PlantId.PLANT_1) == AlertState.OK
 
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
@@ -162,14 +163,14 @@ class TestAuditMoisture:
         notifier = MagicMock()
         mock_get_notifier.return_value = notifier
 
-        _audit_moisture("plant-1", 20.0, frozen_time)
+        _audit_moisture(PlantId.PLANT_1, 20.0, frozen_time)
 
         notifier.send.assert_called_once()
         event = notifier.send.call_args[0][0]
-        assert event.sensor_name == "plant-1"
+        assert event.sensor_name == PlantId.PLANT_1
         assert event.value == 20.0
         assert event.threshold == 30
-        assert reader._alert_tracker.get_state("plant-1") == AlertState.IN_ALERT
+        assert reader._alert_tracker.get_state(PlantId.PLANT_1) == AlertState.IN_ALERT
 
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
@@ -178,9 +179,9 @@ class TestAuditMoisture:
         mock_get_notifier.return_value = notifier
 
         # First alert
-        _audit_moisture("plant-1", 20.0, frozen_time)
+        _audit_moisture(PlantId.PLANT_1, 20.0, frozen_time)
         # Still below threshold
-        _audit_moisture("plant-1", 15.0, frozen_time)
+        _audit_moisture(PlantId.PLANT_1, 15.0, frozen_time)
 
         # Only one notification sent
         assert notifier.send.call_count == 1
@@ -192,11 +193,11 @@ class TestAuditMoisture:
         mock_get_notifier.return_value = notifier
 
         # First alert
-        _audit_moisture("plant-1", 20.0, frozen_time)
+        _audit_moisture(PlantId.PLANT_1, 20.0, frozen_time)
         # Recovery
-        _audit_moisture("plant-1", 50.0, frozen_time)
+        _audit_moisture(PlantId.PLANT_1, 50.0, frozen_time)
         # New alert
-        _audit_moisture("plant-1", 25.0, frozen_time)
+        _audit_moisture(PlantId.PLANT_1, 25.0, frozen_time)
 
         assert notifier.send.call_count == 2
 
@@ -208,10 +209,10 @@ class TestAuditMoisture:
         notifier = MagicMock()
         mock_get_notifier.return_value = notifier
 
-        _audit_moisture("plant-1", 20.0, frozen_time)
-        _audit_moisture("plant-2", 50.0, frozen_time)
-        _audit_moisture("plant-2", 20.0, frozen_time)
+        _audit_moisture(PlantId.PLANT_1, 20.0, frozen_time)
+        _audit_moisture(PlantId.PLANT_2, 50.0, frozen_time)
+        _audit_moisture(PlantId.PLANT_2, 20.0, frozen_time)
 
         assert notifier.send.call_count == 2
-        assert reader._alert_tracker.get_state("plant-1") == AlertState.IN_ALERT
-        assert reader._alert_tracker.get_state("plant-2") == AlertState.IN_ALERT
+        assert reader._alert_tracker.get_state(PlantId.PLANT_1) == AlertState.IN_ALERT
+        assert reader._alert_tracker.get_state(PlantId.PLANT_2) == AlertState.IN_ALERT

@@ -22,9 +22,11 @@ from rpi.lib.config import (
     EMAIL_MAX_RETRIES,
     EMAIL_TIMEOUT_SEC,
     GmailConfig,
+    MeasureName,
     NotificationBackend,
     NOTIFICATION_BACKENDS,
     NOTIFICATION_SERVICE_ENABLED,
+    PlantId,
     SlackConfig,
 )
 
@@ -33,11 +35,11 @@ logger = logging.getLogger("notifications")
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="notifier")
 
 SENSOR_LABELS = {
-    "temperature": "Temperature",
-    "humidity": "Humidity",
-    "plant-1": "Plant 1",
-    "plant-2": "Plant 2",
-    "plant-3": "Plant 3",
+    MeasureName.TEMPERATURE: "Temperature",
+    MeasureName.HUMIDITY: "Humidity",
+    PlantId.PLANT_1: "Plant 1",
+    PlantId.PLANT_2: "Plant 2",
+    PlantId.PLANT_3: "Plant 3",
 }
 
 

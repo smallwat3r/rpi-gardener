@@ -167,4 +167,22 @@ This project is designed for local home networks:
 
 ## Wiring
 
+### Raspberry Pi 4
+
+| Component | Pin  | GPIO |
+|-----------|------|------|
+| DHT22     | DATA | 17   |
+| OLED      | SDA  | 2    |
+| OLED      | SCL  | 3    |
+
+### Raspberry Pi Pico W
+
+| Component | Pin    | GPIO |
+|-----------|--------|------|
+| OLED      | SDA    | 0    |
+| OLED      | SCL    | 1    |
+| Sensor 1  | AOUT   | 26   |
+| Sensor 2  | AOUT   | 27   |
+| Sensor 3  | AOUT   | 28   |
+
 ![wiring](./img/wiring.png)

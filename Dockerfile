@@ -32,8 +32,10 @@ COPY rpi/ ./rpi/
 # Copy frontend build from builder stage
 COPY --from=frontend-builder /app/rpi/server/static/dist ./rpi/server/static/dist
 
-# Copy supervisor configuration
+# Copy supervisor configuration and entrypoint
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -42,4 +44,4 @@ ENV DB_PATH=/app/data/dht.sqlite3
 # Expose nothing - nginx handles external access via Unix socket
 VOLUME ["/app/data", "/tmp"]
 
-CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/entrypoint.sh"]

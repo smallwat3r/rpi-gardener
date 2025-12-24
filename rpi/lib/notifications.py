@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 logger = get_logger("lib.notifications")
 
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="notifier")
-atexit.register(_executor.shutdown, wait=False)
+atexit.register(_executor.shutdown, wait=True)
 
 SENSOR_LABELS: dict[str | int, str] = {
     MeasureName.TEMPERATURE: "Temperature",

@@ -13,8 +13,7 @@ COPY requirements-server.txt .
 RUN pip install --no-cache-dir -r requirements-server.txt
 
 COPY rpi/ ./rpi/
-COPY scripts/ ./scripts/
-COPY scripts/entrypoint.sh /entrypoint.sh
+COPY docker/entrypoint.sh /entrypoint.sh
 COPY --from=frontend-builder /app/rpi/server/static/dist ./rpi/server/static/dist
 
 RUN chmod +x /entrypoint.sh

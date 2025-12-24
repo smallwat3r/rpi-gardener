@@ -44,4 +44,5 @@ ENV DB_PATH=/app/data/dht.sqlite3
 # Expose nothing - nginx handles external access via Unix socket
 VOLUME ["/app/data", "/tmp"]
 
-CMD ["/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

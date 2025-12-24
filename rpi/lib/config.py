@@ -1,33 +1,14 @@
 """Centralized configuration for the RPi Gardener application."""
 import operator
 import re
-import sqlite3
-from datetime import datetime
+from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from os import environ
-from pathlib import Path
+from typing import Callable
 
 from dotenv import load_dotenv
-from sqlitey import Db, DbPathConfig
 
 load_dotenv()
-
-
-# SQLite datetime adapter - Python 3.12+ removed the default adapters
-def _adapt_datetime(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%d %H:%M:%S")
-
-
-sqlite3.register_adapter(datetime, _adapt_datetime)
-
-# Environment variables
-DB_PATH = environ.get("DB_PATH", "dht.sqlite3")
-MAX_TEMPERATURE = int(environ.get("MAX_TEMPERATURE", 25))
-MIN_TEMPERATURE = int(environ.get("MIN_TEMPERATURE", 18))
-MAX_HUMIDITY = int(environ.get("MAX_HUMIDITY", 65))
-MIN_HUMIDITY = int(environ.get("MIN_HUMIDITY", 40))
-MIN_MOISTURE = int(environ.get("MIN_MOISTURE", 30))
-NOTIFICATION_SERVICE_ENABLED = environ.get("ENABLE_NOTIFICATION_SERVICE", "0") == "1"
 
 
 class NotificationBackend(StrEnum):
@@ -35,61 +16,242 @@ class NotificationBackend(StrEnum):
     SLACK = "slack"
 
 
-NOTIFICATION_BACKENDS = [
-    b.strip() for b in environ.get("NOTIFICATION_BACKENDS", "gmail").split(",") if b.strip()
-]
-
-
-class GmailConfig:
-    SENDER = environ.get("GMAIL_SENDER", "")
-    RECIPIENTS = environ.get("GMAIL_RECIPIENTS", "")
-    USERNAME = environ.get("GMAIL_USERNAME", "")
-    PASSWORD = environ.get("GMAIL_PASSWORD", "")
-    SUBJECT = environ.get("GMAIL_SUBJECT", "Sensor alert!")
-
-
-class SlackConfig:
-    WEBHOOK_URL = environ.get("SLACK_WEBHOOK_URL", "")
-
-
-# Database
-_DB_CONFIG = DbPathConfig(
-    database=DB_PATH,
-    sql_templates_dir=Path(__file__).resolve().parent / "sql"
-)
-
-
-def db_with_config(**kwargs) -> Db:
-    """Shortcut to load db with pre-configured config."""
-    return Db.from_config(_DB_CONFIG, **kwargs)
-
-
-# Polling
-POLLING_FREQUENCY_SEC = 2
-CLEANUP_INTERVAL_CYCLES = 1800  # Run cleanup every N poll cycles (~1 hour at 2s intervals)
-CLEANUP_RETENTION_DAYS = 3
-
-
-# DHT22 Sensor
 class MeasureName(StrEnum):
     TEMPERATURE = "temperature"
     HUMIDITY = "humidity"
 
 
+class PlantId(IntEnum):
+    PLANT_1 = 1
+    PLANT_2 = 2
+    PLANT_3 = 3
+
+
+# Patterns
+PICO_PLANT_ID_PATTERN = re.compile(r"^plant-(\d+)$")
+PLANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+# DHT22 sensor physical bounds
 DHT22_BOUNDS = {
     MeasureName.TEMPERATURE: (-40, 80),
     MeasureName.HUMIDITY: (0, 100)
 }
 
 
+@dataclass(frozen=True)
+class GmailSettings:
+    """Gmail notification settings."""
+    sender: str = ""
+    recipients: str = ""
+    username: str = ""
+    password: str = ""
+    subject: str = "Sensor alert!"
+
+    @classmethod
+    def from_env(cls) -> "GmailSettings":
+        return cls(
+            sender=environ.get("GMAIL_SENDER", ""),
+            recipients=environ.get("GMAIL_RECIPIENTS", ""),
+            username=environ.get("GMAIL_USERNAME", ""),
+            password=environ.get("GMAIL_PASSWORD", ""),
+            subject=environ.get("GMAIL_SUBJECT", "Sensor alert!"),
+        )
+
+
+@dataclass(frozen=True)
+class SlackSettings:
+    """Slack notification settings."""
+    webhook_url: str = ""
+
+    @classmethod
+    def from_env(cls) -> "SlackSettings":
+        return cls(webhook_url=environ.get("SLACK_WEBHOOK_URL", ""))
+
+
+@dataclass(frozen=True)
+class ThresholdSettings:
+    """Sensor threshold settings."""
+    max_temperature: int = 25
+    min_temperature: int = 18
+    max_humidity: int = 65
+    min_humidity: int = 40
+    min_moisture: int = 30
+    plant_moisture_thresholds: dict[int, int] = field(default_factory=dict)
+
+    @classmethod
+    def from_env(cls) -> "ThresholdSettings":
+        min_moisture = int(environ.get("MIN_MOISTURE", 30))
+        plant_thresholds = {
+            plant_id: int(environ.get(f"MIN_MOISTURE_PLANT_{plant_id.value}", min_moisture))
+            for plant_id in PlantId
+        }
+        return cls(
+            max_temperature=int(environ.get("MAX_TEMPERATURE", 25)),
+            min_temperature=int(environ.get("MIN_TEMPERATURE", 18)),
+            max_humidity=int(environ.get("MAX_HUMIDITY", 65)),
+            min_humidity=int(environ.get("MIN_HUMIDITY", 40)),
+            min_moisture=min_moisture,
+            plant_moisture_thresholds=plant_thresholds,
+        )
+
+    def get_moisture_threshold(self, plant_id: int) -> int:
+        """Get moisture threshold for a plant, falling back to default."""
+        return self.plant_moisture_thresholds.get(plant_id, self.min_moisture)
+
+
+@dataclass(frozen=True)
+class NotificationSettings:
+    """Notification service settings."""
+    enabled: bool = False
+    backends: list[str] = field(default_factory=list)
+    gmail: GmailSettings = field(default_factory=GmailSettings)
+    slack: SlackSettings = field(default_factory=SlackSettings)
+    max_retries: int = 3
+    initial_backoff_sec: int = 2
+    timeout_sec: int = 30
+
+    @classmethod
+    def from_env(cls) -> "NotificationSettings":
+        backends_str = environ.get("NOTIFICATION_BACKENDS", "gmail")
+        backends = [b.strip() for b in backends_str.split(",") if b.strip()]
+        return cls(
+            enabled=environ.get("ENABLE_NOTIFICATION_SERVICE", "0") == "1",
+            backends=backends,
+            gmail=GmailSettings.from_env(),
+            slack=SlackSettings.from_env(),
+            max_retries=int(environ.get("EMAIL_MAX_RETRIES", 3)),
+            initial_backoff_sec=int(environ.get("EMAIL_INITIAL_BACKOFF_SEC", 2)),
+            timeout_sec=int(environ.get("EMAIL_TIMEOUT_SEC", 30)),
+        )
+
+
+@dataclass(frozen=True)
+class PicoSettings:
+    """Pico serial connection settings."""
+    serial_port: str = "/dev/ttyACM0"
+    serial_baud: int = 115200
+    moisture_min: float = 0.0
+    moisture_max: float = 100.0
+    plant_id_max_length: int = 64
+
+    @classmethod
+    def from_env(cls) -> "PicoSettings":
+        return cls(
+            serial_port=environ.get("PICO_SERIAL_PORT", "/dev/ttyACM0"),
+            serial_baud=int(environ.get("PICO_SERIAL_BAUD", "115200")),
+        )
+
+
+@dataclass(frozen=True)
+class DisplaySettings:
+    """OLED display settings."""
+    width: int = 128
+    height: int = 64
+    font_size: int = 17
+    font_path: str = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+    text_x_offset: int = 23
+    text_y_temp: int = 0
+    text_y_humidity: int = 20
+
+
+@dataclass(frozen=True)
+class PollingSettings:
+    """Polling service settings."""
+    frequency_sec: int = 2
+    cleanup_interval_cycles: int = 1800  # ~1 hour at 2s intervals
+    cleanup_retention_days: int = 3
+
+
+@dataclass(frozen=True)
+class Settings:
+    """Application settings container."""
+    db_path: str = "dht.sqlite3"
+    thresholds: ThresholdSettings = field(default_factory=ThresholdSettings)
+    notifications: NotificationSettings = field(default_factory=NotificationSettings)
+    pico: PicoSettings = field(default_factory=PicoSettings)
+    display: DisplaySettings = field(default_factory=DisplaySettings)
+    polling: PollingSettings = field(default_factory=PollingSettings)
+
+    @classmethod
+    def from_env(cls) -> "Settings":
+        """Create settings from environment variables."""
+        return cls(
+            db_path=environ.get("DB_PATH", "dht.sqlite3"),
+            thresholds=ThresholdSettings.from_env(),
+            notifications=NotificationSettings.from_env(),
+            pico=PicoSettings.from_env(),
+            display=DisplaySettings(),
+            polling=PollingSettings(),
+        )
+
+
+# Global settings instance (created once at module import)
+settings = Settings.from_env()
+
+
+def get_moisture_threshold(plant_id: int) -> int:
+    """Get moisture threshold for a plant, falling back to default."""
+    return settings.thresholds.get_moisture_threshold(plant_id)
+
+
+def parse_pico_plant_id(raw_id: str) -> int | None:
+    """Parse Pico's 'plant-N' format to integer N. Returns None if invalid."""
+    match = PICO_PLANT_ID_PATTERN.match(raw_id)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+# Backward compatibility - expose commonly used values
+DB_PATH = settings.db_path
+MAX_TEMPERATURE = settings.thresholds.max_temperature
+MIN_TEMPERATURE = settings.thresholds.min_temperature
+MAX_HUMIDITY = settings.thresholds.max_humidity
+MIN_HUMIDITY = settings.thresholds.min_humidity
+MIN_MOISTURE = settings.thresholds.min_moisture
+NOTIFICATION_SERVICE_ENABLED = settings.notifications.enabled
+NOTIFICATION_BACKENDS = settings.notifications.backends
+
+# Polling
+POLLING_FREQUENCY_SEC = settings.polling.frequency_sec
+CLEANUP_INTERVAL_CYCLES = settings.polling.cleanup_interval_cycles
+CLEANUP_RETENTION_DAYS = settings.polling.cleanup_retention_days
+
+# Pico
+PLANT_IDS = list(PlantId)
+PICO_SERIAL_PORT = settings.pico.serial_port
+PICO_SERIAL_BAUD = settings.pico.serial_baud
+MOISTURE_MIN = settings.pico.moisture_min
+MOISTURE_MAX = settings.pico.moisture_max
+PLANT_ID_MAX_LENGTH = settings.pico.plant_id_max_length
+PLANT_MOISTURE_THRESHOLDS = settings.thresholds.plant_moisture_thresholds
+
+# Display
+DISPLAY_WIDTH = settings.display.width
+DISPLAY_HEIGHT = settings.display.height
+DISPLAY_FONT_SIZE = settings.display.font_size
+DISPLAY_FONT_PATH = settings.display.font_path
+DISPLAY_TEXT_X_OFFSET = settings.display.text_x_offset
+DISPLAY_TEXT_Y_TEMP = settings.display.text_y_temp
+DISPLAY_TEXT_Y_HUMIDITY = settings.display.text_y_humidity
+
+# Email/Notification
+EMAIL_MAX_RETRIES = settings.notifications.max_retries
+EMAIL_INITIAL_BACKOFF_SEC = settings.notifications.initial_backoff_sec
+EMAIL_TIMEOUT_SEC = settings.notifications.timeout_sec
+
+
 class Threshold(IntEnum):
-    MAX_TEMPERATURE = MAX_TEMPERATURE
-    MIN_TEMPERATURE = MIN_TEMPERATURE
-    MAX_HUMIDITY = MAX_HUMIDITY
-    MIN_HUMIDITY = MIN_HUMIDITY
+    """Threshold enum for backward compatibility."""
+    MAX_TEMPERATURE = settings.thresholds.max_temperature
+    MIN_TEMPERATURE = settings.thresholds.min_temperature
+    MAX_HUMIDITY = settings.thresholds.max_humidity
+    MIN_HUMIDITY = settings.thresholds.min_humidity
 
 
-THRESHOLD_RULES = {
+# Threshold rules using operator functions
+ThresholdRule = tuple[Callable[[float, float], bool], Threshold]
+THRESHOLD_RULES: dict[MeasureName, tuple[ThresholdRule, ...]] = {
     MeasureName.TEMPERATURE: (
         (operator.lt, Threshold.MIN_TEMPERATURE),
         (operator.gt, Threshold.MAX_TEMPERATURE),
@@ -101,61 +263,19 @@ THRESHOLD_RULES = {
 }
 
 
-# Pico
-class PlantId(IntEnum):
-    PLANT_1 = 1
-    PLANT_2 = 2
-    PLANT_3 = 3
+# Backward compatibility for GmailConfig and SlackConfig
+class GmailConfig:
+    """Gmail configuration - backward compatibility wrapper."""
+    SENDER = settings.notifications.gmail.sender
+    RECIPIENTS = settings.notifications.gmail.recipients
+    USERNAME = settings.notifications.gmail.username
+    PASSWORD = settings.notifications.gmail.password
+    SUBJECT = settings.notifications.gmail.subject
 
 
-PLANT_IDS = list(PlantId)
-PICO_PLANT_ID_PATTERN = re.compile(r"^plant-(\d+)$")
-MOISTURE_MIN = 0.0
-MOISTURE_MAX = 100.0
-PLANT_ID_MAX_LENGTH = 64
-PLANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
-PICO_SERIAL_PORT = environ.get("PICO_SERIAL_PORT", "/dev/ttyACM0")
-PICO_SERIAL_BAUD = int(environ.get("PICO_SERIAL_BAUD", "115200"))
-
-
-def _env_key(plant_id: PlantId) -> str:
-    """Convert plant_id to env var name (e.g., PlantId.PLANT_1 -> MIN_MOISTURE_PLANT_1)."""
-    return f"MIN_MOISTURE_PLANT_{plant_id.value}"
-
-
-PLANT_MOISTURE_THRESHOLDS: dict[int, int] = {
-    plant_id: int(environ.get(_env_key(plant_id), MIN_MOISTURE))
-    for plant_id in PlantId
-}
-
-
-def get_moisture_threshold(plant_id: int) -> int:
-    """Get moisture threshold for a plant, falling back to default."""
-    return PLANT_MOISTURE_THRESHOLDS.get(plant_id, MIN_MOISTURE)
-
-
-def parse_pico_plant_id(raw_id: str) -> int | None:
-    """Parse Pico's 'plant-N' format to integer N. Returns None if invalid."""
-    match = PICO_PLANT_ID_PATTERN.match(raw_id)
-    if match:
-        return int(match.group(1))
-    return None
-
-
-# OLED Display
-DISPLAY_WIDTH = 128
-DISPLAY_HEIGHT = 64
-DISPLAY_FONT_SIZE = 17
-DISPLAY_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
-DISPLAY_TEXT_X_OFFSET = 23
-DISPLAY_TEXT_Y_TEMP = 0
-DISPLAY_TEXT_Y_HUMIDITY = 20
-
-
-# Email
-EMAIL_MAX_RETRIES = 3
-EMAIL_INITIAL_BACKOFF_SEC = 2
-EMAIL_TIMEOUT_SEC = 30
+class SlackConfig:
+    """Slack configuration - backward compatibility wrapper."""
+    WEBHOOK_URL = settings.notifications.slack.webhook_url
 
 
 class ConfigurationError(Exception):
@@ -168,58 +288,59 @@ def validate_config() -> None:
     Raises ConfigurationError if any validation fails.
     """
     errors: list[str] = []
+    s = settings
 
     # Threshold sanity checks
-    if MIN_TEMPERATURE >= MAX_TEMPERATURE:
+    if s.thresholds.min_temperature >= s.thresholds.max_temperature:
         errors.append(
-            f"MIN_TEMPERATURE ({MIN_TEMPERATURE}) must be less than "
-            f"MAX_TEMPERATURE ({MAX_TEMPERATURE})"
+            f"MIN_TEMPERATURE ({s.thresholds.min_temperature}) must be less than "
+            f"MAX_TEMPERATURE ({s.thresholds.max_temperature})"
         )
 
-    if MIN_HUMIDITY >= MAX_HUMIDITY:
+    if s.thresholds.min_humidity >= s.thresholds.max_humidity:
         errors.append(
-            f"MIN_HUMIDITY ({MIN_HUMIDITY}) must be less than "
-            f"MAX_HUMIDITY ({MAX_HUMIDITY})"
+            f"MIN_HUMIDITY ({s.thresholds.min_humidity}) must be less than "
+            f"MAX_HUMIDITY ({s.thresholds.max_humidity})"
         )
 
     # DHT22 bounds validation
     temp_min, temp_max = DHT22_BOUNDS[MeasureName.TEMPERATURE]
-    if not (temp_min <= MIN_TEMPERATURE < MAX_TEMPERATURE <= temp_max):
+    if not (temp_min <= s.thresholds.min_temperature < s.thresholds.max_temperature <= temp_max):
         errors.append(
             f"Temperature thresholds must be within sensor bounds [{temp_min}, {temp_max}]"
         )
 
     hum_min, hum_max = DHT22_BOUNDS[MeasureName.HUMIDITY]
-    if not (hum_min <= MIN_HUMIDITY < MAX_HUMIDITY <= hum_max):
+    if not (hum_min <= s.thresholds.min_humidity < s.thresholds.max_humidity <= hum_max):
         errors.append(
             f"Humidity thresholds must be within sensor bounds [{hum_min}, {hum_max}]"
         )
 
     # Moisture thresholds validation
-    for plant_id, threshold in PLANT_MOISTURE_THRESHOLDS.items():
-        if not (MOISTURE_MIN <= threshold <= MOISTURE_MAX):
+    for plant_id, threshold in s.thresholds.plant_moisture_thresholds.items():
+        if not (s.pico.moisture_min <= threshold <= s.pico.moisture_max):
             errors.append(
                 f"Moisture threshold for {plant_id} ({threshold}) must be "
-                f"between {MOISTURE_MIN} and {MOISTURE_MAX}"
+                f"between {s.pico.moisture_min} and {s.pico.moisture_max}"
             )
 
     # Notification config validation
-    if NOTIFICATION_SERVICE_ENABLED:
-        if NotificationBackend.GMAIL in NOTIFICATION_BACKENDS:
+    if s.notifications.enabled:
+        if NotificationBackend.GMAIL in s.notifications.backends:
             missing = []
-            if not GmailConfig.SENDER:
+            if not s.notifications.gmail.sender:
                 missing.append("GMAIL_SENDER")
-            if not GmailConfig.RECIPIENTS:
+            if not s.notifications.gmail.recipients:
                 missing.append("GMAIL_RECIPIENTS")
-            if not GmailConfig.USERNAME:
+            if not s.notifications.gmail.username:
                 missing.append("GMAIL_USERNAME")
-            if not GmailConfig.PASSWORD:
+            if not s.notifications.gmail.password:
                 missing.append("GMAIL_PASSWORD")
             if missing:
                 errors.append(f"Gmail enabled but missing: {', '.join(missing)}")
 
-        if NotificationBackend.SLACK in NOTIFICATION_BACKENDS:
-            if not SlackConfig.WEBHOOK_URL:
+        if NotificationBackend.SLACK in s.notifications.backends:
+            if not s.notifications.slack.webhook_url:
                 errors.append("Slack enabled but SLACK_WEBHOOK_URL is not set")
 
     if errors:

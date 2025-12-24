@@ -19,12 +19,21 @@ sys.modules["PIL.ImageDraw"] = MagicMock()
 sys.modules["PIL.ImageFont"] = MagicMock()
 
 from rpi.dht.models import Measure, Reading, State, Unit
+from rpi.lib.alerts import reset_alert_tracker
 
 
 @pytest.fixture(autouse=True)
 def configure_caplog(caplog):
     """Ensure caplog captures logs from the rpi namespace."""
     caplog.set_level(logging.INFO, logger="rpi")
+
+
+@pytest.fixture(autouse=True)
+def reset_alerts():
+    """Reset the global alert tracker before each test."""
+    reset_alert_tracker()
+    yield
+    reset_alert_tracker()
 
 
 @pytest.fixture
@@ -48,20 +57,6 @@ def sample_reading(frozen_time):
         humidity=Measure(55.0, Unit.PERCENT, State.OK),
         recording_time=frozen_time,
     )
-
-
-@pytest.fixture
-def mock_db():
-    """Mock database context manager."""
-    db_mock = MagicMock()
-    db_mock.commit = MagicMock()
-
-    cm_mock = MagicMock()
-    cm_mock.__enter__ = MagicMock(return_value=db_mock)
-    cm_mock.__exit__ = MagicMock(return_value=False)
-
-    with patch("rpi.lib.config.db_with_config", return_value=cm_mock):
-        yield db_mock
 
 
 @pytest.fixture

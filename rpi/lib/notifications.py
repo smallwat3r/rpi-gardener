@@ -10,12 +10,10 @@ import ssl
 import urllib.request
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
-from datetime import datetime
 from email.message import EmailMessage
 from smtplib import SMTP
 from time import sleep
-from typing import Callable
+from typing import TYPE_CHECKING
 
 from rpi.lib.config import (EMAIL_INITIAL_BACKOFF_SEC, EMAIL_MAX_RETRIES,
                             EMAIL_TIMEOUT_SEC, NOTIFICATION_BACKENDS,
@@ -24,12 +22,15 @@ from rpi.lib.config import (EMAIL_INITIAL_BACKOFF_SEC, EMAIL_MAX_RETRIES,
                             SlackConfig)
 from rpi.logging import get_logger
 
+if TYPE_CHECKING:
+    from rpi.lib.alerts import ThresholdViolation
+
 logger = get_logger("lib.notifications")
 
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="notifier")
 atexit.register(_executor.shutdown, wait=False)
 
-SENSOR_LABELS = {
+SENSOR_LABELS: dict[str | int, str] = {
     MeasureName.TEMPERATURE: "Temperature",
     MeasureName.HUMIDITY: "Humidity",
     PlantId.PLANT_1: "Plant 1",
@@ -38,48 +39,40 @@ SENSOR_LABELS = {
 }
 
 
-@dataclass(frozen=True)
-class Event:
-    """A notification event triggered when a threshold is crossed."""
-    sensor_name: str | int
-    value: float
-    unit: str
-    threshold: float
-    recording_time: datetime
+def get_sensor_label(sensor_name: str | int) -> str:
+    """Get human-readable label for a sensor."""
+    if sensor_name in SENSOR_LABELS:
+        return SENSOR_LABELS[sensor_name]
+    if isinstance(sensor_name, int):
+        return f"Plant {sensor_name}"
+    return str(sensor_name).replace("-", " ").title()
 
-    @property
-    def label(self) -> str:
-        """Human-readable sensor label."""
-        if self.sensor_name in SENSOR_LABELS:
-            return SENSOR_LABELS[self.sensor_name]
-        if isinstance(self.sensor_name, int):
-            return f"Plant {self.sensor_name}"
-        return self.sensor_name.replace("-", " ").title()
 
-    def format_message(self) -> str:
-        """Format the notification message for email/plain text."""
-        time_str = self.recording_time.strftime("%H:%M:%S")
-        return (
-            f"{self.label} alert!\n\n"
-            f"Current value: {self.value:.1f}{self.unit}\n"
-            f"Threshold: {self.threshold:.0f}{self.unit}\n"
-            f"Time: {time_str}"
-        )
+def format_alert_message(violation: "ThresholdViolation") -> str:
+    """Format a threshold violation as a notification message."""
+    label = get_sensor_label(violation.sensor_name)
+    time_str = violation.recording_time.strftime("%H:%M:%S")
+    return (
+        f"{label} alert!\n\n"
+        f"Current value: {violation.value:.1f}{violation.unit}\n"
+        f"Threshold: {violation.threshold:.0f}{violation.unit}\n"
+        f"Time: {time_str}"
+    )
 
 
 class AbstractNotifier(ABC):
     """Abstract base class for notification backends."""
 
     @abstractmethod
-    def send(self, event: Event) -> None:
-        """Send a notification for the given event (blocking)."""
+    def send(self, violation: "ThresholdViolation") -> None:
+        """Send a notification for the given violation (blocking)."""
 
-    async def send_async(self, event: Event) -> None:
+    async def send_async(self, violation: "ThresholdViolation") -> None:
         """Send a notification asynchronously without blocking the event loop."""
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(_executor, self.send, event)
+        await loop.run_in_executor(_executor, self.send, violation)
 
-    def _send_with_retry(self, send_fn: Callable[[], None], backend_name: str) -> None:
+    def _send_with_retry(self, send_fn, backend_name: str) -> None:
         """Execute send function with retry logic and exponential backoff."""
         last_error: Exception | None = None
 
@@ -106,18 +99,18 @@ class AbstractNotifier(ABC):
 class GmailNotifier(AbstractNotifier):
     """Gmail notification backend."""
 
-    def _build_message(self, event: Event) -> EmailMessage:
+    def _build_message(self, violation: "ThresholdViolation") -> EmailMessage:
         """Build the email message."""
         msg = EmailMessage()
         msg.add_header("From", GmailConfig.SENDER)
         msg.add_header("To", GmailConfig.RECIPIENTS)
         msg.add_header("Subject", GmailConfig.SUBJECT)
-        msg.set_content(event.format_message())
+        msg.set_content(format_alert_message(violation))
         return msg
 
-    def send(self, event: Event) -> None:
+    def send(self, violation: "ThresholdViolation") -> None:
         """Send the email with retry logic and exponential backoff."""
-        message = self._build_message(event)
+        message = self._build_message(violation)
 
         def do_send() -> None:
             context = ssl.create_default_context()
@@ -125,7 +118,7 @@ class GmailNotifier(AbstractNotifier):
                 server.starttls(context=context)
                 server.login(GmailConfig.USERNAME, GmailConfig.PASSWORD)
                 server.send_message(message)
-            logger.info("Sent email notification for event %s", id(event))
+            logger.info("Sent email notification for %s", violation.sensor_name)
 
         self._send_with_retry(do_send, "Email")
 
@@ -133,21 +126,22 @@ class GmailNotifier(AbstractNotifier):
 class SlackNotifier(AbstractNotifier):
     """Slack webhook notification backend."""
 
-    def _build_payload(self, event: Event) -> dict:
+    def _build_payload(self, violation: "ThresholdViolation") -> dict:
         """Build the Slack message payload."""
-        time_str = event.recording_time.strftime("%H:%M:%S")
+        label = get_sensor_label(violation.sensor_name)
+        time_str = violation.recording_time.strftime("%H:%M:%S")
         return {
-            "text": f"{event.label} alert!",
+            "text": f"{label} alert!",
             "blocks": [
                 {
                     "type": "header",
-                    "text": {"type": "plain_text", "text": f"{event.label} Alert"}
+                    "text": {"type": "plain_text", "text": f"{label} Alert"}
                 },
                 {
                     "type": "section",
                     "fields": [
-                        {"type": "mrkdwn", "text": f"*Current:*\n{event.value:.1f}{event.unit}"},
-                        {"type": "mrkdwn", "text": f"*Threshold:*\n{event.threshold:.0f}{event.unit}"},
+                        {"type": "mrkdwn", "text": f"*Current:*\n{violation.value:.1f}{violation.unit}"},
+                        {"type": "mrkdwn", "text": f"*Threshold:*\n{violation.threshold:.0f}{violation.unit}"},
                     ]
                 },
                 {
@@ -157,9 +151,9 @@ class SlackNotifier(AbstractNotifier):
             ]
         }
 
-    def send(self, event: Event) -> None:
+    def send(self, violation: "ThresholdViolation") -> None:
         """Send notification to Slack webhook with retry logic."""
-        payload = self._build_payload(event)
+        payload = self._build_payload(violation)
         data = json.dumps(payload).encode("utf-8")
 
         def do_send() -> None:
@@ -172,7 +166,7 @@ class SlackNotifier(AbstractNotifier):
             with urllib.request.urlopen(req, timeout=EMAIL_TIMEOUT_SEC) as resp:
                 if resp.status != 200:
                     raise OSError(f"Slack API returned status {resp.status}")
-            logger.info("Sent Slack notification for event %s", id(event))
+            logger.info("Sent Slack notification for %s", violation.sensor_name)
 
         self._send_with_retry(do_send, "Slack")
 
@@ -183,18 +177,18 @@ class CompositeNotifier(AbstractNotifier):
     def __init__(self, notifiers: list[AbstractNotifier]):
         self._notifiers = notifiers
 
-    def send(self, event: Event) -> None:
+    def send(self, violation: "ThresholdViolation") -> None:
         """Send notification to all configured backends."""
         for notifier in self._notifiers:
-            notifier.send(event)
+            notifier.send(violation)
 
 
 class NoOpNotifier(AbstractNotifier):
     """No-op notifier that logs but doesn't send notifications."""
 
-    def send(self, event: Event) -> None:
-        """Log the event but don't send a notification."""
-        logger.info("Notification service disabled, ignoring event %s", id(event))
+    def send(self, violation: "ThresholdViolation") -> None:
+        """Log the violation but don't send a notification."""
+        logger.info("Notification service disabled, ignoring alert for %s", violation.sensor_name)
 
 
 _BACKEND_MAP: dict[NotificationBackend, type[AbstractNotifier]] = {

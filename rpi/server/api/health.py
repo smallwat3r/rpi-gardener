@@ -4,28 +4,27 @@ from datetime import UTC, datetime
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from rpi.lib.config import db_with_config
-from rpi.lib.db import get_latest_dht_data, get_latest_pico_data
+from rpi.lib.db import get_async_db, get_latest_dht_data, get_latest_pico_data
 from rpi.logging import get_logger
 
 logger = get_logger("server.api.health")
 
 
-def _check_database() -> tuple[bool, str]:
+async def _check_database() -> tuple[bool, str]:
     """Check if database is accessible."""
     try:
-        with db_with_config() as db:
-            db.fetchone("SELECT 1")
+        db = await get_async_db()
+        await db.fetchone("SELECT 1")
         return True, "ok"
     except Exception as e:
         logger.error("Database health check failed: %s", e)
         return False, str(e)
 
 
-def _check_dht_sensor() -> tuple[bool, str | None]:
+async def _check_dht_sensor() -> tuple[bool, str | None]:
     """Check if DHT sensor has recent data (within last 5 minutes)."""
     try:
-        latest = get_latest_dht_data()
+        latest = await get_latest_dht_data()
         if latest is None:
             return False, "no data"
         return True, latest.get("recording_time")
@@ -34,10 +33,10 @@ def _check_dht_sensor() -> tuple[bool, str | None]:
         return False, str(e)
 
 
-def _check_pico_sensor() -> tuple[bool, str | None]:
+async def _check_pico_sensor() -> tuple[bool, str | None]:
     """Check if Pico sensor has recent data."""
     try:
-        latest = get_latest_pico_data()
+        latest = await get_latest_pico_data()
         if not latest:
             return False, "no data"
         return True, latest[0].get("recording_time") if latest else None
@@ -48,9 +47,9 @@ def _check_pico_sensor() -> tuple[bool, str | None]:
 
 async def health_check(request: Request) -> JSONResponse:
     """Return health status of the application and its dependencies."""
-    db_ok, db_status = _check_database()
-    dht_ok, dht_last = _check_dht_sensor()
-    pico_ok, pico_last = _check_pico_sensor()
+    db_ok, db_status = await _check_database()
+    dht_ok, dht_last = await _check_dht_sensor()
+    pico_ok, pico_last = await _check_pico_sensor()
 
     status = {
         "status": "healthy" if db_ok else "unhealthy",

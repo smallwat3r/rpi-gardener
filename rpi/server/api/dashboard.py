@@ -22,11 +22,11 @@ async def get_dashboard(request: Request) -> JSONResponse:
     try:
         return JSONResponse({
             "hours": hours,
-            "data": get_initial_dht_data(from_time),
-            "stats": get_stats_dht_data(from_time),
-            "latest": get_latest_dht_data(),
-            "pico_data": get_initial_pico_data(from_time),
-            "pico_latest": get_latest_pico_data(),
+            "data": await get_initial_dht_data(from_time),
+            "stats": await get_stats_dht_data(from_time),
+            "latest": await get_latest_dht_data(),
+            "pico_data": await get_initial_pico_data(from_time),
+            "pico_latest": await get_latest_pico_data(),
         })
     except DatabaseError:
         logger.exception("Database error fetching dashboard data")

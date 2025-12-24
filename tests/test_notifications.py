@@ -3,15 +3,40 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from rpi.lib.notifications import (CompositeNotifier, Event, GmailNotifier,
-                                   NoOpNotifier, SlackNotifier, get_notifier)
+from rpi.lib.alerts import Namespace, ThresholdViolation
+from rpi.lib.notifications import (CompositeNotifier, GmailNotifier,
+                                   NoOpNotifier, SlackNotifier,
+                                   format_alert_message, get_notifier,
+                                   get_sensor_label)
 
 
-class TestEvent:
-    """Tests for the Event dataclass."""
+def make_violation(
+    sensor_name="temperature",
+    value=30.5,
+    unit="c",
+    threshold=25,
+    recording_time=None,
+    namespace=Namespace.DHT,
+):
+    """Create a ThresholdViolation for testing."""
+    from datetime import datetime, timezone
+    if recording_time is None:
+        recording_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+    return ThresholdViolation(
+        namespace=namespace,
+        sensor_name=sensor_name,
+        value=value,
+        unit=unit,
+        threshold=threshold,
+        recording_time=recording_time,
+    )
 
-    def test_event_creation(self, frozen_time):
-        event = Event(
+
+class TestThresholdViolation:
+    """Tests for the ThresholdViolation dataclass."""
+
+    def test_violation_creation(self, frozen_time):
+        violation = make_violation(
             sensor_name="temperature",
             value=30.5,
             unit="c",
@@ -19,25 +44,14 @@ class TestEvent:
             recording_time=frozen_time,
         )
 
-        assert event.sensor_name == "temperature"
-        assert event.value == 30.5
-        assert event.unit == "c"
-        assert event.threshold == 25
-
-    def test_event_immutable(self, frozen_time):
-        event = Event(
-            sensor_name="temperature",
-            value=30.5,
-            unit="c",
-            threshold=25,
-            recording_time=frozen_time,
-        )
-
-        with pytest.raises(AttributeError):
-            event.value = 40.0
+        assert violation.sensor_name == "temperature"
+        assert violation.value == 30.5
+        assert violation.unit == "c"
+        assert violation.threshold == 25
+        assert violation.namespace == Namespace.DHT
 
     def test_format_message(self, frozen_time):
-        event = Event(
+        violation = make_violation(
             sensor_name="humidity",
             value=75.0,
             unit="%",
@@ -45,7 +59,7 @@ class TestEvent:
             recording_time=frozen_time,
         )
 
-        message = event.format_message()
+        message = format_alert_message(violation)
 
         assert "Humidity" in message
         assert "75.0%" in message
@@ -53,24 +67,24 @@ class TestEvent:
         assert "12:00:00" in message
 
     def test_label_from_sensor_labels(self, frozen_time):
-        event = Event(
+        violation = make_violation(
             sensor_name="temperature",
             value=30.0,
             unit="c",
             threshold=25,
             recording_time=frozen_time,
         )
-        assert event.label == "Temperature"
+        assert get_sensor_label(violation.sensor_name) == "Temperature"
 
     def test_label_fallback(self, frozen_time):
-        event = Event(
+        violation = make_violation(
             sensor_name="custom-sensor",
             value=50.0,
             unit="%",
             threshold=30,
             recording_time=frozen_time,
         )
-        assert event.label == "Custom Sensor"
+        assert get_sensor_label(violation.sensor_name) == "Custom Sensor"
 
 
 class TestGmailNotifier:
@@ -82,7 +96,7 @@ class TestGmailNotifier:
         mock_server = MagicMock()
         mock_smtp.return_value.__enter__.return_value = mock_server
 
-        event = Event(
+        violation = make_violation(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -91,7 +105,7 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        notifier.send(event)
+        notifier.send(violation)
 
         mock_server.starttls.assert_called_once()
         mock_server.login.assert_called_once()
@@ -105,7 +119,7 @@ class TestGmailNotifier:
         mock_server.send_message.side_effect = [OSError("Network error"), None]
         mock_smtp.return_value.__enter__.return_value = mock_server
 
-        event = Event(
+        violation = make_violation(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -114,7 +128,7 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        notifier.send(event)
+        notifier.send(violation)
 
         assert mock_server.send_message.call_count == 2
         mock_sleep.assert_called_once()
@@ -126,7 +140,7 @@ class TestGmailNotifier:
         mock_server.send_message.side_effect = ValueError("Bad data")
         mock_smtp.return_value.__enter__.return_value = mock_server
 
-        event = Event(
+        violation = make_violation(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -135,12 +149,12 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        notifier.send(event)
+        notifier.send(violation)
 
         assert mock_server.send_message.call_count == 1
 
     def test_build_message(self, frozen_time):
-        event = Event(
+        violation = make_violation(
             sensor_name="humidity",
             value=75.0,
             unit="%",
@@ -149,10 +163,10 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        message = notifier._build_message(event)
+        message = notifier._build_message(violation)
 
         assert message["Subject"] is not None
-        assert event.format_message() in message.get_content()
+        assert format_alert_message(violation) in message.get_content()
 
 
 class TestSlackNotifier:
@@ -165,7 +179,7 @@ class TestSlackNotifier:
         mock_response.status = 200
         mock_urlopen.return_value.__enter__.return_value = mock_response
 
-        event = Event(
+        violation = make_violation(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -174,7 +188,7 @@ class TestSlackNotifier:
         )
 
         notifier = SlackNotifier()
-        notifier.send(event)
+        notifier.send(violation)
 
         mock_request.assert_called_once()
         mock_urlopen.assert_called_once()
@@ -190,7 +204,7 @@ class TestSlackNotifier:
             MagicMock(__enter__=MagicMock(return_value=mock_success))
         ]
 
-        event = Event(
+        violation = make_violation(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -199,7 +213,7 @@ class TestSlackNotifier:
         )
 
         notifier = SlackNotifier()
-        notifier.send(event)
+        notifier.send(violation)
 
         assert mock_urlopen.call_count == 2
         mock_sleep.assert_called_once()
@@ -209,7 +223,7 @@ class TestSlackNotifier:
     def test_no_retry_on_non_network_error(self, mock_request, mock_urlopen, frozen_time):
         mock_urlopen.side_effect = ValueError("Bad data")
 
-        event = Event(
+        violation = make_violation(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -218,12 +232,12 @@ class TestSlackNotifier:
         )
 
         notifier = SlackNotifier()
-        notifier.send(event)
+        notifier.send(violation)
 
         assert mock_urlopen.call_count == 1
 
     def test_build_payload(self, frozen_time):
-        event = Event(
+        violation = make_violation(
             sensor_name="humidity",
             value=75.0,
             unit="%",
@@ -232,7 +246,7 @@ class TestSlackNotifier:
         )
 
         notifier = SlackNotifier()
-        payload = notifier._build_payload(event)
+        payload = notifier._build_payload(violation)
 
         assert payload["text"] == "Humidity alert!"
         assert payload["blocks"][0]["type"] == "header"
@@ -250,7 +264,7 @@ class TestCompositeNotifier:
         mock_notifier1 = MagicMock()
         mock_notifier2 = MagicMock()
 
-        event = Event(
+        violation = make_violation(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -259,17 +273,17 @@ class TestCompositeNotifier:
         )
 
         composite = CompositeNotifier([mock_notifier1, mock_notifier2])
-        composite.send(event)
+        composite.send(violation)
 
-        mock_notifier1.send.assert_called_once_with(event)
-        mock_notifier2.send.assert_called_once_with(event)
+        mock_notifier1.send.assert_called_once_with(violation)
+        mock_notifier2.send.assert_called_once_with(violation)
 
 
 class TestNoOpNotifier:
     """Tests for the no-op notification backend."""
 
     def test_send_logs_only(self, frozen_time, caplog):
-        event = Event(
+        violation = make_violation(
             sensor_name="test",
             value=50.0,
             unit="%",
@@ -278,7 +292,7 @@ class TestNoOpNotifier:
         )
 
         notifier = NoOpNotifier()
-        notifier.send(event)
+        notifier.send(violation)
 
         assert "disabled" in caplog.text.lower()
 

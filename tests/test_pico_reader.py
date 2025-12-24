@@ -1,13 +1,13 @@
 """Tests for the Pico serial reader module."""
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
 from rpi.lib.config import PlantId
 from rpi.pico import reader
-from rpi.pico.reader import (ValidationError, _audit_moisture, _handle_line,
-                             _parse_plant_id, _process_readings,
-                             _validate_moisture)
+from rpi.pico.reader import (ValidationError, _audit_moisture,
+                             _parse_plant_id, _validate_moisture)
 
 
 class TestParsePlantId:
@@ -60,48 +60,54 @@ class TestValidateMoisture:
 class TestHandleLine:
     """Tests for JSON line processing."""
 
-    def test_empty_line_ignored(self):
+    @pytest.mark.asyncio
+    async def test_empty_line_ignored(self):
         # Should not raise
-        _handle_line("")
-        _handle_line("   ")
+        await reader._handle_line("")
+        await reader._handle_line("   ")
 
-    def test_invalid_json_logged(self, caplog):
-        _handle_line("{invalid json}")
+    @pytest.mark.asyncio
+    async def test_invalid_json_logged(self, caplog):
+        await reader._handle_line("{invalid json}")
         assert "Invalid JSON" in caplog.text
 
-    def test_non_dict_json_logged(self, caplog):
-        _handle_line("[1, 2, 3]")
+    @pytest.mark.asyncio
+    async def test_non_dict_json_logged(self, caplog):
+        await reader._handle_line("[1, 2, 3]")
         assert "Expected JSON object" in caplog.text
 
-    @patch.object(reader, "_process_readings")
-    def test_valid_json_processed(self, mock_process):
+    @pytest.mark.asyncio
+    @patch.object(reader, "_process_readings", new_callable=AsyncMock)
+    async def test_valid_json_processed(self, mock_process):
         mock_process.return_value = 1
-        _handle_line('{"plant-1": 50.0}')
+        await reader._handle_line('{"plant-1": 50.0}')
         mock_process.assert_called_once_with({"plant-1": 50.0})
 
 
 class TestProcessReadings:
     """Tests for processing multiple readings."""
 
-    @patch.object(reader, "_persist")
+    @pytest.mark.asyncio
+    @patch.object(reader, "_persist", new_callable=AsyncMock)
     @patch.object(reader, "_audit_moisture")
     @patch.object(reader, "utcnow")
-    def test_valid_readings_persisted(self, mock_time, mock_audit, mock_persist, frozen_time):
+    async def test_valid_readings_persisted(self, mock_time, mock_audit, mock_persist, frozen_time):
         mock_time.return_value = frozen_time
 
-        count = _process_readings({"plant-1": 50.0, "plant-2": 60.0})
+        count = await reader._process_readings({"plant-1": 50.0, "plant-2": 60.0})
 
         assert count == 2
         assert mock_persist.call_count == 2
         assert mock_audit.call_count == 2
 
-    @patch.object(reader, "_persist")
+    @pytest.mark.asyncio
+    @patch.object(reader, "_persist", new_callable=AsyncMock)
     @patch.object(reader, "_audit_moisture")
     @patch.object(reader, "utcnow")
-    def test_invalid_readings_skipped(self, mock_time, mock_audit, mock_persist, frozen_time):
+    async def test_invalid_readings_skipped(self, mock_time, mock_audit, mock_persist, frozen_time):
         mock_time.return_value = frozen_time
 
-        count = _process_readings({
+        count = await reader._process_readings({
             "plant-1": 50.0,   # valid
             "": 60.0,          # invalid plant_id
             "plant-2": 150.0,  # invalid moisture
@@ -110,14 +116,15 @@ class TestProcessReadings:
         assert count == 1
         mock_persist.assert_called_once()
 
-    @patch.object(reader, "_persist")
+    @pytest.mark.asyncio
+    @patch.object(reader, "_persist", new_callable=AsyncMock)
     @patch.object(reader, "_audit_moisture")
     @patch.object(reader, "utcnow")
-    def test_persist_error_continues(self, mock_time, mock_audit, mock_persist, frozen_time):
+    async def test_persist_error_continues(self, mock_time, mock_audit, mock_persist, frozen_time):
         mock_time.return_value = frozen_time
         mock_persist.side_effect = [Exception("DB error"), None]
 
-        count = _process_readings({"plant-1": 50.0, "plant-2": 60.0})
+        count = await reader._process_readings({"plant-1": 50.0, "plant-2": 60.0})
 
         # First fails, second succeeds
         assert count == 1
@@ -127,38 +134,38 @@ class TestAuditMoisture:
     """Tests for moisture alert logic."""
 
     def setup_method(self):
-        """Reset alert state before each test."""
-        reader._alert_tracker.reset()
+        """Register Pico alerts callback before each test."""
+        from rpi.pico.reader import _register_pico_alerts
+        _register_pico_alerts()
 
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
     def test_no_alert_when_above_threshold(self, mock_threshold, mock_get_notifier, frozen_time):
-        from rpi.lib.alerts import AlertState
-
         notifier = MagicMock()
         mock_get_notifier.return_value = notifier
 
         _audit_moisture(PlantId.PLANT_1, 50.0, frozen_time)
 
         notifier.send.assert_not_called()
-        assert reader._alert_tracker.get_state(PlantId.PLANT_1) == AlertState.OK
+        tracker = get_alert_tracker()
+        assert tracker.get_state(Namespace.PICO, PlantId.PLANT_1) == AlertState.OK
 
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
     def test_alert_when_below_threshold(self, mock_threshold, mock_get_notifier, frozen_time):
-        from rpi.lib.alerts import AlertState
-
         notifier = MagicMock()
         mock_get_notifier.return_value = notifier
 
         _audit_moisture(PlantId.PLANT_1, 20.0, frozen_time)
 
         notifier.send.assert_called_once()
-        event = notifier.send.call_args[0][0]
-        assert event.sensor_name == PlantId.PLANT_1
-        assert event.value == 20.0
-        assert event.threshold == 30
-        assert reader._alert_tracker.get_state(PlantId.PLANT_1) == AlertState.IN_ALERT
+        violation = notifier.send.call_args[0][0]
+        assert violation.sensor_name == PlantId.PLANT_1
+        assert violation.value == 20.0
+        assert violation.threshold == 30
+        assert violation.namespace == Namespace.PICO
+        tracker = get_alert_tracker()
+        assert tracker.get_state(Namespace.PICO, PlantId.PLANT_1) == AlertState.IN_ALERT
 
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
@@ -192,8 +199,6 @@ class TestAuditMoisture:
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
     def test_independent_plant_states(self, mock_threshold, mock_get_notifier, frozen_time):
-        from rpi.lib.alerts import AlertState
-
         notifier = MagicMock()
         mock_get_notifier.return_value = notifier
 
@@ -202,5 +207,6 @@ class TestAuditMoisture:
         _audit_moisture(PlantId.PLANT_2, 20.0, frozen_time)
 
         assert notifier.send.call_count == 2
-        assert reader._alert_tracker.get_state(PlantId.PLANT_1) == AlertState.IN_ALERT
-        assert reader._alert_tracker.get_state(PlantId.PLANT_2) == AlertState.IN_ALERT
+        tracker = get_alert_tracker()
+        assert tracker.get_state(Namespace.PICO, PlantId.PLANT_1) == AlertState.IN_ALERT
+        assert tracker.get_state(Namespace.PICO, PlantId.PLANT_2) == AlertState.IN_ALERT

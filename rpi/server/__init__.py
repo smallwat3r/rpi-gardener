@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from starlette.applications import Starlette
 from starlette.routing import Route, WebSocketRoute
 
+from rpi.lib.db import close_async_db, get_async_db
 from rpi.logging import configure
 
 from .api.dashboard import get_dashboard
@@ -13,9 +14,13 @@ from .websockets import ws_dht_latest, ws_dht_stats, ws_pico_latest
 
 @asynccontextmanager
 async def lifespan(app):
-    """Configure logging on startup."""
+    """Configure logging and database on startup, cleanup on shutdown."""
     configure()
+    # Initialize the async database connection pool
+    await get_async_db()
     yield
+    # Close the database connection on shutdown
+    await close_async_db()
 
 
 routes = [

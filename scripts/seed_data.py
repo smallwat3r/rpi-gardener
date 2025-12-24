@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Seed the database with dummy data for development."""
 import argparse
+import asyncio
 import random
 from datetime import timedelta
 
-from sqlitey import Sql
-
-from rpi.lib.config import PLANT_IDS, db_with_config
-from rpi.lib.db import init_db
+from rpi.lib.db import get_async_db, init_db
+from rpi.lib.config import PLANT_IDS
 from rpi.lib.utils import utcnow
 
 
@@ -53,30 +52,30 @@ def generate_pico_data(num_records: int, interval: timedelta) -> list[tuple]:
     return data
 
 
-def seed_data(hours: int = 6, clear: bool = False) -> None:
+async def seed_data(hours: int = 6, clear: bool = False) -> None:
     """Insert dummy sensor data for the past N hours."""
-    init_db()
+    await init_db()
+    db = await get_async_db()
 
     interval = timedelta(minutes=2)
     num_records = (hours * 60) // 2
 
-    with db_with_config(autocommit=True) as db:
-        if clear:
-            print("Clearing existing data...")
-            db.execute(Sql.raw("DELETE FROM reading"))
-            db.execute(Sql.raw("DELETE FROM pico_reading"))
+    if clear:
+        print("Clearing existing data...")
+        await db.execute("DELETE FROM reading")
+        await db.execute("DELETE FROM pico_reading")
 
-        print(f"Generating {num_records} DHT readings...")
-        dht_data = generate_dht_data(num_records, interval)
+    print(f"Generating {num_records} DHT readings...")
+    dht_data = generate_dht_data(num_records, interval)
 
-        print(f"Generating {num_records * len(PLANT_IDS)} Pico readings...")
-        pico_data = generate_pico_data(num_records, interval)
+    print(f"Generating {num_records * len(PLANT_IDS)} Pico readings...")
+    pico_data = generate_pico_data(num_records, interval)
 
-        print("Inserting DHT data...")
-        db.executemany(Sql.raw("INSERT INTO reading VALUES (?, ?, ?)"), dht_data)
+    print("Inserting DHT data...")
+    await db.executemany("INSERT INTO reading VALUES (?, ?, ?)", dht_data)
 
-        print("Inserting Pico data...")
-        db.executemany(Sql.raw("INSERT INTO pico_reading VALUES (?, ?, ?)"), pico_data)
+    print("Inserting Pico data...")
+    await db.executemany("INSERT INTO pico_reading VALUES (?, ?, ?)", pico_data)
 
     print("Done!")
 
@@ -87,4 +86,4 @@ if __name__ == "__main__":
     parser.add_argument("-clear", action="store_true", help="Clear existing data before seeding")
     args = parser.parse_args()
 
-    seed_data(hours=args.hours, clear=args.clear)
+    asyncio.run(seed_data(hours=args.hours, clear=args.clear))

@@ -5,149 +5,118 @@ exists yet. Polling frequency is set to 2 seconds, we can't make it poll
 faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
-import signal
-from datetime import timedelta
-from time import sleep
-from types import FrameType
+import asyncio
 
 from adafruit_dht import DHT22
 from board import D17
-from sqlitey import Sql
 
 from rpi.dht.display import display
 from rpi.dht.models import Measure, Reading, Unit
 from rpi.dht.service import audit_reading, start_worker
-from rpi.lib.config import (CLEANUP_INTERVAL_CYCLES, CLEANUP_RETENTION_DAYS,
-                            DHT22_BOUNDS, POLLING_FREQUENCY_SEC, MeasureName,
-                            db_with_config)
-from rpi.lib.db import init_db
+from rpi.lib.db import get_async_db, init_db
+from rpi.lib.config import DHT22_BOUNDS, MeasureName
+from rpi.lib.polling import PollingService
 from rpi.lib.utils import utcnow
 from rpi.logging import configure, get_logger
 
 logger = get_logger("dht.polling")
 
-# Flag to signal graceful shutdown
-_shutdown_requested = False
 
-
-class _OutsideDHT22Bounds(RuntimeError):
+class OutsideDHT22Bounds(RuntimeError):
     """Reading from DHT22 sensor is outside of allowed bounds."""
 
 
-def _check_dht_boundaries(reading: Reading) -> Reading:
-    """Ensure the readings from the sensor are sane.
+class DHTPollingService(PollingService[Reading]):
+    """Polling service for the DHT22 temperature/humidity sensor."""
 
-    The DHT22 sensor only allows specific bounds for temperature and humidity
-    readings. Temperature cannot be measured outside of the -40 to 80 degree
-    celsius range. Humidity cannot be measured outside of 0-100% range.
+    def __init__(self) -> None:
+        super().__init__(name="DHT22")
+        self._dht: DHT22 | None = None
+        self._reading = Reading(
+            Measure(0.0, Unit.CELSIUS),
+            Measure(0.0, Unit.PERCENT),
+            utcnow(),
+        )
 
-    If the sensor were to record a reading outside of these bounds, something
-    bad has happened, and the reading would need to be retried.
-    """
-    for name in MeasureName:
-        measure = getattr(reading, name).value
-        bmin, bmax = DHT22_BOUNDS[name]
-        if measure < bmin or measure > bmax:
-            logger.error("%s reading outside bounds of DHT22 sensor: %s",
-                         name.capitalize(), str(reading.temperature))
-            raise _OutsideDHT22Bounds()
-    return reading
+    async def initialize(self) -> None:
+        """Initialize DHT22 sensor and database."""
+        await init_db()
+        start_worker()
+        display.clear()
+        self._dht = DHT22(D17)
 
+    async def cleanup(self) -> None:
+        """Clean up DHT22 sensor and display."""
+        display.clear()
+        if self._dht:
+            self._dht.exit()
 
-def _poll(dht: DHT22, reading: Reading) -> Reading:
-    """Poll the DHT22 sensor for new reading values."""
-    reading.temperature.value = dht.temperature
-    reading.humidity.value = dht.humidity
-    reading.recording_time = utcnow()
-    logger.info("Read %s, %s", str(reading.temperature),
-                str(reading.humidity))
-    display.render_reading(reading)
-    return reading
+    async def poll(self) -> Reading | None:
+        """Poll the DHT22 sensor for new reading values."""
+        if self._dht is None:
+            return None
 
+        # Run sync sensor reads in thread pool
+        temperature = await asyncio.to_thread(lambda: self._dht.temperature)
+        humidity = await asyncio.to_thread(lambda: self._dht.humidity)
 
-def _audit(reading: Reading) -> Reading:
-    """Audit the reading."""
-    _check_dht_boundaries(reading)
-    audit_reading(reading)
-    return reading
+        self._reading.temperature.value = temperature
+        self._reading.humidity.value = humidity
+        self._reading.recording_time = utcnow()
 
+        logger.info("Read %s, %s", str(self._reading.temperature),
+                    str(self._reading.humidity))
+        display.render_reading(self._reading)
+        return self._reading
 
-def _persist(reading: Reading) -> None:
-    """Persist the reading values into the database."""
-    with db_with_config() as db:
-        db.commit(Sql.raw("INSERT INTO reading VALUES (?, ?, ?)"),
-                  (reading.temperature.value, reading.humidity.value,
-                   reading.recording_time))
+    async def audit(self, reading: Reading) -> bool:
+        """Audit the reading against thresholds and DHT22 bounds."""
+        # Check DHT22 bounds
+        for name in MeasureName:
+            measure = getattr(reading, name).value
+            bmin, bmax = DHT22_BOUNDS[name]
+            if measure < bmin or measure > bmax:
+                logger.error(
+                    "%s reading outside bounds of DHT22 sensor: %s",
+                    name.capitalize(), measure
+                )
+                return False
 
+        # Check thresholds and potentially trigger notifications
+        audit_reading(reading)
+        return True
 
-def _clear_old_records() -> None:
-    """Clear historical data older than CLEANUP_RETENTION_DAYS."""
-    logger.info("Clearing historical data older than %d days...",
-                CLEANUP_RETENTION_DAYS)
-    cutoff = utcnow() - timedelta(days=CLEANUP_RETENTION_DAYS)
-    with db_with_config() as db:
-        db.commit(Sql.raw("DELETE FROM reading WHERE recording_time < ?"),
-                  (cutoff,))
-        db.commit(Sql.raw("DELETE FROM pico_reading WHERE recording_time < ?"),
-                  (cutoff,))
+    async def persist(self, reading: Reading) -> None:
+        """Persist the reading values into the database."""
+        db = await get_async_db()
+        await db.execute(
+            "INSERT INTO reading VALUES (?, ?, ?)",
+            (reading.temperature.value, reading.humidity.value,
+             reading.recording_time)
+        )
 
+    async def clear_old_records(self) -> None:
+        """Clear historical data older than retention period."""
+        cutoff = self.get_cutoff_time()
+        db = await get_async_db()
+        await db.execute("DELETE FROM reading WHERE recording_time < ?", (cutoff,))
+        await db.execute("DELETE FROM pico_reading WHERE recording_time < ?", (cutoff,))
 
-def _handle_shutdown(signum: int, frame: FrameType | None) -> None:
-    """Handle shutdown signals gracefully."""
-    global _shutdown_requested
-    signal_name = signal.Signals(signum).name
-    logger.info("Received %s, initiating graceful shutdown...", signal_name)
-    _shutdown_requested = True
-
-
-def _setup_signal_handlers() -> None:
-    """Register signal handlers for graceful shutdown."""
-    signal.signal(signal.SIGTERM, _handle_shutdown)
-    signal.signal(signal.SIGINT, _handle_shutdown)
-
-
-def _cleanup(dht: DHT22) -> None:
-    """Clean up resources before exit."""
-    logger.info("Cleaning up resources...")
-    display.clear()
-    dht.exit()
-    logger.info("Shutdown complete")
+    def on_poll_error(self, error: Exception) -> None:
+        """Handle DHT22-specific errors."""
+        if isinstance(error, RuntimeError):
+            # DHT library raises RuntimeError for transient sensor issues
+            # (e.g., checksum failures, timing issues). Log and retry.
+            logger.debug("DHT22 sensor read error: %s", error)
+        else:
+            super().on_poll_error(error)
 
 
 def main() -> None:
     """Main entry point for the polling service."""
     configure()
-    _setup_signal_handlers()
-    init_db()
-    start_worker()
-    reading = Reading(
-        Measure(0.0, Unit.CELSIUS),
-        Measure(0.0, Unit.PERCENT),
-        utcnow(),
-    )
-    display.clear()
-    dht = DHT22(D17)
-
-    logger.info("Polling service started")
-
-    poll_count = 0
-    try:
-        while not _shutdown_requested:
-            if poll_count % CLEANUP_INTERVAL_CYCLES == 0:
-                _clear_old_records()
-            try:
-                _persist(_audit(_poll(dht, reading)))
-            except _OutsideDHT22Bounds:
-                # Reading was outside valid sensor bounds, skip and retry
-                logger.debug("Skipping reading outside DHT22 bounds")
-            except RuntimeError as e:
-                # DHT library raises RuntimeError for transient sensor issues
-                # (e.g., checksum failures, timing issues). Log and retry.
-                logger.debug("DHT22 sensor read error: %s", e)
-            poll_count += 1
-            sleep(POLLING_FREQUENCY_SEC)
-    finally:
-        _cleanup(dht)
+    service = DHTPollingService()
+    service.run()
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 ## Requirements
 
 - Raspberry Pi 4 with Docker installed
-- Raspberry Pi Pico W (for soil moisture sensors)
+- Raspberry Pi Pico (connected via USB for soil moisture sensors)
 - DHT22 temperature/humidity sensor
 - SSD1306 OLED display (128x64)
 - Capacitive soil moisture sensors (v1.2)
@@ -121,22 +121,13 @@ make dev-rebuild
 
 The dev dashboard will be available at `http://localhost:5000/`
 
-## Pico API
+## Pico Communication
 
-The Pico sends moisture readings via HTTP POST:
+The Pico sends moisture readings via USB serial as JSON:
 
-    POST /pico
-    Content-Type: application/json
+    {"plant-1": 45.2, "plant-2": 67.8, "plant-3": 52.1}
 
-    {
-      "plant-1": 45.2,
-      "plant-2": 67.8,
-      "plant-3": 52.1
-    }
-
-Validation:
-- `plant_id`: alphanumeric, hyphens, underscores (max 64 chars)
-- `moisture`: number between 0-100 (percentage)
+The RPi reads from `/dev/ttyACM0` and persists readings directly to the database.
 
 ## Data Management
 
@@ -156,7 +147,7 @@ Gmail App Password (not your account password).
 
 **Container won't start**: Check that I2C is enabled and devices exist:
 
-    ls -la /dev/i2c-* /dev/gpiomem
+    ls -la /dev/i2c-* /dev/gpiomem /dev/ttyACM0
 
 ## Security
 

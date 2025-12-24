@@ -202,80 +202,21 @@ def parse_pico_plant_id(raw_id: str) -> int | None:
     return None
 
 
-# Backward compatibility - expose commonly used values
-DB_PATH = settings.db_path
-MAX_TEMPERATURE = settings.thresholds.max_temperature
-MIN_TEMPERATURE = settings.thresholds.min_temperature
-MAX_HUMIDITY = settings.thresholds.max_humidity
-MIN_HUMIDITY = settings.thresholds.min_humidity
-MIN_MOISTURE = settings.thresholds.min_moisture
-NOTIFICATION_SERVICE_ENABLED = settings.notifications.enabled
-NOTIFICATION_BACKENDS = settings.notifications.backends
-
-# Polling
-POLLING_FREQUENCY_SEC = settings.polling.frequency_sec
-CLEANUP_INTERVAL_CYCLES = settings.polling.cleanup_interval_cycles
-CLEANUP_RETENTION_DAYS = settings.polling.cleanup_retention_days
-
-# Pico
-PLANT_IDS = list(PlantId)
-PICO_SERIAL_PORT = settings.pico.serial_port
-PICO_SERIAL_BAUD = settings.pico.serial_baud
-MOISTURE_MIN = settings.pico.moisture_min
-MOISTURE_MAX = settings.pico.moisture_max
-PLANT_ID_MAX_LENGTH = settings.pico.plant_id_max_length
-PLANT_MOISTURE_THRESHOLDS = settings.thresholds.plant_moisture_thresholds
-
-# Display
-DISPLAY_WIDTH = settings.display.width
-DISPLAY_HEIGHT = settings.display.height
-DISPLAY_FONT_SIZE = settings.display.font_size
-DISPLAY_FONT_PATH = settings.display.font_path
-DISPLAY_TEXT_X_OFFSET = settings.display.text_x_offset
-DISPLAY_TEXT_Y_TEMP = settings.display.text_y_temp
-DISPLAY_TEXT_Y_HUMIDITY = settings.display.text_y_humidity
-
-# Email/Notification
-EMAIL_MAX_RETRIES = settings.notifications.max_retries
-EMAIL_INITIAL_BACKOFF_SEC = settings.notifications.initial_backoff_sec
-EMAIL_TIMEOUT_SEC = settings.notifications.timeout_sec
+ThresholdRule = tuple[Callable[[float, float], bool], int]
 
 
-class Threshold(IntEnum):
-    """Threshold enum for backward compatibility."""
-    MAX_TEMPERATURE = settings.thresholds.max_temperature
-    MIN_TEMPERATURE = settings.thresholds.min_temperature
-    MAX_HUMIDITY = settings.thresholds.max_humidity
-    MIN_HUMIDITY = settings.thresholds.min_humidity
-
-
-# Threshold rules using operator functions
-ThresholdRule = tuple[Callable[[float, float], bool], Threshold]
-THRESHOLD_RULES: dict[MeasureName, tuple[ThresholdRule, ...]] = {
-    MeasureName.TEMPERATURE: (
-        (operator.lt, Threshold.MIN_TEMPERATURE),
-        (operator.gt, Threshold.MAX_TEMPERATURE),
-    ),
-    MeasureName.HUMIDITY: (
-        (operator.lt, Threshold.MIN_HUMIDITY),
-        (operator.gt, Threshold.MAX_HUMIDITY),
-    ),
-}
-
-
-# Backward compatibility for GmailConfig and SlackConfig
-class GmailConfig:
-    """Gmail configuration - backward compatibility wrapper."""
-    SENDER = settings.notifications.gmail.sender
-    RECIPIENTS = settings.notifications.gmail.recipients
-    USERNAME = settings.notifications.gmail.username
-    PASSWORD = settings.notifications.gmail.password
-    SUBJECT = settings.notifications.gmail.subject
-
-
-class SlackConfig:
-    """Slack configuration - backward compatibility wrapper."""
-    WEBHOOK_URL = settings.notifications.slack.webhook_url
+def get_threshold_rules() -> dict[MeasureName, tuple[ThresholdRule, ...]]:
+    """Get threshold rules based on current settings."""
+    return {
+        MeasureName.TEMPERATURE: (
+            (operator.lt, settings.thresholds.min_temperature),
+            (operator.gt, settings.thresholds.max_temperature),
+        ),
+        MeasureName.HUMIDITY: (
+            (operator.lt, settings.thresholds.min_humidity),
+            (operator.gt, settings.thresholds.max_humidity),
+        ),
+    }
 
 
 class ConfigurationError(Exception):

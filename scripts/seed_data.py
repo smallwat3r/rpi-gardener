@@ -6,7 +6,7 @@ import random
 from datetime import timedelta
 
 from rpi.lib.db import get_db, init_db
-from rpi.lib.config import PLANT_IDS
+from rpi.lib.config import PlantId
 from rpi.lib.utils import utcnow
 
 
@@ -38,12 +38,13 @@ def generate_pico_data(num_records: int, interval: timedelta) -> list[tuple]:
     """Generate realistic Pico moisture readings using random walk."""
     now = utcnow()
     data = []
+    plant_ids = list(PlantId)
 
-    moisture = {plant_id: random.uniform(40.0, 70.0) for plant_id in PLANT_IDS}
+    moisture = {plant_id: random.uniform(40.0, 70.0) for plant_id in plant_ids}
 
     for i in range(num_records):
         recording_time = now - (interval * (num_records - 1 - i))
-        for plant_id in PLANT_IDS:
+        for plant_id in plant_ids:
             moisture[plant_id] = _random_walk(
                 moisture[plant_id], drift=0.5, min_val=10.0, max_val=90.0
             )
@@ -62,7 +63,7 @@ async def seed_data(hours: int = 6, clear: bool = False) -> None:
     print(f"Generating {num_records} DHT readings...")
     dht_data = generate_dht_data(num_records, interval)
 
-    print(f"Generating {num_records * len(PLANT_IDS)} Pico readings...")
+    print(f"Generating {num_records * len(PlantId)} Pico readings...")
     pico_data = generate_pico_data(num_records, interval)
 
     async with get_db() as db:

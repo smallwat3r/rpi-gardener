@@ -300,32 +300,37 @@ class TestNoOpNotifier:
 class TestGetNotifier:
     """Tests for the notifier factory function."""
 
-    @patch("rpi.lib.notifications.NOTIFICATION_BACKENDS", ["gmail"])
-    @patch("rpi.lib.notifications.NOTIFICATION_SERVICE_ENABLED", True)
     def test_returns_gmail_when_configured(self):
-        notifier = get_notifier()
-        assert isinstance(notifier, GmailNotifier)
+        with patch("rpi.lib.notifications.settings") as mock_settings:
+            mock_settings.notifications.enabled = True
+            mock_settings.notifications.backends = ["gmail"]
+            notifier = get_notifier()
+            assert isinstance(notifier, GmailNotifier)
 
-    @patch("rpi.lib.notifications.NOTIFICATION_BACKENDS", ["slack"])
-    @patch("rpi.lib.notifications.NOTIFICATION_SERVICE_ENABLED", True)
     def test_returns_slack_when_configured(self):
-        notifier = get_notifier()
-        assert isinstance(notifier, SlackNotifier)
+        with patch("rpi.lib.notifications.settings") as mock_settings:
+            mock_settings.notifications.enabled = True
+            mock_settings.notifications.backends = ["slack"]
+            notifier = get_notifier()
+            assert isinstance(notifier, SlackNotifier)
 
-    @patch("rpi.lib.notifications.NOTIFICATION_BACKENDS", ["gmail", "slack"])
-    @patch("rpi.lib.notifications.NOTIFICATION_SERVICE_ENABLED", True)
     def test_returns_composite_when_multiple_backends(self):
-        notifier = get_notifier()
-        assert isinstance(notifier, CompositeNotifier)
-        assert len(notifier._notifiers) == 2
+        with patch("rpi.lib.notifications.settings") as mock_settings:
+            mock_settings.notifications.enabled = True
+            mock_settings.notifications.backends = ["gmail", "slack"]
+            notifier = get_notifier()
+            assert isinstance(notifier, CompositeNotifier)
+            assert len(notifier._notifiers) == 2
 
-    @patch("rpi.lib.notifications.NOTIFICATION_SERVICE_ENABLED", False)
     def test_returns_noop_when_disabled(self):
-        notifier = get_notifier()
-        assert isinstance(notifier, NoOpNotifier)
+        with patch("rpi.lib.notifications.settings") as mock_settings:
+            mock_settings.notifications.enabled = False
+            notifier = get_notifier()
+            assert isinstance(notifier, NoOpNotifier)
 
-    @patch("rpi.lib.notifications.NOTIFICATION_BACKENDS", ["unknown"])
-    @patch("rpi.lib.notifications.NOTIFICATION_SERVICE_ENABLED", True)
     def test_returns_noop_for_unknown_backend(self):
-        notifier = get_notifier()
-        assert isinstance(notifier, NoOpNotifier)
+        with patch("rpi.lib.notifications.settings") as mock_settings:
+            mock_settings.notifications.enabled = True
+            mock_settings.notifications.backends = ["unknown"]
+            notifier = get_notifier()
+            assert isinstance(notifier, NoOpNotifier)

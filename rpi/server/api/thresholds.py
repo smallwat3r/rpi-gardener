@@ -3,20 +3,20 @@
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from rpi.lib.config import (MAX_HUMIDITY, MAX_TEMPERATURE, MIN_HUMIDITY,
-                            MIN_TEMPERATURE, PLANT_MOISTURE_THRESHOLDS)
+from rpi.lib.config import settings
 
 
 async def get_thresholds(request: Request) -> JSONResponse:
     """Return current threshold configuration."""
+    thresholds = settings.thresholds
     return JSONResponse({
         "temperature": {
-            "min": MIN_TEMPERATURE,
-            "max": MAX_TEMPERATURE,
+            "min": thresholds.min_temperature,
+            "max": thresholds.max_temperature,
         },
         "humidity": {
-            "min": MIN_HUMIDITY,
-            "max": MAX_HUMIDITY,
+            "min": thresholds.min_humidity,
+            "max": thresholds.max_humidity,
         },
-        "moisture": PLANT_MOISTURE_THRESHOLDS,
+        "moisture": thresholds.plant_moisture_thresholds,
     })

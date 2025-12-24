@@ -10,9 +10,7 @@ import aioserial
 
 from rpi.lib.db import get_db, init_db
 from rpi.lib.alerts import Namespace, ThresholdViolation, get_alert_tracker
-from rpi.lib.config import (MOISTURE_MAX, MOISTURE_MIN, PICO_SERIAL_BAUD,
-                            PICO_SERIAL_PORT, get_moisture_threshold,
-                            parse_pico_plant_id)
+from rpi.lib.config import get_moisture_threshold, parse_pico_plant_id, settings
 from rpi.lib.notifications import get_notifier
 from rpi.lib.utils import utcnow
 from rpi.logging import configure, get_logger
@@ -66,9 +64,11 @@ def _validate_moisture(value: float) -> float:
     """Validate moisture value is a number within valid bounds."""
     if not isinstance(value, (int, float)):
         raise ValidationError(f"moisture must be a number, got {type(value).__name__}")
-    if not (MOISTURE_MIN <= value <= MOISTURE_MAX):
+    min_val = settings.pico.moisture_min
+    max_val = settings.pico.moisture_max
+    if not (min_val <= value <= max_val):
         raise ValidationError(
-            f"moisture must be between {MOISTURE_MIN} and {MOISTURE_MAX}, got {value}")
+            f"moisture must be between {min_val} and {max_val}, got {value}")
     return float(value)
 
 
@@ -141,10 +141,11 @@ async def read_serial() -> None:
     """Read lines from serial port asynchronously."""
     await init_db()
     _register_pico_alerts()
-    logger.info("Opening serial port %s", PICO_SERIAL_PORT)
+    serial_port = settings.pico.serial_port
+    logger.info("Opening serial port %s", serial_port)
 
-    ser = aioserial.AioSerial(port=PICO_SERIAL_PORT, baudrate=PICO_SERIAL_BAUD)
-    logger.info("Connected to Pico on %s", PICO_SERIAL_PORT)
+    ser = aioserial.AioSerial(port=serial_port, baudrate=settings.pico.serial_baud)
+    logger.info("Connected to Pico on %s", serial_port)
 
     try:
         while True:
@@ -155,7 +156,7 @@ async def read_serial() -> None:
                 logger.warning("Failed to decode line: %s", e)
     finally:
         ser.close()
-        logger.info("Serial port %s closed", PICO_SERIAL_PORT)
+        logger.info("Serial port %s closed", serial_port)
         # Wait for pending notification tasks to complete
         if _pending_tasks:
             logger.info("Waiting for %d pending notification(s)", len(_pending_tasks))

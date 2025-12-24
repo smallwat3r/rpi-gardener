@@ -11,7 +11,7 @@ from threading import Thread
 from rpi.dht.models import Measure, Reading, State
 from rpi.lib.alerts import (AlertState, Namespace, ThresholdViolation,
                             get_alert_tracker)
-from rpi.lib.config import THRESHOLD_RULES
+from rpi.lib.config import get_threshold_rules
 from rpi.lib.notifications import get_notifier
 from rpi.logging import get_logger
 
@@ -46,7 +46,7 @@ def audit_reading(reading: Reading) -> None:
     """Audit reading values against thresholds and enqueue notification events."""
     tracker = get_alert_tracker()
 
-    for name, rules in THRESHOLD_RULES.items():
+    for name, rules in get_threshold_rules().items():
         measure: Measure = getattr(reading, name)
 
         # Check each rule for this measure

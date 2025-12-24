@@ -139,22 +139,26 @@ class TestAuditMoisture:
 
     def setup_method(self):
         """Reset alert state before each test."""
-        reader._alert_state.clear()
+        reader._alert_tracker.reset()
 
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
     def test_no_alert_when_above_threshold(self, mock_threshold, mock_get_notifier, frozen_time):
+        from rpi.lib.alerts import AlertState
+
         notifier = MagicMock()
         mock_get_notifier.return_value = notifier
 
         _audit_moisture("plant-1", 50.0, frozen_time)
 
         notifier.send.assert_not_called()
-        assert reader._alert_state["plant-1"] is False
+        assert reader._alert_tracker.get_state("plant-1") == AlertState.OK
 
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
     def test_alert_when_below_threshold(self, mock_threshold, mock_get_notifier, frozen_time):
+        from rpi.lib.alerts import AlertState
+
         notifier = MagicMock()
         mock_get_notifier.return_value = notifier
 
@@ -165,7 +169,7 @@ class TestAuditMoisture:
         assert event.sensor_name == "plant-1"
         assert event.value == 20.0
         assert event.threshold == 30
-        assert reader._alert_state["plant-1"] is True
+        assert reader._alert_tracker.get_state("plant-1") == AlertState.IN_ALERT
 
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
@@ -199,6 +203,8 @@ class TestAuditMoisture:
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
     def test_independent_plant_states(self, mock_threshold, mock_get_notifier, frozen_time):
+        from rpi.lib.alerts import AlertState
+
         notifier = MagicMock()
         mock_get_notifier.return_value = notifier
 
@@ -207,5 +213,5 @@ class TestAuditMoisture:
         _audit_moisture("plant-2", 20.0, frozen_time)
 
         assert notifier.send.call_count == 2
-        assert reader._alert_state["plant-1"] is True
-        assert reader._alert_state["plant-2"] is True
+        assert reader._alert_tracker.get_state("plant-1") == AlertState.IN_ALERT
+        assert reader._alert_tracker.get_state("plant-2") == AlertState.IN_ALERT

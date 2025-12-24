@@ -1,54 +1,12 @@
 """Tests for the DHT22 audit and event service."""
-import operator
 from unittest.mock import patch
 
 import pytest
 
 from rpi.dht import service
 from rpi.dht.models import Measure, Reading, State, Unit
-from rpi.dht.service import _check_threshold, audit_reading
-
-
-class TestCheckThreshold:
-    """Tests for threshold checking logic."""
-
-    def test_below_min_triggers_alert(self):
-        measure = Measure(15.0, Unit.CELSIUS)
-        rules = ((operator.lt, 18), (operator.gt, 25))
-
-        state, threshold = _check_threshold(measure, rules)
-
-        assert state == State.IN_ALERT
-        assert threshold == 18
-
-    def test_above_max_triggers_alert(self):
-        measure = Measure(30.0, Unit.CELSIUS)
-        rules = ((operator.lt, 18), (operator.gt, 25))
-
-        state, threshold = _check_threshold(measure, rules)
-
-        assert state == State.IN_ALERT
-        assert threshold == 25
-
-    def test_within_range_ok(self):
-        measure = Measure(22.0, Unit.CELSIUS)
-        rules = ((operator.lt, 18), (operator.gt, 25))
-
-        state, threshold = _check_threshold(measure, rules)
-
-        assert state == State.OK
-        assert threshold is None
-
-    def test_boundary_values(self):
-        rules = ((operator.lt, 18), (operator.gt, 25))
-
-        # Exactly at min boundary - not less than, so OK
-        state, _ = _check_threshold(Measure(18.0, Unit.CELSIUS), rules)
-        assert state == State.OK
-
-        # Exactly at max boundary - not greater than, so OK
-        state, _ = _check_threshold(Measure(25.0, Unit.CELSIUS), rules)
-        assert state == State.OK
+from rpi.dht.service import audit_reading
+from rpi.lib.alerts import AlertState
 
 
 class TestAuditReading:
@@ -56,7 +14,7 @@ class TestAuditReading:
 
     def setup_method(self):
         """Reset alert state and queue before each test."""
-        service._alert_state.clear()
+        service._alert_tracker.reset()
         # Clear the queue
         while not service._queue.empty():
             try:

@@ -15,7 +15,7 @@ from rpi.lib.config import THRESHOLD_RULES
 from rpi.lib.notifications import get_notifier
 from rpi.logging import get_logger
 
-logger = get_logger("dht.service")
+logger = get_logger("dht.audit")
 
 _queue: Queue[ThresholdViolation] = Queue()
 

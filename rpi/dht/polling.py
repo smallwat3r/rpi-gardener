@@ -12,7 +12,7 @@ from board import D17
 
 from rpi.dht.display import display
 from rpi.dht.models import Measure, Reading, Unit
-from rpi.dht.service import audit_reading, start_worker
+from rpi.dht.audit import audit_reading, start_worker
 from rpi.lib.db import get_db, init_db
 from rpi.lib.config import DHT22_BOUNDS, MeasureName
 from rpi.lib.polling import PollingService

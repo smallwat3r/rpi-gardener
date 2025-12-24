@@ -1,9 +1,9 @@
 """Tests for the DHT22 audit and event service."""
 import pytest
 
-from rpi.dht import service
+from rpi.dht import audit
 from rpi.dht.models import Measure, Reading, State, Unit
-from rpi.dht.service import _enqueue_event, audit_reading
+from rpi.dht.audit import _enqueue_event, audit_reading
 from rpi.lib.alerts import (AlertState, Namespace, get_alert_tracker,
                             reset_alert_tracker)
 
@@ -19,19 +19,19 @@ class TestAuditReading:
         tracker = get_alert_tracker()
         tracker.register_callback(Namespace.DHT, _enqueue_event)
         # Clear the queue
-        while not service._queue.empty():
+        while not audit._queue.empty():
             try:
-                service._queue.get_nowait()
+                audit._queue.get_nowait()
             except Exception:
                 break
 
     def test_normal_reading_no_event(self, sample_reading):
         """Normal reading within thresholds should not queue events."""
-        initial_queue_size = service._queue.qsize()
+        initial_queue_size = audit._queue.qsize()
 
         audit_reading(sample_reading)
 
-        assert service._queue.qsize() == initial_queue_size
+        assert audit._queue.qsize() == initial_queue_size
         assert sample_reading.temperature.state == State.OK
         assert sample_reading.humidity.state == State.OK
 
@@ -47,8 +47,8 @@ class TestAuditReading:
 
         assert reading.temperature.state == State.IN_ALERT
         # Check temperature event was queued
-        assert not service._queue.empty()
-        violation = service._queue.get_nowait()
+        assert not audit._queue.empty()
+        violation = audit._queue.get_nowait()
         assert violation.sensor_name == "temperature"
         assert violation.value == 80.0
         assert violation.namespace == Namespace.DHT
@@ -64,7 +64,7 @@ class TestAuditReading:
         audit_reading(reading)
 
         assert reading.temperature.state == State.IN_ALERT
-        violation = service._queue.get_nowait()
+        violation = audit._queue.get_nowait()
         assert violation.sensor_name == "temperature"
 
     def test_high_humidity_triggers_event(self, frozen_time):
@@ -78,7 +78,7 @@ class TestAuditReading:
         audit_reading(reading)
 
         assert reading.humidity.state == State.IN_ALERT
-        violation = service._queue.get_nowait()
+        violation = audit._queue.get_nowait()
         assert violation.sensor_name == "humidity"
 
     def test_low_humidity_triggers_event(self, frozen_time):
@@ -92,7 +92,7 @@ class TestAuditReading:
         audit_reading(reading)
 
         assert reading.humidity.state == State.IN_ALERT
-        violation = service._queue.get_nowait()
+        violation = audit._queue.get_nowait()
         assert violation.sensor_name == "humidity"
 
     def test_no_duplicate_events(self, frozen_time):
@@ -110,8 +110,8 @@ class TestAuditReading:
 
         audit_reading(reading1)
         initial_temp_events = 0
-        while not service._queue.empty():
-            violation = service._queue.get_nowait()
+        while not audit._queue.empty():
+            violation = audit._queue.get_nowait()
             if violation.sensor_name == "temperature":
                 initial_temp_events += 1
 
@@ -119,8 +119,8 @@ class TestAuditReading:
 
         # No new temperature event should be queued (still in alert state)
         temp_events = 0
-        while not service._queue.empty():
-            violation = service._queue.get_nowait()
+        while not audit._queue.empty():
+            violation = audit._queue.get_nowait()
             if violation.sensor_name == "temperature":
                 temp_events += 1
         assert temp_events == 0
@@ -135,8 +135,8 @@ class TestAuditReading:
         )
         audit_reading(reading1)
         # Clear queue
-        while not service._queue.empty():
-            service._queue.get_nowait()
+        while not audit._queue.empty():
+            audit._queue.get_nowait()
 
         # Recovery - use very safe middle value
         reading2 = Reading(
@@ -146,8 +146,8 @@ class TestAuditReading:
         )
         audit_reading(reading2)
         # Clear any humidity alerts
-        while not service._queue.empty():
-            service._queue.get_nowait()
+        while not audit._queue.empty():
+            audit._queue.get_nowait()
 
         # New alert
         reading3 = Reading(
@@ -159,8 +159,8 @@ class TestAuditReading:
 
         # New temperature event should be queued
         temp_events = []
-        while not service._queue.empty():
-            violation = service._queue.get_nowait()
+        while not audit._queue.empty():
+            violation = audit._queue.get_nowait()
             if violation.sensor_name == "temperature":
                 temp_events.append(violation)
         assert len(temp_events) == 1
@@ -176,8 +176,8 @@ class TestAuditReading:
         audit_reading(reading)
 
         events = []
-        while not service._queue.empty():
-            events.append(service._queue.get_nowait())
+        while not audit._queue.empty():
+            events.append(audit._queue.get_nowait())
         sensor_names = {e.sensor_name for e in events}
         assert "temperature" in sensor_names
         assert "humidity" in sensor_names

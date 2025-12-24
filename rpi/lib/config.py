@@ -30,12 +30,26 @@ MIN_MOISTURE = int(environ.get("MIN_MOISTURE", 30))
 NOTIFICATION_SERVICE_ENABLED = environ.get("ENABLE_NOTIFICATION_SERVICE", "0") == "1"
 
 
+class NotificationBackend(StrEnum):
+    GMAIL = "gmail"
+    SLACK = "slack"
+
+
+NOTIFICATION_BACKENDS = [
+    b.strip() for b in environ.get("NOTIFICATION_BACKENDS", "gmail").split(",") if b.strip()
+]
+
+
 class GmailConfig:
     SENDER = environ.get("GMAIL_SENDER", "")
     RECIPIENTS = environ.get("GMAIL_RECIPIENTS", "")
     USERNAME = environ.get("GMAIL_USERNAME", "")
     PASSWORD = environ.get("GMAIL_PASSWORD", "")
     SUBJECT = environ.get("GMAIL_SUBJECT", "Sensor alert!")
+
+
+class SlackConfig:
+    WEBHOOK_URL = environ.get("SLACK_WEBHOOK_URL", "")
 
 
 # Database

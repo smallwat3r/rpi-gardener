@@ -62,13 +62,20 @@ MIN_MOISTURE_PLANT_1=25
 MIN_MOISTURE_PLANT_2=30
 MIN_MOISTURE_PLANT_3=35
 
-# Email notifications (optional, set to 1 to enable)
+# Notifications (optional, set to 1 to enable)
 ENABLE_NOTIFICATION_SERVICE=0
+# Backends: "gmail", "slack", or "gmail,slack" for both
+NOTIFICATION_BACKENDS=gmail
+
+# Gmail
 GMAIL_SENDER=
 GMAIL_RECIPIENTS=
 GMAIL_USERNAME=
 GMAIL_PASSWORD=
 GMAIL_SUBJECT=Sensor alert!
+
+# Slack (create webhook at https://api.slack.com/messaging/webhooks)
+SLACK_WEBHOOK_URL=
 ```
 
 ### 4. Start Services

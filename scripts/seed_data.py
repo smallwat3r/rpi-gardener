@@ -74,10 +74,16 @@ async def seed_data(hours: int = 6, clear: bool = False) -> None:
                 await db.execute("DELETE FROM pico_reading")
 
             print("Inserting DHT data...")
-            await db.executemany("INSERT INTO reading VALUES (?, ?, ?)", dht_data)
+            await db.executemany(
+                "INSERT INTO reading (temperature, humidity, recording_time) VALUES (?, ?, ?)",
+                dht_data,
+            )
 
             print("Inserting Pico data...")
-            await db.executemany("INSERT INTO pico_reading VALUES (?, ?, ?)", pico_data)
+            await db.executemany(
+                "INSERT INTO pico_reading (plant_id, moisture, recording_time) VALUES (?, ?, ?)",
+                pico_data,
+            )
 
     await close_db()
     print("Done!")

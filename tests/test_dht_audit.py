@@ -1,4 +1,6 @@
 """Tests for the DHT22 audit and event service."""
+import asyncio
+
 import pytest
 
 from rpi.dht import audit
@@ -15,15 +17,11 @@ class TestAuditReading:
         """Reset alert state and queue before each test."""
         # Reset the global alert tracker
         reset_alert_tracker()
+        # Initialize the async queue for testing
+        audit._queue = asyncio.Queue()
         # Register the DHT callback
         tracker = get_alert_tracker()
         tracker.register_callback(Namespace.DHT, _enqueue_event)
-        # Clear the queue
-        while not audit._queue.empty():
-            try:
-                audit._queue.get_nowait()
-            except Exception:
-                break
 
     def test_normal_reading_no_event(self, sample_reading):
         """Normal reading within thresholds should not queue events."""

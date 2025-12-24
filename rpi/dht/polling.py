@@ -91,7 +91,7 @@ class DHTPollingService(PollingService[Reading]):
         """Persist the reading values into the database."""
         async with get_db() as db:
             await db.execute(
-                "INSERT INTO reading VALUES (?, ?, ?)",
+                "INSERT INTO reading (temperature, humidity, recording_time) VALUES (?, ?, ?)",
                 (reading.temperature.value, reading.humidity.value,
                  reading.recording_time)
             )

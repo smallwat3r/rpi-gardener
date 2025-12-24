@@ -3,10 +3,9 @@
 The service is responsible for:
 - Auditing readings against predefined thresholds
 - Queuing notification events when thresholds are crossed
-- Processing events via a background worker thread
+- Processing events via a background async task
 """
-from queue import Queue
-from threading import Thread
+import asyncio
 
 from rpi.dht.models import Measure, Reading, State
 from rpi.lib.alerts import (AlertState, Namespace, ThresholdViolation,
@@ -17,29 +16,33 @@ from rpi.logging import get_logger
 
 logger = get_logger("dht.audit")
 
-_queue: Queue[ThresholdViolation] = Queue()
+_queue: asyncio.Queue[ThresholdViolation] | None = None
+_worker_task: asyncio.Task | None = None
 
 
 def _enqueue_event(violation: ThresholdViolation) -> None:
     """Enqueue a violation for processing by the background worker."""
-    _queue.put(violation)
+    if _queue is not None:
+        _queue.put_nowait(violation)
 
 
-def _event_worker() -> None:
-    """Process events from the queue (blocks until event available)."""
+async def _event_worker() -> None:
+    """Process events from the queue asynchronously."""
     notifier = get_notifier()
     while True:
-        violation = _queue.get()
+        violation = await _queue.get()
         logger.info("Processing alert for %s", violation.sensor_name)
-        notifier.send(violation)
+        await notifier.send(violation)
         _queue.task_done()
 
 
 def start_worker() -> None:
-    """Start the background worker thread for processing events."""
+    """Start the background worker task for processing events."""
+    global _queue, _worker_task
+    _queue = asyncio.Queue()
+    _worker_task = asyncio.create_task(_event_worker())
     tracker = get_alert_tracker()
     tracker.register_callback(Namespace.DHT, _enqueue_event)
-    Thread(target=_event_worker, daemon=True).start()
 
 
 def audit_reading(reading: Reading) -> None:

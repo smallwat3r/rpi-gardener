@@ -1,4 +1,5 @@
 """Tests for the Pico serial reader module."""
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -138,10 +139,12 @@ class TestAuditMoisture:
         from rpi.pico.reader import _register_pico_alerts
         _register_pico_alerts()
 
+    @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
-    def test_no_alert_when_above_threshold(self, mock_threshold, mock_get_notifier, frozen_time):
+    async def test_no_alert_when_above_threshold(self, mock_threshold, mock_get_notifier, frozen_time):
         notifier = MagicMock()
+        notifier.send = AsyncMock()
         mock_get_notifier.return_value = notifier
 
         _audit_moisture(PlantId.PLANT_1, 50.0, frozen_time)
@@ -150,13 +153,16 @@ class TestAuditMoisture:
         tracker = get_alert_tracker()
         assert tracker.get_state(Namespace.PICO, PlantId.PLANT_1) == AlertState.OK
 
+    @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
-    def test_alert_when_below_threshold(self, mock_threshold, mock_get_notifier, frozen_time):
+    async def test_alert_when_below_threshold(self, mock_threshold, mock_get_notifier, frozen_time):
         notifier = MagicMock()
+        notifier.send = AsyncMock()
         mock_get_notifier.return_value = notifier
 
         _audit_moisture(PlantId.PLANT_1, 20.0, frozen_time)
+        await asyncio.sleep(0)  # Let the scheduled task run
 
         notifier.send.assert_called_once()
         violation = notifier.send.call_args[0][0]
@@ -167,44 +173,58 @@ class TestAuditMoisture:
         tracker = get_alert_tracker()
         assert tracker.get_state(Namespace.PICO, PlantId.PLANT_1) == AlertState.IN_ALERT
 
+    @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
-    def test_no_duplicate_alerts(self, mock_threshold, mock_get_notifier, frozen_time):
+    async def test_no_duplicate_alerts(self, mock_threshold, mock_get_notifier, frozen_time):
         notifier = MagicMock()
+        notifier.send = AsyncMock()
         mock_get_notifier.return_value = notifier
 
         # First alert
         _audit_moisture(PlantId.PLANT_1, 20.0, frozen_time)
+        await asyncio.sleep(0)
         # Still below threshold
         _audit_moisture(PlantId.PLANT_1, 15.0, frozen_time)
+        await asyncio.sleep(0)
 
         # Only one notification sent
         assert notifier.send.call_count == 1
 
+    @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
-    def test_new_alert_after_recovery(self, mock_threshold, mock_get_notifier, frozen_time):
+    async def test_new_alert_after_recovery(self, mock_threshold, mock_get_notifier, frozen_time):
         notifier = MagicMock()
+        notifier.send = AsyncMock()
         mock_get_notifier.return_value = notifier
 
         # First alert
         _audit_moisture(PlantId.PLANT_1, 20.0, frozen_time)
+        await asyncio.sleep(0)
         # Recovery
         _audit_moisture(PlantId.PLANT_1, 50.0, frozen_time)
+        await asyncio.sleep(0)
         # New alert
         _audit_moisture(PlantId.PLANT_1, 25.0, frozen_time)
+        await asyncio.sleep(0)
 
         assert notifier.send.call_count == 2
 
+    @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
-    def test_independent_plant_states(self, mock_threshold, mock_get_notifier, frozen_time):
+    async def test_independent_plant_states(self, mock_threshold, mock_get_notifier, frozen_time):
         notifier = MagicMock()
+        notifier.send = AsyncMock()
         mock_get_notifier.return_value = notifier
 
         _audit_moisture(PlantId.PLANT_1, 20.0, frozen_time)
+        await asyncio.sleep(0)
         _audit_moisture(PlantId.PLANT_2, 50.0, frozen_time)
+        await asyncio.sleep(0)
         _audit_moisture(PlantId.PLANT_2, 20.0, frozen_time)
+        await asyncio.sleep(0)
 
         assert notifier.send.call_count == 2
         tracker = get_alert_tracker()

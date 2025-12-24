@@ -1,5 +1,6 @@
 """Tests for the notification system."""
-from unittest.mock import MagicMock, patch
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -90,9 +91,10 @@ class TestThresholdViolation:
 class TestGmailNotifier:
     """Tests for the Gmail notification backend."""
 
+    @pytest.mark.asyncio
     @patch("rpi.lib.notifications.SMTP")
     @patch("rpi.lib.notifications.ssl.create_default_context")
-    def test_successful_send(self, mock_ssl, mock_smtp, frozen_time):
+    async def test_successful_send(self, mock_ssl, mock_smtp, frozen_time):
         mock_server = MagicMock()
         mock_smtp.return_value.__enter__.return_value = mock_server
 
@@ -105,16 +107,16 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        notifier.send(violation)
+        await notifier.send(violation)
 
         mock_server.starttls.assert_called_once()
         mock_server.login.assert_called_once()
         mock_server.send_message.assert_called_once()
 
+    @pytest.mark.asyncio
     @patch("rpi.lib.notifications.SMTP")
     @patch("rpi.lib.notifications.ssl.create_default_context")
-    @patch("rpi.lib.notifications.sleep")
-    def test_retry_on_network_error(self, mock_sleep, mock_ssl, mock_smtp, frozen_time):
+    async def test_retry_on_network_error(self, mock_ssl, mock_smtp, frozen_time):
         mock_server = MagicMock()
         mock_server.send_message.side_effect = [OSError("Network error"), None]
         mock_smtp.return_value.__enter__.return_value = mock_server
@@ -128,14 +130,14 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        notifier.send(violation)
+        await notifier.send(violation)
 
         assert mock_server.send_message.call_count == 2
-        mock_sleep.assert_called_once()
 
+    @pytest.mark.asyncio
     @patch("rpi.lib.notifications.SMTP")
     @patch("rpi.lib.notifications.ssl.create_default_context")
-    def test_no_retry_on_non_network_error(self, mock_ssl, mock_smtp, frozen_time):
+    async def test_no_retry_on_non_network_error(self, mock_ssl, mock_smtp, frozen_time):
         mock_server = MagicMock()
         mock_server.send_message.side_effect = ValueError("Bad data")
         mock_smtp.return_value.__enter__.return_value = mock_server
@@ -149,7 +151,7 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        notifier.send(violation)
+        await notifier.send(violation)
 
         assert mock_server.send_message.call_count == 1
 
@@ -172,9 +174,10 @@ class TestGmailNotifier:
 class TestSlackNotifier:
     """Tests for the Slack notification backend."""
 
+    @pytest.mark.asyncio
     @patch("rpi.lib.notifications.urllib.request.urlopen")
     @patch("rpi.lib.notifications.urllib.request.Request")
-    def test_successful_send(self, mock_request, mock_urlopen, frozen_time):
+    async def test_successful_send(self, mock_request, mock_urlopen, frozen_time):
         mock_response = MagicMock()
         mock_response.status = 200
         mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -188,15 +191,15 @@ class TestSlackNotifier:
         )
 
         notifier = SlackNotifier()
-        notifier.send(violation)
+        await notifier.send(violation)
 
         mock_request.assert_called_once()
         mock_urlopen.assert_called_once()
 
+    @pytest.mark.asyncio
     @patch("rpi.lib.notifications.urllib.request.urlopen")
     @patch("rpi.lib.notifications.urllib.request.Request")
-    @patch("rpi.lib.notifications.sleep")
-    def test_retry_on_network_error(self, mock_sleep, mock_request, mock_urlopen, frozen_time):
+    async def test_retry_on_network_error(self, mock_request, mock_urlopen, frozen_time):
         mock_success = MagicMock()
         mock_success.status = 200
         mock_urlopen.side_effect = [
@@ -213,14 +216,14 @@ class TestSlackNotifier:
         )
 
         notifier = SlackNotifier()
-        notifier.send(violation)
+        await notifier.send(violation)
 
         assert mock_urlopen.call_count == 2
-        mock_sleep.assert_called_once()
 
+    @pytest.mark.asyncio
     @patch("rpi.lib.notifications.urllib.request.urlopen")
     @patch("rpi.lib.notifications.urllib.request.Request")
-    def test_no_retry_on_non_network_error(self, mock_request, mock_urlopen, frozen_time):
+    async def test_no_retry_on_non_network_error(self, mock_request, mock_urlopen, frozen_time):
         mock_urlopen.side_effect = ValueError("Bad data")
 
         violation = make_violation(
@@ -232,7 +235,7 @@ class TestSlackNotifier:
         )
 
         notifier = SlackNotifier()
-        notifier.send(violation)
+        await notifier.send(violation)
 
         assert mock_urlopen.call_count == 1
 
@@ -260,9 +263,12 @@ class TestSlackNotifier:
 class TestCompositeNotifier:
     """Tests for the composite notification backend."""
 
-    def test_sends_to_all_backends(self, frozen_time):
+    @pytest.mark.asyncio
+    async def test_sends_to_all_backends(self, frozen_time):
         mock_notifier1 = MagicMock()
+        mock_notifier1.send = AsyncMock()
         mock_notifier2 = MagicMock()
+        mock_notifier2.send = AsyncMock()
 
         violation = make_violation(
             sensor_name="test",
@@ -273,7 +279,7 @@ class TestCompositeNotifier:
         )
 
         composite = CompositeNotifier([mock_notifier1, mock_notifier2])
-        composite.send(violation)
+        await composite.send(violation)
 
         mock_notifier1.send.assert_called_once_with(violation)
         mock_notifier2.send.assert_called_once_with(violation)
@@ -282,7 +288,8 @@ class TestCompositeNotifier:
 class TestNoOpNotifier:
     """Tests for the no-op notification backend."""
 
-    def test_send_logs_only(self, frozen_time, caplog):
+    @pytest.mark.asyncio
+    async def test_send_logs_only(self, frozen_time, caplog):
         violation = make_violation(
             sensor_name="test",
             value=50.0,
@@ -292,7 +299,7 @@ class TestNoOpNotifier:
         )
 
         notifier = NoOpNotifier()
-        notifier.send(violation)
+        await notifier.send(violation)
 
         assert "disabled" in caplog.text.lower()
 

@@ -4,16 +4,13 @@ Provides an abstract notification interface with pluggable backends.
 Supports Gmail and Slack notifications, or both simultaneously.
 """
 import asyncio
-import atexit
 import json
 import ssl
 import urllib.request
 from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor
 from email.message import EmailMessage
 from smtplib import SMTP
-from time import sleep
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from rpi.lib.config import (MeasureName, NotificationBackend, PlantId,
                             settings)
@@ -23,9 +20,6 @@ if TYPE_CHECKING:
     from rpi.lib.alerts import ThresholdViolation
 
 logger = get_logger("lib.notifications")
-
-_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="notifier")
-atexit.register(_executor.shutdown, wait=True)
 
 SENSOR_LABELS: dict[str | int, str] = {
     MeasureName.TEMPERATURE: "Temperature",
@@ -61,22 +55,25 @@ class AbstractNotifier(ABC):
     """Abstract base class for notification backends."""
 
     @abstractmethod
-    def send(self, violation: "ThresholdViolation") -> None:
-        """Send a notification for the given violation (blocking)."""
+    async def send(self, violation: "ThresholdViolation") -> None:
+        """Send a notification for the given violation."""
 
-    async def send_async(self, violation: "ThresholdViolation") -> None:
-        """Send a notification asynchronously without blocking the event loop."""
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(_executor, self.send, violation)
+    async def _send_with_retry(
+        self,
+        send_fn: Callable[[], None],
+        backend_name: str,
+    ) -> None:
+        """Execute send function with retry logic and exponential backoff.
 
-    def _send_with_retry(self, send_fn, backend_name: str) -> None:
-        """Execute send function with retry logic and exponential backoff."""
+        Runs the blocking send_fn in a thread and uses async sleep for backoff,
+        ensuring retries don't block other async tasks.
+        """
         last_error: Exception | None = None
         max_retries = settings.notifications.max_retries
 
         for attempt in range(max_retries):
             try:
-                send_fn()
+                await asyncio.to_thread(send_fn)
                 return
             except OSError as e:
                 last_error = e
@@ -84,7 +81,7 @@ class AbstractNotifier(ABC):
                 logger.warning(
                     "%s send attempt %d/%d failed: %s. Retrying in %ds...",
                     backend_name, attempt + 1, max_retries, e, backoff)
-                sleep(backoff)
+                await asyncio.sleep(backoff)
             except Exception as e:
                 logger.error("%s send failed (non-retryable): %s", backend_name, e)
                 return
@@ -107,7 +104,7 @@ class GmailNotifier(AbstractNotifier):
         msg.set_content(format_alert_message(violation))
         return msg
 
-    def send(self, violation: "ThresholdViolation") -> None:
+    async def send(self, violation: "ThresholdViolation") -> None:
         """Send the email with retry logic and exponential backoff."""
         message = self._build_message(violation)
         gmail = settings.notifications.gmail
@@ -121,7 +118,7 @@ class GmailNotifier(AbstractNotifier):
                 server.send_message(message)
             logger.info("Sent email notification for %s", violation.sensor_name)
 
-        self._send_with_retry(do_send, "Email")
+        await self._send_with_retry(do_send, "Email")
 
 
 class SlackNotifier(AbstractNotifier):
@@ -152,7 +149,7 @@ class SlackNotifier(AbstractNotifier):
             ]
         }
 
-    def send(self, violation: "ThresholdViolation") -> None:
+    async def send(self, violation: "ThresholdViolation") -> None:
         """Send notification to Slack webhook with retry logic."""
         payload = self._build_payload(violation)
         data = json.dumps(payload).encode("utf-8")
@@ -171,7 +168,7 @@ class SlackNotifier(AbstractNotifier):
                     raise OSError(f"Slack API returned status {resp.status}")
             logger.info("Sent Slack notification for %s", violation.sensor_name)
 
-        self._send_with_retry(do_send, "Slack")
+        await self._send_with_retry(do_send, "Slack")
 
 
 class CompositeNotifier(AbstractNotifier):
@@ -180,16 +177,18 @@ class CompositeNotifier(AbstractNotifier):
     def __init__(self, notifiers: list[AbstractNotifier]):
         self._notifiers = notifiers
 
-    def send(self, violation: "ThresholdViolation") -> None:
-        """Send notification to all configured backends."""
-        for notifier in self._notifiers:
-            notifier.send(violation)
+    async def send(self, violation: "ThresholdViolation") -> None:
+        """Send notification to all configured backends concurrently."""
+        await asyncio.gather(
+            *(notifier.send(violation) for notifier in self._notifiers),
+            return_exceptions=True,
+        )
 
 
 class NoOpNotifier(AbstractNotifier):
     """No-op notifier that logs but doesn't send notifications."""
 
-    def send(self, violation: "ThresholdViolation") -> None:
+    async def send(self, violation: "ThresholdViolation") -> None:
         """Log the violation but don't send a notification."""
         logger.info("Notification service disabled, ignoring alert for %s", violation.sensor_name)
 

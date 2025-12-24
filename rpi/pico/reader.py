@@ -21,23 +21,18 @@ logger = get_logger("pico.reader")
 _pending_tasks: set[asyncio.Task] = set()
 
 
-async def _send_notification_async(violation: ThresholdViolation) -> None:
-    """Send notification for moisture alert asynchronously."""
+async def _send_notification(violation: ThresholdViolation) -> None:
+    """Send notification for moisture alert."""
     notifier = get_notifier()
-    await notifier.send_async(violation)
+    await notifier.send(violation)
 
 
 def _schedule_notification(violation: ThresholdViolation) -> None:
     """Schedule async notification without blocking."""
-    try:
-        loop = asyncio.get_running_loop()
-        task = loop.create_task(_send_notification_async(violation))
-        _pending_tasks.add(task)
-        task.add_done_callback(_pending_tasks.discard)
-    except RuntimeError:
-        # No running loop, send synchronously (shouldn't happen in normal operation)
-        notifier = get_notifier()
-        notifier.send(violation)
+    loop = asyncio.get_running_loop()
+    task = loop.create_task(_send_notification(violation))
+    _pending_tasks.add(task)
+    task.add_done_callback(_pending_tasks.discard)
 
 
 def _register_pico_alerts() -> None:
@@ -76,7 +71,7 @@ async def _persist(plant_id: int, moisture: float, recording_time) -> None:
     """Persist a moisture reading to the database."""
     async with get_db() as db:
         await db.execute(
-            "INSERT INTO pico_reading VALUES (?, ?, ?)",
+            "INSERT INTO pico_reading (plant_id, moisture, recording_time) VALUES (?, ?, ?)",
             (plant_id, moisture, recording_time)
         )
 

@@ -17,6 +17,9 @@ _logger = get_logger("server.websockets")
 # Type alias for async data fetchers
 DataFetcher = Callable[[], Awaitable[Any]]
 
+# Heartbeat interval in seconds (30s is typical for WebSocket keepalive)
+_HEARTBEAT_INTERVAL_SEC = 30
+
 
 class ConnectionManager:
     """Manages WebSocket connections for broadcasting and statistics."""
@@ -100,6 +103,17 @@ class ConnectionManager:
 connection_manager = ConnectionManager()
 
 
+async def _send_heartbeat(websocket: WebSocket, client_id: int) -> None:
+    """Send periodic heartbeat pings to detect dead connections."""
+    while True:
+        await asyncio.sleep(_HEARTBEAT_INTERVAL_SEC)
+        try:
+            await websocket.send_json({"type": "ping"})
+        except Exception:
+            _logger.debug("Heartbeat failed for client %s", client_id)
+            raise WebSocketDisconnect()
+
+
 async def _stream_data(
     websocket: WebSocket,
     fetch_fn: DataFetcher,
@@ -107,8 +121,12 @@ async def _stream_data(
 ) -> None:
     """Stream data to a WebSocket client at regular intervals."""
     client_id = await connection_manager.connect(websocket, endpoint)
+    heartbeat_task: asyncio.Task | None = None
 
     try:
+        # Start heartbeat task
+        heartbeat_task = asyncio.create_task(_send_heartbeat(websocket, client_id))
+
         while True:
             await asyncio.sleep(settings.polling.frequency_sec)
             try:
@@ -124,6 +142,10 @@ async def _stream_data(
         _logger.info("Connection to client %s cancelled (shutdown)", client_id)
         raise
     finally:
+        if heartbeat_task is not None:
+            heartbeat_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await heartbeat_task
         connection_manager.disconnect(websocket, endpoint)
         with suppress(Exception):
             await websocket.close()

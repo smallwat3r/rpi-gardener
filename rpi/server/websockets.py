@@ -26,7 +26,6 @@ class ConnectionManager:
 
     def __init__(self) -> None:
         self._connections: dict[str, set[WebSocket]] = {}
-        self._connection_count = 0
 
     async def connect(self, websocket: WebSocket, endpoint: str) -> int:
         """Accept a WebSocket connection and track it.
@@ -38,7 +37,6 @@ class ConnectionManager:
         if endpoint not in self._connections:
             self._connections[endpoint] = set()
         self._connections[endpoint].add(websocket)
-        self._connection_count += 1
         client_id = id(websocket)
         _logger.info(
             "Client %s connected to %s (total: %d)",
@@ -68,10 +66,6 @@ class ConnectionManager:
         if endpoint is not None:
             return len(self._connections.get(endpoint, set()))
         return sum(len(clients) for clients in self._connections.values())
-
-    def get_endpoints(self) -> list[str]:
-        """Get a list of endpoints with active connections."""
-        return list(self._connections.keys())
 
     async def broadcast(self, endpoint: str, data: Any) -> int:
         """Broadcast data to all connections on an endpoint.

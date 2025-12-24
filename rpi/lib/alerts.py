@@ -146,12 +146,6 @@ class AlertTracker:
             if key in self._states:
                 del self._states[key]
 
-    def get_all_states(self, namespace: Namespace | None = None) -> dict[tuple[Namespace, str | int], AlertState]:
-        """Get all current alert states, optionally filtered by namespace."""
-        if namespace is None:
-            return dict(self._states)
-        return {k: v for k, v in self._states.items() if k[0] == namespace}
-
 
 # Global singleton instance
 _alert_tracker: AlertTracker | None = None

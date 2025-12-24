@@ -22,10 +22,6 @@ from rpi.logging import configure, get_logger
 logger = get_logger("dht.polling")
 
 
-class OutsideDHT22Bounds(RuntimeError):
-    """Reading from DHT22 sensor is outside of allowed bounds."""
-
-
 class DHTPollingService(PollingService[Reading]):
     """Polling service for the DHT22 temperature/humidity sensor."""
 

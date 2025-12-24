@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from rpi.dht.models import Measure, Reading, State, Unit
-from rpi.dht.polling import DHTPollingService, OutsideDHT22Bounds
+from rpi.dht.polling import DHTPollingService
 
 
 class TestDHTPollingServiceAudit:

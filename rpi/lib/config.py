@@ -29,7 +29,6 @@ class PlantId(IntEnum):
 
 # Patterns
 PICO_PLANT_ID_PATTERN = re.compile(r"^plant-(\d+)$")
-PLANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 # DHT22 sensor physical bounds
 DHT22_BOUNDS = {

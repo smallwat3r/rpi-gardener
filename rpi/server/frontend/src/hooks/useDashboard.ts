@@ -18,6 +18,7 @@ export function useDashboard(initialHours: number = 3) {
   }, []);
 
   const loadData = useCallback(async () => {
+    if (!mountedRef.current) return;
     setLoading(true);
     setError(null);
     try {

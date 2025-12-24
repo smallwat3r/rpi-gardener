@@ -11,9 +11,11 @@ interface StatDisplayProps {
 export const StatDisplay = memo(function StatDisplay({ avg, min, max, unit }: StatDisplayProps) {
   return (
     <div class={styles.stats} role="group" aria-label="Statistics">
-      <div>Avg: {avg}{unit}</div>
-      <div>Min: {min}{unit}</div>
-      <div>Max: {max}{unit}</div>
+      <span class={styles.stat}>{avg}{unit}</span>
+      <span class={styles.sep}>/</span>
+      <span class={styles.stat}>{min}</span>
+      <span class={styles.sep}>–</span>
+      <span class={styles.stat}>{max}</span>
     </div>
   );
 });

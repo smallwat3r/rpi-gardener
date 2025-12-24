@@ -61,6 +61,10 @@ export function useWebSocket<T>({ url, onMessage, reconnectInterval = 3000 }: Us
         reconnectTimeoutRef.current = null;
       }
       if (wsRef.current) {
+        wsRef.current.onopen = null;
+        wsRef.current.onmessage = null;
+        wsRef.current.onclose = null;
+        wsRef.current.onerror = null;
         wsRef.current.close();
         wsRef.current = null;
       }

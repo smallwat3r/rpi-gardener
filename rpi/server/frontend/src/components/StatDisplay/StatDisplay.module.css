@@ -1,4 +1,15 @@
 .stats {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+}
+
+.stat {
+  font-variant-numeric: tabular-nums;
+}
+
+.sep {
+  opacity: 0.5;
 }

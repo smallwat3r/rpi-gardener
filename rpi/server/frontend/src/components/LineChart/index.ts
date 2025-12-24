@@ -1,1 +1,1 @@
-export { LineChart } from './LineChart';
+export { LineChart, type SeriesConfig } from './LineChart';

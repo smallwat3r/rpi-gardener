@@ -11,8 +11,7 @@
   },
   "dependencies": {
     "preact": "^10.19.3",
-    "chart.js": "^4.4.1",
-    "chartjs-adapter-date-fns": "^3.0.0",
+    "echarts": "^5.5.1",
     "date-fns": "^3.0.0"
   },
   "devDependencies": {

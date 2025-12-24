@@ -6,14 +6,8 @@ import pytest
 
 from rpi.dht import polling
 from rpi.dht.models import Measure, Reading, State, Unit
-from rpi.dht.polling import (
-    _OutsideDHT22Bounds,
-    _audit,
-    _check_dht_boundaries,
-    _clear_old_records,
-    _persist,
-    _poll,
-)
+from rpi.dht.polling import (_audit, _check_dht_boundaries, _clear_old_records,
+                             _OutsideDHT22Bounds, _persist, _poll)
 
 
 class TestCheckDhtBoundaries:

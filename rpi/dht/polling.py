@@ -14,20 +14,15 @@ from adafruit_dht import DHT22
 from board import D17
 from sqlitey import Sql
 
-from rpi.dht.service import audit_reading, start_worker
-from rpi.logging import configure, get_logger
 from rpi.dht.display import display
-from rpi.lib.config import (
-    CLEANUP_INTERVAL_CYCLES,
-    CLEANUP_RETENTION_DAYS,
-    DHT22_BOUNDS,
-    POLLING_FREQUENCY_SEC,
-    MeasureName,
-    db_with_config,
-)
+from rpi.dht.models import Measure, Reading, Unit
+from rpi.dht.service import audit_reading, start_worker
+from rpi.lib.config import (CLEANUP_INTERVAL_CYCLES, CLEANUP_RETENTION_DAYS,
+                            DHT22_BOUNDS, POLLING_FREQUENCY_SEC, MeasureName,
+                            db_with_config)
 from rpi.lib.db import init_db
 from rpi.lib.utils import utcnow
-from rpi.dht.models import Measure, Reading, Unit
+from rpi.logging import configure, get_logger
 
 logger = get_logger("dht.polling")
 

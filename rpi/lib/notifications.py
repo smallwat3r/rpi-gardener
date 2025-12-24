@@ -17,18 +17,11 @@ from smtplib import SMTP
 from time import sleep
 from typing import Callable
 
-from rpi.lib.config import (
-    EMAIL_INITIAL_BACKOFF_SEC,
-    EMAIL_MAX_RETRIES,
-    EMAIL_TIMEOUT_SEC,
-    GmailConfig,
-    MeasureName,
-    NotificationBackend,
-    NOTIFICATION_BACKENDS,
-    NOTIFICATION_SERVICE_ENABLED,
-    PlantId,
-    SlackConfig,
-)
+from rpi.lib.config import (EMAIL_INITIAL_BACKOFF_SEC, EMAIL_MAX_RETRIES,
+                            EMAIL_TIMEOUT_SEC, NOTIFICATION_BACKENDS,
+                            NOTIFICATION_SERVICE_ENABLED, GmailConfig,
+                            MeasureName, NotificationBackend, PlantId,
+                            SlackConfig)
 from rpi.logging import get_logger
 
 logger = get_logger("lib.notifications")

@@ -3,14 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from rpi.lib.notifications import (
-    CompositeNotifier,
-    Event,
-    GmailNotifier,
-    NoOpNotifier,
-    SlackNotifier,
-    get_notifier,
-)
+from rpi.lib.notifications import (CompositeNotifier, Event, GmailNotifier,
+                                   NoOpNotifier, SlackNotifier, get_notifier)
 
 
 class TestEvent:

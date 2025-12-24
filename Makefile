@@ -25,6 +25,10 @@ devdeps:  ## Install development dependencies (includes pytest)
 test:  ## Run pytest test suite
 	uv run pytest tests/ -v
 
+.PHONY: isort
+isort:  ## Sort Python imports
+	uv run isort $(RPI) tests
+
 .PHONY: serve
 serve:  ## Start the server (for development)
 	uv run uvicorn $(RPI).server:app --host 0.0.0.0 --reload

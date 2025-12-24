@@ -8,11 +8,11 @@ The service is responsible for:
 from queue import Queue
 from threading import Thread
 
+from rpi.dht.models import Measure, Reading, State
 from rpi.lib.alerts import AlertState, AlertTracker
-from rpi.logging import get_logger
 from rpi.lib.config import THRESHOLD_RULES
 from rpi.lib.notifications import Event, get_notifier
-from rpi.dht.models import Measure, Reading, State
+from rpi.logging import get_logger
 
 logger = get_logger("dht.service")
 

@@ -7,12 +7,9 @@ from typing import Any, Callable
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from rpi.lib.config import POLLING_FREQUENCY_SEC
+from rpi.lib.db import (get_latest_dht_data, get_latest_pico_data,
+                        get_stats_dht_data)
 from rpi.logging import get_logger
-from rpi.lib.db import (
-    get_latest_dht_data,
-    get_latest_pico_data,
-    get_stats_dht_data,
-)
 from rpi.server.validators import parse_hours
 
 _logger = get_logger("server.websockets")

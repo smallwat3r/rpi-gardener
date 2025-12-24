@@ -5,14 +5,9 @@ import pytest
 
 from rpi.lib.config import PlantId
 from rpi.pico import reader
-from rpi.pico.reader import (
-    ValidationError,
-    _audit_moisture,
-    _handle_line,
-    _parse_plant_id,
-    _process_readings,
-    _validate_moisture,
-)
+from rpi.pico.reader import (ValidationError, _audit_moisture, _handle_line,
+                             _parse_plant_id, _process_readings,
+                             _validate_moisture)
 
 
 class TestParsePlantId:

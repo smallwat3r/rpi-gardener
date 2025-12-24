@@ -3,13 +3,9 @@ from sqlite3 import DatabaseError
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from rpi.lib.db import (
-    get_initial_dht_data,
-    get_initial_pico_data,
-    get_latest_dht_data,
-    get_latest_pico_data,
-    get_stats_dht_data,
-)
+from rpi.lib.db import (get_initial_dht_data, get_initial_pico_data,
+                        get_latest_dht_data, get_latest_pico_data,
+                        get_stats_dht_data)
 from rpi.logging import get_logger
 from rpi.server.validators import InvalidParameter, parse_hours
 

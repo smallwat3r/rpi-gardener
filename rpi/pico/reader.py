@@ -7,22 +7,15 @@ import asyncio
 import json
 
 import aioserial
-
 from sqlitey import Sql
 
 from rpi.lib.alerts import AlertTracker
-from rpi.logging import configure, get_logger
-from rpi.lib.config import (
-    MOISTURE_MAX,
-    MOISTURE_MIN,
-    PICO_SERIAL_BAUD,
-    PICO_SERIAL_PORT,
-    db_with_config,
-    get_moisture_threshold,
-    parse_pico_plant_id,
-)
+from rpi.lib.config import (MOISTURE_MAX, MOISTURE_MIN, PICO_SERIAL_BAUD,
+                            PICO_SERIAL_PORT, db_with_config,
+                            get_moisture_threshold, parse_pico_plant_id)
 from rpi.lib.notifications import Event, get_notifier
 from rpi.lib.utils import utcnow
+from rpi.logging import configure, get_logger
 
 logger = get_logger("pico.reader")
 

@@ -10,16 +10,11 @@ from board import SCL, SDA
 from busio import I2C
 from PIL import Image, ImageDraw, ImageFont
 
-from rpi.lib.config import (
-    DISPLAY_FONT_PATH,
-    DISPLAY_FONT_SIZE,
-    DISPLAY_HEIGHT,
-    DISPLAY_TEXT_X_OFFSET,
-    DISPLAY_TEXT_Y_HUMIDITY,
-    DISPLAY_TEXT_Y_TEMP,
-    DISPLAY_WIDTH,
-)
 from rpi.dht.models import Reading
+from rpi.lib.config import (DISPLAY_FONT_PATH, DISPLAY_FONT_SIZE,
+                            DISPLAY_HEIGHT, DISPLAY_TEXT_X_OFFSET,
+                            DISPLAY_TEXT_Y_HUMIDITY, DISPLAY_TEXT_Y_TEMP,
+                            DISPLAY_WIDTH)
 
 _font = ImageFont.truetype(DISPLAY_FONT_PATH, DISPLAY_FONT_SIZE)
 

@@ -130,6 +130,7 @@ class PicoSettings:
     """Pico serial connection settings."""
     serial_port: str = "/dev/ttyACM0"
     serial_baud: int = 115200
+    serial_timeout_sec: float = 30.0
     moisture_min: float = 0.0
     moisture_max: float = 100.0
     plant_id_max_length: int = 64
@@ -139,6 +140,7 @@ class PicoSettings:
         return cls(
             serial_port=environ.get("PICO_SERIAL_PORT", "/dev/ttyACM0"),
             serial_baud=int(environ.get("PICO_SERIAL_BAUD", "115200")),
+            serial_timeout_sec=float(environ.get("PICO_SERIAL_TIMEOUT_SEC", "30.0")),
         )
 
 
@@ -166,6 +168,7 @@ class PollingSettings:
 class Settings:
     """Application settings container."""
     db_path: str = "dht.sqlite3"
+    db_timeout_sec: float = 30.0
     thresholds: ThresholdSettings = field(default_factory=ThresholdSettings)
     notifications: NotificationSettings = field(default_factory=NotificationSettings)
     pico: PicoSettings = field(default_factory=PicoSettings)
@@ -177,6 +180,7 @@ class Settings:
         """Create settings from environment variables."""
         return cls(
             db_path=environ.get("DB_PATH", "dht.sqlite3"),
+            db_timeout_sec=float(environ.get("DB_TIMEOUT_SEC", "30.0")),
             thresholds=ThresholdSettings.from_env(),
             notifications=NotificationSettings.from_env(),
             pico=PicoSettings.from_env(),

@@ -144,12 +144,19 @@ async def read_serial() -> None:
     serial_port = settings.pico.serial_port
     logger.info("Opening serial port %s", serial_port)
 
-    ser = aioserial.AioSerial(port=serial_port, baudrate=settings.pico.serial_baud)
+    ser = aioserial.AioSerial(
+        port=serial_port,
+        baudrate=settings.pico.serial_baud,
+        timeout=settings.pico.serial_timeout_sec,
+    )
     logger.info("Connected to Pico on %s", serial_port)
 
     try:
         while True:
             line = await ser.readline_async()
+            if not line:
+                logger.debug("Serial read timeout, no data received")
+                continue
             try:
                 await _handle_line(line.decode("utf-8"))
             except UnicodeDecodeError as e:
@@ -157,10 +164,16 @@ async def read_serial() -> None:
     finally:
         ser.close()
         logger.info("Serial port %s closed", serial_port)
-        # Wait for pending notification tasks to complete
+        # Wait for pending notification tasks to complete (with timeout)
         if _pending_tasks:
             logger.info("Waiting for %d pending notification(s)", len(_pending_tasks))
-            await asyncio.gather(*_pending_tasks, return_exceptions=True)
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*_pending_tasks, return_exceptions=True),
+                    timeout=settings.notifications.timeout_sec,
+                )
+            except TimeoutError:
+                logger.warning("Timed out waiting for pending notifications")
         await close_db()
 
 

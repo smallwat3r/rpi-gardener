@@ -95,7 +95,10 @@ class Database:
     async def connect(self) -> None:
         """Open the database connection."""
         if self._connection is None:
-            self._connection = await aiosqlite.connect(self._db_path)
+            self._connection = await aiosqlite.connect(
+                self._db_path,
+                timeout=settings.db_timeout_sec,
+            )
             self._connection.row_factory = _dict_factory
 
     async def close(self) -> None:

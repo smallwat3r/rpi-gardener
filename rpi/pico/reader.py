@@ -8,7 +8,7 @@ import json
 
 import aioserial
 
-from rpi.lib.db import get_async_db, init_db
+from rpi.lib.db import get_db, init_db
 from rpi.lib.alerts import Namespace, ThresholdViolation, get_alert_tracker
 from rpi.lib.config import (MOISTURE_MAX, MOISTURE_MIN, PICO_SERIAL_BAUD,
                             PICO_SERIAL_PORT, get_moisture_threshold,
@@ -74,11 +74,11 @@ def _validate_moisture(value: float) -> float:
 
 async def _persist(plant_id: int, moisture: float, recording_time) -> None:
     """Persist a moisture reading to the database."""
-    db = await get_async_db()
-    await db.execute(
-        "INSERT INTO pico_reading VALUES (?, ?, ?)",
-        (plant_id, moisture, recording_time)
-    )
+    async with get_db() as db:
+        await db.execute(
+            "INSERT INTO pico_reading VALUES (?, ?, ?)",
+            (plant_id, moisture, recording_time)
+        )
 
 
 def _audit_moisture(plant_id: int, moisture: float, recording_time) -> None:

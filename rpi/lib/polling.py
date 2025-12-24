@@ -124,14 +124,25 @@ class PollingService(ABC, Generic[T]):
         signal.signal(signal.SIGTERM, self._handle_shutdown)
         signal.signal(signal.SIGINT, self._handle_shutdown)
 
+    async def _poll_cycle(self) -> None:
+        """Execute a single poll → audit → persist cycle."""
+        reading = await self.poll()
+        if reading is not None:
+            if await self.audit(reading):
+                await self.persist(reading)
+
     async def _run_loop(self) -> None:
-        """Run the async polling loop."""
+        """Run the async polling loop with precise timing."""
         await self.initialize()
         self._logger.info("%s polling service started", self.name)
 
+        loop = asyncio.get_event_loop()
         poll_count = 0
+
         try:
             while not self._shutdown_requested:
+                cycle_start = loop.time()
+
                 # Run cleanup periodically
                 if poll_count % self.cleanup_interval_cycles == 0:
                     self._logger.info(
@@ -142,15 +153,17 @@ class PollingService(ABC, Generic[T]):
 
                 # Poll → Audit → Persist
                 try:
-                    reading = await self.poll()
-                    if reading is not None:
-                        if await self.audit(reading):
-                            await self.persist(reading)
+                    await self._poll_cycle()
                 except Exception as e:
                     self.on_poll_error(e)
 
                 poll_count += 1
-                await asyncio.sleep(self.frequency_sec)
+
+                # Sleep only the remaining time to maintain consistent intervals
+                elapsed = loop.time() - cycle_start
+                sleep_time = max(0, self.frequency_sec - elapsed)
+                if sleep_time > 0:
+                    await asyncio.sleep(sleep_time)
         finally:
             self._logger.info("Cleaning up resources...")
             await self.cleanup()

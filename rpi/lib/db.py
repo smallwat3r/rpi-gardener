@@ -4,9 +4,10 @@ Provides async database operations using aiosqlite for non-blocking
 database access throughout the application.
 """
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, AsyncIterator, TypedDict
 
 import aiosqlite
 
@@ -69,8 +70,8 @@ def _dict_factory(cursor: aiosqlite.Cursor, row: tuple) -> dict[str, Any]:
     return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
 
 
-class AsyncDatabase:
-    """Async database connection manager."""
+class Database:
+    """Async database connection wrapper."""
 
     def __init__(self, db_path: str | None = None):
         self._db_path = db_path or settings.db_path
@@ -88,7 +89,7 @@ class AsyncDatabase:
             await self._connection.close()
             self._connection = None
 
-    async def __aenter__(self) -> "AsyncDatabase":
+    async def __aenter__(self) -> "Database":
         await self.connect()
         return self
 
@@ -130,25 +131,20 @@ class AsyncDatabase:
             return await cursor.fetchall()
 
 
-# Module-level database instance for connection reuse
-_db: AsyncDatabase | None = None
+@asynccontextmanager
+async def get_db() -> AsyncIterator[Database]:
+    """Get a database connection that auto-closes.
 
-
-async def get_async_db() -> AsyncDatabase:
-    """Get the async database instance, creating if needed."""
-    global _db
-    if _db is None:
-        _db = AsyncDatabase()
-        await _db.connect()
-    return _db
-
-
-async def close_async_db() -> None:
-    """Close the async database connection."""
-    global _db
-    if _db is not None:
-        await _db.close()
-        _db = None
+    Usage:
+        async with get_db() as db:
+            await db.execute("INSERT INTO ...")
+    """
+    db = Database()
+    await db.connect()
+    try:
+        yield db
+    finally:
+        await db.close()
 
 
 async def init_db() -> None:
@@ -156,38 +152,36 @@ async def init_db() -> None:
 
     Safe to call multiple times - uses IF NOT EXISTS clauses.
     """
-    db = await get_async_db()
-    if db._connection is None:
-        raise RuntimeError("Database not connected")
-    await db._connection.execute("PRAGMA journal_mode=WAL")
-    await db._connection.execute(_INIT_READING_SQL)
-    await db.executescript(_IDX_READING_SQL)
-    await db._connection.execute(_INIT_PICO_SQL)
-    await db.executescript(_IDX_PICO_SQL)
+    async with get_db() as db:
+        await db._connection.execute("PRAGMA journal_mode=WAL")
+        await db._connection.execute(_INIT_READING_SQL)
+        await db.executescript(_IDX_READING_SQL)
+        await db._connection.execute(_INIT_PICO_SQL)
+        await db.executescript(_IDX_PICO_SQL)
 
 
 async def get_initial_dht_data(from_time: datetime) -> list[DHTReading]:
     """Return all DHT22 sensor data from a given time."""
-    db = await get_async_db()
-    return await db.fetchall(_DHT_CHART_SQL, (from_time,))
+    async with get_db() as db:
+        return await db.fetchall(_DHT_CHART_SQL, (from_time,))
 
 
 async def get_latest_dht_data() -> DHTReading | None:
     """Return the latest DHT22 sensor data."""
-    db = await get_async_db()
-    return await db.fetchone(_DHT_LATEST_SQL)
+    async with get_db() as db:
+        return await db.fetchone(_DHT_LATEST_SQL)
 
 
 async def get_stats_dht_data(from_time: datetime) -> DHTStats | None:
     """Return statistics for the DHT22 sensor data from a given time."""
-    db = await get_async_db()
-    return await db.fetchone(_DHT_STATS_SQL, (from_time,))
+    async with get_db() as db:
+        return await db.fetchone(_DHT_STATS_SQL, (from_time,))
 
 
 async def get_initial_pico_data(from_time: datetime) -> list[PicoChartDataPoint]:
     """Return all Pico sensor data from a given time, pivoted by plant_id."""
-    db = await get_async_db()
-    rows = await db.fetchall(_PICO_CHART_SQL, (from_time,))
+    async with get_db() as db:
+        rows = await db.fetchall(_PICO_CHART_SQL, (from_time,))
 
     # Pivot: group by epoch, with plant_id as columns
     pivoted: dict[int, PicoChartDataPoint] = defaultdict(dict)
@@ -201,5 +195,5 @@ async def get_initial_pico_data(from_time: datetime) -> list[PicoChartDataPoint]
 
 async def get_latest_pico_data() -> list[PicoReading]:
     """Return the latest Pico sensor data for each plant."""
-    db = await get_async_db()
-    return await db.fetchall(_PICO_LATEST_SQL)
+    async with get_db() as db:
+        return await db.fetchall(_PICO_LATEST_SQL)

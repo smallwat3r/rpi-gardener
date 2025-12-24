@@ -1,4 +1,5 @@
 """Tests for the DHT22 polling module."""
+from contextlib import asynccontextmanager
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -165,7 +166,11 @@ class TestDHTPollingServicePersist:
         mock_db = AsyncMock()
         mock_db.execute = AsyncMock()
 
-        with patch("rpi.dht.polling.get_async_db", return_value=mock_db):
+        @asynccontextmanager
+        async def mock_get_db():
+            yield mock_db
+
+        with patch("rpi.dht.polling.get_db", mock_get_db):
             await service.persist(sample_reading)
 
         mock_db.execute.assert_called_once()
@@ -195,7 +200,11 @@ class TestDHTPollingServiceClearOldRecords:
         mock_db = AsyncMock()
         mock_db.execute = AsyncMock()
 
-        with patch("rpi.dht.polling.get_async_db", return_value=mock_db):
+        @asynccontextmanager
+        async def mock_get_db():
+            yield mock_db
+
+        with patch("rpi.dht.polling.get_db", mock_get_db):
             await service.clear_old_records()
 
         # Should delete from both tables

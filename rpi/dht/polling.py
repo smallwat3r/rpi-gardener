@@ -13,7 +13,7 @@ from board import D17
 from rpi.dht.display import display
 from rpi.dht.models import Measure, Reading, Unit
 from rpi.dht.service import audit_reading, start_worker
-from rpi.lib.db import get_async_db, init_db
+from rpi.lib.db import get_db, init_db
 from rpi.lib.config import DHT22_BOUNDS, MeasureName
 from rpi.lib.polling import PollingService
 from rpi.lib.utils import utcnow
@@ -88,19 +88,19 @@ class DHTPollingService(PollingService[Reading]):
 
     async def persist(self, reading: Reading) -> None:
         """Persist the reading values into the database."""
-        db = await get_async_db()
-        await db.execute(
-            "INSERT INTO reading VALUES (?, ?, ?)",
-            (reading.temperature.value, reading.humidity.value,
-             reading.recording_time)
-        )
+        async with get_db() as db:
+            await db.execute(
+                "INSERT INTO reading VALUES (?, ?, ?)",
+                (reading.temperature.value, reading.humidity.value,
+                 reading.recording_time)
+            )
 
     async def clear_old_records(self) -> None:
         """Clear historical data older than retention period."""
         cutoff = self.get_cutoff_time()
-        db = await get_async_db()
-        await db.execute("DELETE FROM reading WHERE recording_time < ?", (cutoff,))
-        await db.execute("DELETE FROM pico_reading WHERE recording_time < ?", (cutoff,))
+        async with get_db() as db:
+            await db.execute("DELETE FROM reading WHERE recording_time < ?", (cutoff,))
+            await db.execute("DELETE FROM pico_reading WHERE recording_time < ?", (cutoff,))
 
     def on_poll_error(self, error: Exception) -> None:
         """Handle DHT22-specific errors."""

@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from rpi.lib.db import get_async_db, get_latest_dht_data, get_latest_pico_data
+from rpi.lib.db import get_db, get_latest_dht_data, get_latest_pico_data
 from rpi.logging import get_logger
 
 logger = get_logger("server.api.health")
@@ -13,8 +13,8 @@ logger = get_logger("server.api.health")
 async def _check_database() -> tuple[bool, str]:
     """Check if database is accessible."""
     try:
-        db = await get_async_db()
-        await db.fetchone("SELECT 1")
+        async with get_db() as db:
+            await db.fetchone("SELECT 1")
         return True, "ok"
     except Exception as e:
         logger.error("Database health check failed: %s", e)

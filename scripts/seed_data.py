@@ -5,7 +5,7 @@ import asyncio
 import random
 from datetime import timedelta
 
-from rpi.lib.db import get_async_db, init_db
+from rpi.lib.db import get_db, init_db
 from rpi.lib.config import PLANT_IDS
 from rpi.lib.utils import utcnow
 
@@ -55,15 +55,9 @@ def generate_pico_data(num_records: int, interval: timedelta) -> list[tuple]:
 async def seed_data(hours: int = 6, clear: bool = False) -> None:
     """Insert dummy sensor data for the past N hours."""
     await init_db()
-    db = await get_async_db()
 
     interval = timedelta(minutes=2)
     num_records = (hours * 60) // 2
-
-    if clear:
-        print("Clearing existing data...")
-        await db.execute("DELETE FROM reading")
-        await db.execute("DELETE FROM pico_reading")
 
     print(f"Generating {num_records} DHT readings...")
     dht_data = generate_dht_data(num_records, interval)
@@ -71,11 +65,17 @@ async def seed_data(hours: int = 6, clear: bool = False) -> None:
     print(f"Generating {num_records * len(PLANT_IDS)} Pico readings...")
     pico_data = generate_pico_data(num_records, interval)
 
-    print("Inserting DHT data...")
-    await db.executemany("INSERT INTO reading VALUES (?, ?, ?)", dht_data)
+    async with get_db() as db:
+        if clear:
+            print("Clearing existing data...")
+            await db.execute("DELETE FROM reading")
+            await db.execute("DELETE FROM pico_reading")
 
-    print("Inserting Pico data...")
-    await db.executemany("INSERT INTO pico_reading VALUES (?, ?, ?)", pico_data)
+        print("Inserting DHT data...")
+        await db.executemany("INSERT INTO reading VALUES (?, ?, ?)", dht_data)
+
+        print("Inserting Pico data...")
+        await db.executemany("INSERT INTO pico_reading VALUES (?, ?, ?)", pico_data)
 
     print("Done!")
 

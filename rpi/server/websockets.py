@@ -12,7 +12,7 @@ from rpi.lib.db import (
     get_latest_pico_data,
     get_stats_dht_data,
 )
-from rpi.server.params import parse_hours
+from rpi.server.validators import parse_hours
 
 _logger = logging.getLogger("websockets")
 

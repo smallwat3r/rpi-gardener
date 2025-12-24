@@ -90,6 +90,7 @@ class Database:
     def __init__(self, db_path: str | None = None):
         self._db_path = db_path or settings.db_path
         self._connection: aiosqlite.Connection | None = None
+        self._in_transaction = False
 
     async def connect(self) -> None:
         """Open the database connection."""
@@ -110,19 +111,52 @@ class Database:
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         await self.close()
 
+    @asynccontextmanager
+    async def transaction(self) -> AsyncIterator[None]:
+        """Context manager for database transactions.
+
+        All operations within the context are committed together on success,
+        or rolled back if an exception occurs.
+
+        Usage:
+            async with db.transaction():
+                await db.execute("INSERT INTO ...")
+                await db.execute("INSERT INTO ...")
+        """
+        if self._connection is None:
+            raise RuntimeError("Database not connected")
+        self._in_transaction = True
+        await self._connection.execute("BEGIN")
+        try:
+            yield
+            await self._connection.commit()
+        except Exception:
+            await self._connection.rollback()
+            raise
+        finally:
+            self._in_transaction = False
+
     async def execute(self, sql: str, params: tuple = ()) -> None:
-        """Execute a SQL statement and commit."""
+        """Execute a SQL statement.
+
+        Auto-commits unless inside a transaction() context.
+        """
         if self._connection is None:
             raise RuntimeError("Database not connected")
         await self._connection.execute(sql, params)
-        await self._connection.commit()
+        if not self._in_transaction:
+            await self._connection.commit()
 
     async def executemany(self, sql: str, params_seq: list[tuple]) -> None:
-        """Execute a SQL statement with multiple parameter sets and commit."""
+        """Execute a SQL statement with multiple parameter sets.
+
+        Auto-commits unless inside a transaction() context.
+        """
         if self._connection is None:
             raise RuntimeError("Database not connected")
         await self._connection.executemany(sql, params_seq)
-        await self._connection.commit()
+        if not self._in_transaction:
+            await self._connection.commit()
 
     async def executescript(self, sql: str) -> None:
         """Execute multiple SQL statements."""

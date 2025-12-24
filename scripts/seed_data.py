@@ -67,16 +67,17 @@ async def seed_data(hours: int = 6, clear: bool = False) -> None:
     pico_data = generate_pico_data(num_records, interval)
 
     async with get_db() as db:
-        if clear:
-            print("Clearing existing data...")
-            await db.execute("DELETE FROM reading")
-            await db.execute("DELETE FROM pico_reading")
+        async with db.transaction():
+            if clear:
+                print("Clearing existing data...")
+                await db.execute("DELETE FROM reading")
+                await db.execute("DELETE FROM pico_reading")
 
-        print("Inserting DHT data...")
-        await db.executemany("INSERT INTO reading VALUES (?, ?, ?)", dht_data)
+            print("Inserting DHT data...")
+            await db.executemany("INSERT INTO reading VALUES (?, ?, ?)", dht_data)
 
-        print("Inserting Pico data...")
-        await db.executemany("INSERT INTO pico_reading VALUES (?, ?, ?)", pico_data)
+            print("Inserting Pico data...")
+            await db.executemany("INSERT INTO pico_reading VALUES (?, ?, ?)", pico_data)
 
     await close_db()
     print("Done!")

@@ -9,6 +9,7 @@ import pytest
 # These are only available on Raspberry Pi hardware
 sys.modules["adafruit_dht"] = MagicMock()
 sys.modules["adafruit_ssd1306"] = MagicMock()
+sys.modules["aioserial"] = MagicMock()
 sys.modules["board"] = MagicMock()
 sys.modules["busio"] = MagicMock()
 sys.modules["PIL"] = MagicMock()

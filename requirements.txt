@@ -5,4 +5,4 @@
 adafruit-circuitpython-dht
 adafruit-circuitpython-ssd1306
 pillow
-pyserial
+aioserial

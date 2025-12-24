@@ -1,10 +1,12 @@
-"""Poll Pico for moisture readings via USB serial.
+"""Read Pico moisture readings via USB serial.
 
 Reads JSON lines from the Pico's USB serial output and persists
 moisture readings to the database.
 """
+import asyncio
 import json
-import serial
+
+import aioserial
 
 from sqlitey import Sql
 
@@ -102,35 +104,43 @@ def _process_readings(data: dict) -> int:
     return persisted
 
 
-def main() -> None:
-    """Main loop for reading from serial port."""
+def _handle_line(line: str) -> None:
+    """Process a single line of JSON data."""
+    line = line.strip()
+    if not line:
+        return
+
+    try:
+        data = json.loads(line)
+        if not isinstance(data, dict):
+            logger.warning("Expected JSON object, got %s", type(data).__name__)
+            return
+
+        persisted = _process_readings(data)
+        logger.debug("Persisted %d readings", persisted)
+
+    except json.JSONDecodeError as e:
+        logger.warning("Invalid JSON: %s", e)
+
+
+async def read_serial() -> None:
+    """Read lines from serial port asynchronously."""
     logger.info("Opening serial port %s", SERIAL_PORT)
 
-    with serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=1) as ser:
-        logger.info("Connected to Pico on %s", SERIAL_PORT)
+    ser = aioserial.AioSerial(port=SERIAL_PORT, baudrate=SERIAL_BAUD)
+    logger.info("Connected to Pico on %s", SERIAL_PORT)
 
-        while True:
-            line = ser.readline()
-            if not line:
-                continue
+    while True:
+        line = await ser.readline_async()
+        try:
+            _handle_line(line.decode("utf-8"))
+        except UnicodeDecodeError as e:
+            logger.warning("Failed to decode line: %s", e)
 
-            try:
-                line = line.decode("utf-8").strip()
-                if not line:
-                    continue
 
-                data = json.loads(line)
-                if not isinstance(data, dict):
-                    logger.warning("Expected JSON object, got %s", type(data).__name__)
-                    continue
-
-                persisted = _process_readings(data)
-                logger.debug("Persisted %d readings", persisted)
-
-            except json.JSONDecodeError as e:
-                logger.warning("Invalid JSON: %s", e)
-            except UnicodeDecodeError as e:
-                logger.warning("Failed to decode line: %s", e)
+def main() -> None:
+    """Start the async serial reader."""
+    asyncio.run(read_serial())
 
 
 if __name__ == "__main__":

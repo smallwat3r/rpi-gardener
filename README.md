@@ -92,6 +92,7 @@ make logs        # View all logs
 make logs-app    # View app logs only
 make restart     # Restart services
 make clean       # Stop and remove volumes
+make pico        # Start Pico serial reader (local dev)
 make mprestart   # Restart Pico (if it loses sync)
 ```
 
@@ -166,7 +167,7 @@ This project is designed for local home networks:
 | OLED      | SDA  | 2    |
 | OLED      | SCL  | 3    |
 
-### Raspberry Pi Pico W
+### Raspberry Pi Pico
 
 | Component | Pin    | GPIO |
 |-----------|--------|------|

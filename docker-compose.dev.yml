@@ -3,15 +3,29 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    ports:
-      - "5000:5000"
     volumes:
       - db_data:/app/data
+      - socket:/tmp
     env_file:
       - .env
     environment:
       - DB_PATH=/app/data/dht.sqlite3
+    command: uvicorn rpi.server:app --uds /tmp/uvicorn.sock
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "5000:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/rpi-dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./rpi/server/static:/var/www/html/static:ro
+      - socket:/tmp
+    depends_on:
+      - app
 
 volumes:
   db_data:
     name: rpi-gardener-dev-db
+  socket:
+    name: rpi-gardener-dev-socket

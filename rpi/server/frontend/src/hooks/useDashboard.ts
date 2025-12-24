@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'preact/hooks';
-import { fetchDashboardData } from '@/api/dashboard';
+import { fetchDashboardData, fetchThresholds } from '@/api/dashboard';
 import { useWebSocket } from './useWebSocket';
-import type { DashboardData, DHTReading, DHTStats, PicoChartDataPoint, PicoReading } from '@/types';
+import type { DashboardData, DHTReading, DHTStats, PicoChartDataPoint, PicoReading, Thresholds } from '@/types';
 
 export function useDashboard(initialHours: number = 3) {
   const [hours, setHours] = useState(initialHours);
   const [data, setData] = useState<DashboardData | null>(null);
+  const [thresholds, setThresholds] = useState<Thresholds | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const lastDhtEpoch = useRef<number | null>(null);
@@ -15,6 +16,12 @@ export function useDashboard(initialHours: number = 3) {
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    fetchThresholds()
+      .then((t) => { if (mountedRef.current) setThresholds(t); })
+      .catch(() => {});
   }, []);
 
   const loadData = useCallback(async () => {
@@ -87,5 +94,5 @@ export function useDashboard(initialHours: number = 3) {
     onMessage: handlePicoLatest,
   });
 
-  return { data, loading, error, hours, setHours, refresh: loadData };
+  return { data, thresholds, loading, error, hours, setHours, refresh: loadData };
 }

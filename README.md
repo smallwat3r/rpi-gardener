@@ -12,7 +12,8 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 
 - Real-time temperature and humidity monitoring (DHT22)
 - Soil moisture tracking for up to 3 plants (Pico + capacitive sensors)
-- Modern web dashboard with live charts
+- Modern web dashboard with live charts and threshold visualization
+- Visual alerts when sensor values exceed configured thresholds
 - 128x64 OLED displays on both RPi and Pico
 - Email notifications when thresholds are crossed
 - HTTPS with self-signed certificates
@@ -55,10 +56,11 @@ MAX_HUMIDITY=65
 MIN_HUMIDITY=40
 
 # Moisture thresholds (optional)
-MIN_MOISTURE=30                # Default for all plants
-MIN_MOISTURE_PLANT_1=25        # Override for plant-1
-MIN_MOISTURE_PLANT_2=30        # Override for plant-2
-MIN_MOISTURE_PLANT_3=35        # Override for plant-3
+# Default for all plants
+MIN_MOISTURE=30
+MIN_MOISTURE_PLANT_1=25
+MIN_MOISTURE_PLANT_2=30
+MIN_MOISTURE_PLANT_3=35
 
 # Email notifications (optional, set to 1 to enable)
 ENABLE_NOTIFICATION_SERVICE=0

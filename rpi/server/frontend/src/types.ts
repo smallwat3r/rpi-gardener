@@ -34,3 +34,9 @@ export interface DashboardData {
   pico_data: PicoChartDataPoint[];
   pico_latest: PicoReading[];
 }
+
+export interface Thresholds {
+  temperature: { min: number; max: number };
+  humidity: { min: number; max: number };
+  moisture: Record<string, number>;
+}

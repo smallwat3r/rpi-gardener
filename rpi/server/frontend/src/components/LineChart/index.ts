@@ -1,1 +1,1 @@
-export { LineChart, type SeriesConfig } from './LineChart';
+export { LineChart, type SeriesConfig, type ThresholdLine } from './LineChart';

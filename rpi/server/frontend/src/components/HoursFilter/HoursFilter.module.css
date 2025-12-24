@@ -1,8 +1,8 @@
 .form {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
   flex-wrap: wrap;
 }
 
@@ -12,13 +12,13 @@
 }
 
 .input {
-  width: 70px;
-  padding: var(--spacing-sm) var(--spacing-md);
+  width: 60px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   -webkit-appearance: none;
   -moz-appearance: textfield;
 }
@@ -29,12 +29,12 @@
 }
 
 .button {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
   background-color: #0d6efd;
   border: none;
   border-radius: var(--radius-sm);
   color: white;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   transition: background-color 0.15s;
   touch-action: manipulation;
 }

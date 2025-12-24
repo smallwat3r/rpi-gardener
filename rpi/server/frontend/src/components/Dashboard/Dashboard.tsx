@@ -5,7 +5,7 @@ import { HoursFilter } from '@/components/HoursFilter';
 import styles from './Dashboard.module.css';
 
 export function Dashboard() {
-  const { data, loading, error, hours, setHours } = useDashboard();
+  const { data, thresholds, loading, error, hours, setHours } = useDashboard();
 
   if (loading && !data) {
     return <div class={styles.loading}>Loading...</div>;
@@ -32,10 +32,12 @@ export function Dashboard() {
           latest={data.latest}
           stats={data.stats}
           chartData={data.data}
+          thresholds={thresholds}
         />
         <PicoCard
           latest={data.pico_latest}
           chartData={data.pico_data}
+          thresholds={thresholds}
         />
       </div>
     </div>

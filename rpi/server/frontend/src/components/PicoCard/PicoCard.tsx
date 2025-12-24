@@ -1,41 +1,54 @@
 import { useMemo } from 'preact/hooks';
-import type { PicoReading, PicoChartDataPoint } from '@/types';
-import { LineChart, type SeriesConfig } from '@/components/LineChart';
+import type { PicoReading, PicoChartDataPoint, Thresholds } from '@/types';
+import { LineChart, type SeriesConfig, type ThresholdLine } from '@/components/LineChart';
+import { WarningBadge } from '@/components/WarningBadge';
 import styles from './PicoCard.module.css';
 
-const PLANT_COLORS: Record<string, string> = {
-  'plant-1': '#a78bfa',
-  'plant-2': '#38bdf8',
-  'plant-3': '#fb7185',
-};
+const PLANT_COLOR = '#a78bfa';
 
 const Y_AXES = [{ position: 'left' as const, min: 0, max: 100 }];
+
+const ALERT_COLOR = '#ef4444';
 
 interface PicoCardProps {
   latest: PicoReading[];
   chartData: PicoChartDataPoint[];
+  thresholds: Thresholds | null;
 }
 
-export function PicoCard({ latest, chartData }: PicoCardProps) {
-  const series = useMemo<SeriesConfig[]>(
-    () => latest.map((plant, idx) => ({
-      name: plant.plant_id,
-      dataKey: plant.plant_id,
-      color: PLANT_COLORS[plant.plant_id] || ['#a78bfa', '#38bdf8', '#fb7185'][idx],
-      yAxisIndex: 0,
-    })),
-    [latest]
-  );
-
+export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
   const data = useMemo(
     () => chartData as unknown as Record<string, number>[],
     [chartData]
   );
 
+  const getMoistureStatus = (plantId: string, moisture: number): 'ok' | 'alert' => {
+    if (!thresholds) return 'ok';
+    const minThreshold = thresholds.moisture[plantId] ?? 30;
+    return moisture < minThreshold ? 'alert' : 'ok';
+  };
+
+  const getPlantThresholds = (plantId: string): ThresholdLine[] => {
+    if (!thresholds) return [];
+    const minThreshold = thresholds.moisture[plantId] ?? 30;
+    return [
+      { value: minThreshold, label: `Min ${minThreshold}%`, color: ALERT_COLOR, yAxisIndex: 0, type: 'min' },
+    ];
+  };
+
+  const getPlantSeries = (plantId: string): SeriesConfig[] => [
+    {
+      name: plantId,
+      dataKey: plantId,
+      color: PLANT_COLOR,
+      yAxisIndex: 0,
+    },
+  ];
+
   if (!latest.length) {
     return (
       <article class={styles.card} aria-labelledby="pico-card-header">
-        <h2 id="pico-card-header" class={styles.header}>RPi Pico Moisture</h2>
+        <h2 id="pico-card-header" class={styles.header}>Soil Moisture</h2>
         <div class={styles.body}>
           <p class={styles.noData}>No data available</p>
         </div>
@@ -45,31 +58,34 @@ export function PicoCard({ latest, chartData }: PicoCardProps) {
 
   return (
     <article class={styles.card} aria-labelledby="pico-card-header">
-      <h2 id="pico-card-header" class={styles.header}>RPi Pico Moisture</h2>
+      <h2 id="pico-card-header" class={styles.header}>Soil Moisture</h2>
       <div class={styles.body}>
-        <div class={styles.content}>
-          <p class={styles.lastUpdate}>Last update: <time>{latest[0]?.recording_time}</time> UTC</p>
-          <div class={styles.plants} role="list" aria-label="Plant moisture readings">
-            {latest.map((plant) => (
-              <div key={plant.plant_id} class={styles.plant} role="listitem">
-                <h3
-                  class={styles.plantName}
-                  style={{ color: PLANT_COLORS[plant.plant_id] }}
-                >
-                  {plant.plant_id}
-                </h3>
-                <p
-                  class={styles.display}
-                  style={{ color: PLANT_COLORS[plant.plant_id] }}
-                  aria-live="polite"
-                >
-                  {plant.moisture}%
-                </p>
-              </div>
-            ))}
-          </div>
+        <p class={styles.lastUpdate}>Last update: <time>{latest[0]?.recording_time}</time> UTC</p>
+        <div class={styles.charts}>
+          {latest.map((plant) => {
+            const status = getMoistureStatus(plant.plant_id, plant.moisture);
+            return (
+              <section key={plant.plant_id} class={styles.chartSection} aria-label={`${plant.plant_id} moisture`}>
+                <div class={styles.chartHeader}>
+                  <h3 style={{ color: PLANT_COLOR }}>{plant.plant_id}</h3>
+                  <p class={styles.display} style={{ color: PLANT_COLOR }} aria-live="polite">
+                    {plant.moisture}%
+                  </p>
+                  {status === 'alert' && <WarningBadge>Needs water</WarningBadge>}
+                </div>
+                <LineChart
+                  data={data}
+                  series={getPlantSeries(plant.plant_id)}
+                  yAxes={Y_AXES}
+                  thresholds={getPlantThresholds(plant.plant_id)}
+                  colorAxis={false}
+                  showArea={false}
+                  height={110}
+                />
+              </section>
+            );
+          })}
         </div>
-        <LineChart data={data} series={series} yAxes={Y_AXES} colorAxis={false} />
       </div>
     </article>
   );

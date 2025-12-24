@@ -1,5 +1,3 @@
-from contextlib import asynccontextmanager
-
 from starlette.applications import Starlette
 from starlette.routing import Route, WebSocketRoute
 
@@ -10,12 +8,8 @@ from .api.health import health_check
 from .api.thresholds import get_thresholds
 from .websockets import ws_dht_latest, ws_dht_stats, ws_pico_latest
 
-
-@asynccontextmanager
-async def lifespan(app):
-    """Configure logging on startup."""
-    configure()
-    yield
+# Configure logging early so all module-level logs are formatted
+configure()
 
 
 routes = [
@@ -27,4 +21,4 @@ routes = [
     WebSocketRoute("/pico/latest", ws_pico_latest),
 ]
 
-app = Starlette(routes=routes, lifespan=lifespan)
+app = Starlette(routes=routes)

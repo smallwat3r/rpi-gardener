@@ -46,7 +46,7 @@ polling:  ## Start the DHT polling service
 
 .PHONY: pico
 pico:  ## Start the Pico serial reader
-	$(PYTHON) -m $(RPI).pico.polling
+	$(PYTHON) -m $(RPI).pico.reader
 
 .PHONY: mpedit
 mpedit:  ## Edit remote Pico file (make mpedit file=main.py)

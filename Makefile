@@ -32,6 +32,15 @@ mpdeps:  ## Install Micropython requirements in virtual environment
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install --no-cache-dir -r requirements-mp.txt
 
+.PHONY: devdeps
+devdeps:  ## Install development dependencies (includes pytest)
+	$(PYTHON) -m pip install --upgrade pip
+	$(PYTHON) -m pip install --no-cache-dir -r requirements-dev.txt
+
+.PHONY: test
+test:  ## Run pytest test suite
+	$(PYTHON) -m pytest tests/ -v
+
 .PHONY: serve
 serve:  ## Start the server (for development)
 	$(PYTHON) -m uvicorn $(RPI).server:app --host 0.0.0.0 --reload

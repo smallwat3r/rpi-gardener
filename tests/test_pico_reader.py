@@ -1,5 +1,4 @@
 """Tests for the Pico serial reader module."""
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -138,83 +137,57 @@ class TestPicoPollingServiceAudit:
         return PicoPollingService(mock_source)
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_notifier")
     @patch("rpi.pico.reader.get_moisture_threshold", return_value=30)
     async def test_no_alert_when_above_threshold(
-        self, mock_threshold, mock_get_notifier, service, pico_alerts_registered, frozen_time
+        self, mock_threshold, service, pico_audit_events, frozen_time
     ):
-        notifier = MagicMock()
-        notifier.send = AsyncMock()
-        mock_get_notifier.return_value = notifier
-
         readings = [MoistureReading(PlantId.PLANT_1, 50.0, frozen_time)]
         await service.audit(readings)
 
-        notifier.send.assert_not_called()
+        assert len(pico_audit_events) == 0
         tracker = get_alert_tracker()
         assert tracker.get_state(Namespace.PICO, PlantId.PLANT_1) == AlertState.OK
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_notifier")
     @patch("rpi.pico.reader.get_moisture_threshold", return_value=30)
     async def test_alert_when_below_threshold(
-        self, mock_threshold, mock_get_notifier, service, pico_alerts_registered, frozen_time
+        self, mock_threshold, service, pico_audit_events, frozen_time
     ):
-        notifier = MagicMock()
-        notifier.send = AsyncMock()
-        mock_get_notifier.return_value = notifier
-
         readings = [MoistureReading(PlantId.PLANT_1, 20.0, frozen_time)]
         await service.audit(readings)
-        await asyncio.sleep(0)  # Let the scheduled task run
 
-        notifier.send.assert_called_once()
-        violation = notifier.send.call_args[0][0]
-        assert violation.sensor_name == PlantId.PLANT_1
-        assert violation.value == 20.0
-        assert violation.threshold == 30
-        assert violation.namespace == Namespace.PICO
+        assert len(pico_audit_events) == 1
+        event = pico_audit_events[0]
+        assert event.sensor_name == PlantId.PLANT_1
+        assert event.value == 20.0
+        assert event.threshold == 30
+        assert event.namespace == Namespace.PICO
         tracker = get_alert_tracker()
         assert tracker.get_state(Namespace.PICO, PlantId.PLANT_1) == AlertState.IN_ALERT
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_notifier")
     @patch("rpi.pico.reader.get_moisture_threshold", return_value=30)
     async def test_no_duplicate_alerts(
-        self, mock_threshold, mock_get_notifier, service, pico_alerts_registered, frozen_time
+        self, mock_threshold, service, pico_audit_events, frozen_time
     ):
-        notifier = MagicMock()
-        notifier.send = AsyncMock()
-        mock_get_notifier.return_value = notifier
-
         # First alert
         await service.audit([MoistureReading(PlantId.PLANT_1, 20.0, frozen_time)])
-        await asyncio.sleep(0)
         # Still below threshold
         await service.audit([MoistureReading(PlantId.PLANT_1, 15.0, frozen_time)])
-        await asyncio.sleep(0)
 
-        # Only one notification sent
-        assert notifier.send.call_count == 1
+        # Only one event triggered
+        assert len(pico_audit_events) == 1
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_notifier")
     @patch("rpi.pico.reader.get_moisture_threshold", return_value=30)
     async def test_independent_plant_states(
-        self, mock_threshold, mock_get_notifier, service, pico_alerts_registered, frozen_time
+        self, mock_threshold, service, pico_audit_events, frozen_time
     ):
-        notifier = MagicMock()
-        notifier.send = AsyncMock()
-        mock_get_notifier.return_value = notifier
-
         await service.audit([MoistureReading(PlantId.PLANT_1, 20.0, frozen_time)])
-        await asyncio.sleep(0)
         await service.audit([MoistureReading(PlantId.PLANT_2, 50.0, frozen_time)])
-        await asyncio.sleep(0)
         await service.audit([MoistureReading(PlantId.PLANT_2, 20.0, frozen_time)])
-        await asyncio.sleep(0)
 
-        assert notifier.send.call_count == 2
+        assert len(pico_audit_events) == 2
         tracker = get_alert_tracker()
         assert tracker.get_state(Namespace.PICO, PlantId.PLANT_1) == AlertState.IN_ALERT
         assert tracker.get_state(Namespace.PICO, PlantId.PLANT_2) == AlertState.IN_ALERT

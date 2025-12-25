@@ -15,6 +15,7 @@ from rpi.dht.display import DisplayProtocol
 from rpi.dht.models import Measure, Reading, Unit
 from rpi.lib.config import DHT22_BOUNDS, MeasureName
 from rpi.lib.db import close_db, get_db, init_db
+from rpi.lib.eventbus import DHTReadingEvent, Topic, get_publisher
 from rpi.lib.polling import PollingService
 from rpi.logging import configure, get_logger
 
@@ -48,16 +49,19 @@ class DHTPollingService(PollingService[Reading]):
 
     @override
     async def initialize(self) -> None:
-        """Initialize database and audit worker."""
+        """Initialize database, audit worker, and event publisher."""
         await init_db()
         init_audit()
+        self._publisher = get_publisher()
+        self._publisher.connect()
         self._display.clear()
 
     @override
     async def cleanup(self) -> None:
-        """Clean up DHT22 sensor, display, and database connection."""
+        """Clean up DHT22 sensor, display, event publisher, and database."""
         self._display.clear()
         self._dht.exit()
+        self._publisher.close()
         await close_db()
 
     @override
@@ -96,13 +100,21 @@ class DHTPollingService(PollingService[Reading]):
 
     @override
     async def persist(self, reading: Reading) -> None:
-        """Persist the reading values into the database."""
+        """Persist the reading values into the database and publish event."""
         async with get_db() as db:
             await db.execute(
                 "INSERT INTO reading (temperature, humidity, recording_time) VALUES (?, ?, ?)",
                 (reading.temperature.value, reading.humidity.value,
                  reading.recording_time)
             )
+
+        # Publish to event bus for real-time WebSocket updates
+        event = DHTReadingEvent(
+            temperature=reading.temperature.value,
+            humidity=reading.humidity.value,
+            recording_time=reading.recording_time,
+        )
+        self._publisher.publish(Topic.DHT_READING, event)
 
     @override
     def on_poll_error(self, error: Exception) -> None:

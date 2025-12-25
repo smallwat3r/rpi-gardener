@@ -1,5 +1,4 @@
 """Shared pytest fixtures for the test suite."""
-import asyncio
 import logging
 import sys
 from datetime import UTC, datetime
@@ -81,29 +80,44 @@ def mock_display():
 
 
 @pytest.fixture
-def dht_audit_queue():
-    """Initialize DHT audit queue and register callback.
+def dht_audit_events():
+    """Capture DHT audit events published to the event bus.
 
     Use this fixture when testing DHT audit functionality that needs
-    the event queue and callback registration.
-    """
-    from rpi.dht import audit
-    from rpi.dht.audit import _enqueue_event
+    to verify events are published correctly.
 
-    audit._queue = asyncio.Queue()
+    Returns:
+        A list that will be populated with AlertEvent objects as they're published.
+    """
+    from rpi.lib.alerts import AlertEvent
+
+    events: list[AlertEvent] = []
+
+    def capture_event(event: AlertEvent) -> None:
+        events.append(event)
+
     tracker = get_alert_tracker()
-    tracker.register_callback(Namespace.DHT, _enqueue_event)
-    return audit._queue
+    tracker.register_callback(Namespace.DHT, capture_event)
+    return events
 
 
 @pytest.fixture
-def pico_alerts_registered():
-    """Register Pico alerts callback.
+def pico_audit_events():
+    """Capture Pico audit events published to the event bus.
 
     Use this fixture when testing Pico moisture auditing that needs
-    the alert callback registration.
+    to verify events are published correctly.
+
+    Returns:
+        A list that will be populated with AlertEvent objects as they're published.
     """
-    from rpi.pico.reader import _schedule_notification
+    from rpi.lib.alerts import AlertEvent
+
+    events: list[AlertEvent] = []
+
+    def capture_event(event: AlertEvent) -> None:
+        events.append(event)
 
     tracker = get_alert_tracker()
-    tracker.register_callback(Namespace.PICO, _schedule_notification)
+    tracker.register_callback(Namespace.PICO, capture_event)
+    return events

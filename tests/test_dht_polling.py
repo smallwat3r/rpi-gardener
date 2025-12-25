@@ -1,6 +1,6 @@
 """Tests for the DHT22 polling module."""
 from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -139,10 +139,13 @@ class TestDHTPollingServicePersist:
     async def test_persist_inserts_reading(self, service, sample_reading):
         mock_db = AsyncMock()
         mock_db.execute = AsyncMock()
+        mock_publisher = MagicMock()
 
         @asynccontextmanager
         async def mock_get_db():
             yield mock_db
+
+        service._publisher = mock_publisher
 
         with patch("rpi.dht.polling.get_db", mock_get_db):
             await service.persist(sample_reading)
@@ -153,6 +156,7 @@ class TestDHTPollingServicePersist:
         assert params[0] == sample_reading.temperature.value
         assert params[1] == sample_reading.humidity.value
         assert params[2] == sample_reading.recording_time
+        mock_publisher.publish.assert_called_once()
 
 
 class TestDHTPollingServiceErrorHandling:

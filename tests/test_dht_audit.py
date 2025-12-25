@@ -1,7 +1,6 @@
 """Tests for the DHT22 audit and event service."""
 import pytest
 
-from rpi.dht import audit
 from rpi.dht.audit import audit_reading
 from rpi.dht.models import Measure, Reading, State, Unit
 from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
@@ -10,49 +9,46 @@ from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
 class TestAuditReading:
     """Tests for audit_reading function."""
 
-    def test_normal_reading_no_event(self, dht_audit_queue, sample_reading):
-        """Normal reading within thresholds should not queue events."""
-        initial_queue_size = dht_audit_queue.qsize()
-
+    def test_normal_reading_no_event(self, dht_audit_events, sample_reading):
+        """Normal reading within thresholds should not trigger events."""
         audit_reading(sample_reading)
 
-        assert dht_audit_queue.qsize() == initial_queue_size
+        assert len(dht_audit_events) == 0
         assert sample_reading.temperature.state == State.OK
         assert sample_reading.humidity.state == State.OK
 
-    def test_high_temperature_triggers_event(self, dht_audit_queue, frozen_time):
+    def test_high_temperature_triggers_event(self, dht_audit_events, frozen_time):
         """Temperature above max should trigger an event."""
         reading = Reading(
             temperature=Measure(80.0, Unit.CELSIUS),  # Very high, definitely over threshold
-            humidity=Measure(50.0, Unit.PERCENT),
+            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
             recording_time=frozen_time,
         )
 
         audit_reading(reading)
 
         assert reading.temperature.state == State.IN_ALERT
-        # Check temperature event was queued
-        assert not dht_audit_queue.empty()
-        violation = dht_audit_queue.get_nowait()
-        assert violation.sensor_name == "temperature"
-        assert violation.value == 80.0
-        assert violation.namespace == Namespace.DHT
+        assert len(dht_audit_events) == 1
+        event = dht_audit_events[0]
+        assert event.sensor_name == "temperature"
+        assert event.value == 80.0
+        assert event.namespace == Namespace.DHT
 
-    def test_low_temperature_triggers_event(self, dht_audit_queue, frozen_time):
+    def test_low_temperature_triggers_event(self, dht_audit_events, frozen_time):
         """Temperature below min should trigger an event."""
         reading = Reading(
             temperature=Measure(-10.0, Unit.CELSIUS),  # Very low, definitely under threshold
-            humidity=Measure(50.0, Unit.PERCENT),
+            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
             recording_time=frozen_time,
         )
 
         audit_reading(reading)
 
         assert reading.temperature.state == State.IN_ALERT
-        violation = dht_audit_queue.get_nowait()
-        assert violation.sensor_name == "temperature"
+        assert len(dht_audit_events) == 1
+        assert dht_audit_events[0].sensor_name == "temperature"
 
-    def test_high_humidity_triggers_event(self, dht_audit_queue, frozen_time):
+    def test_high_humidity_triggers_event(self, dht_audit_events, frozen_time):
         """Humidity above max should trigger an event."""
         reading = Reading(
             temperature=Measure(22.0, Unit.CELSIUS),
@@ -63,10 +59,10 @@ class TestAuditReading:
         audit_reading(reading)
 
         assert reading.humidity.state == State.IN_ALERT
-        violation = dht_audit_queue.get_nowait()
-        assert violation.sensor_name == "humidity"
+        assert len(dht_audit_events) == 1
+        assert dht_audit_events[0].sensor_name == "humidity"
 
-    def test_low_humidity_triggers_event(self, dht_audit_queue, frozen_time):
+    def test_low_humidity_triggers_event(self, dht_audit_events, frozen_time):
         """Humidity below min should trigger an event."""
         reading = Reading(
             temperature=Measure(22.0, Unit.CELSIUS),
@@ -77,81 +73,68 @@ class TestAuditReading:
         audit_reading(reading)
 
         assert reading.humidity.state == State.IN_ALERT
-        violation = dht_audit_queue.get_nowait()
-        assert violation.sensor_name == "humidity"
+        assert len(dht_audit_events) == 1
+        assert dht_audit_events[0].sensor_name == "humidity"
 
-    def test_no_duplicate_events(self, dht_audit_queue, frozen_time):
-        """Consecutive alerts should not queue duplicate events."""
+    def test_no_duplicate_events(self, dht_audit_events, frozen_time):
+        """Consecutive alerts should not trigger duplicate events."""
         reading1 = Reading(
             temperature=Measure(80.0, Unit.CELSIUS),  # Definitely triggers
-            humidity=Measure(50.0, Unit.PERCENT),
+            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
             recording_time=frozen_time,
         )
         reading2 = Reading(
             temperature=Measure(81.0, Unit.CELSIUS),  # Still in alert
-            humidity=Measure(50.0, Unit.PERCENT),
+            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
             recording_time=frozen_time,
         )
 
         audit_reading(reading1)
-        initial_temp_events = 0
-        while not dht_audit_queue.empty():
-            violation = dht_audit_queue.get_nowait()
-            if violation.sensor_name == "temperature":
-                initial_temp_events += 1
+        initial_count = len(dht_audit_events)
+        assert initial_count == 1  # First alert triggers
 
         audit_reading(reading2)
 
-        # No new temperature event should be queued (still in alert state)
-        temp_events = 0
-        while not dht_audit_queue.empty():
-            violation = dht_audit_queue.get_nowait()
-            if violation.sensor_name == "temperature":
-                temp_events += 1
-        assert temp_events == 0
+        # No new temperature event should be triggered (still in alert state)
+        assert len(dht_audit_events) == initial_count
 
-    def test_new_event_after_recovery(self, dht_audit_queue, frozen_time):
-        """New alert after recovery should queue a new event."""
+    def test_new_event_after_recovery(self, dht_audit_events, frozen_time):
+        """New alert after recovery should trigger a new event."""
         # Initial alert
         reading1 = Reading(
             temperature=Measure(80.0, Unit.CELSIUS),  # Definitely triggers
-            humidity=Measure(50.0, Unit.PERCENT),
+            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
             recording_time=frozen_time,
         )
         audit_reading(reading1)
-        # Clear queue
-        while not dht_audit_queue.empty():
-            dht_audit_queue.get_nowait()
+        assert len(dht_audit_events) == 1
 
         # Recovery - use very safe middle value
         reading2 = Reading(
             temperature=Measure(20.0, Unit.CELSIUS),
-            humidity=Measure(50.0, Unit.PERCENT),
+            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
             recording_time=frozen_time,
         )
         audit_reading(reading2)
-        # Clear any humidity alerts
-        while not dht_audit_queue.empty():
-            dht_audit_queue.get_nowait()
+        # Recovery event (is_resolved=True)
+        assert len(dht_audit_events) == 2
+        assert dht_audit_events[1].is_resolved is True
 
         # New alert
         reading3 = Reading(
             temperature=Measure(80.0, Unit.CELSIUS),  # Definitely triggers again
-            humidity=Measure(50.0, Unit.PERCENT),
+            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
             recording_time=frozen_time,
         )
         audit_reading(reading3)
 
-        # New temperature event should be queued
-        temp_events = []
-        while not dht_audit_queue.empty():
-            violation = dht_audit_queue.get_nowait()
-            if violation.sensor_name == "temperature":
-                temp_events.append(violation)
-        assert len(temp_events) == 1
+        # New temperature event should be triggered
+        assert len(dht_audit_events) == 3
+        assert dht_audit_events[2].sensor_name == "temperature"
+        assert dht_audit_events[2].is_resolved is False
 
-    def test_multiple_alerts_same_reading(self, dht_audit_queue, frozen_time):
-        """Both temperature and humidity alerts should queue separate events."""
+    def test_multiple_alerts_same_reading(self, dht_audit_events, frozen_time):
+        """Both temperature and humidity alerts should trigger separate events."""
         reading = Reading(
             temperature=Measure(80.0, Unit.CELSIUS),  # Definitely triggers
             humidity=Measure(99.0, Unit.PERCENT),  # Definitely triggers
@@ -160,14 +143,11 @@ class TestAuditReading:
 
         audit_reading(reading)
 
-        events = []
-        while not dht_audit_queue.empty():
-            events.append(dht_audit_queue.get_nowait())
-        sensor_names = {e.sensor_name for e in events}
+        sensor_names = {e.sensor_name for e in dht_audit_events}
         assert "temperature" in sensor_names
         assert "humidity" in sensor_names
 
-    def test_state_updated_on_reading(self, dht_audit_queue, frozen_time):
+    def test_state_updated_on_reading(self, dht_audit_events, frozen_time):
         """Reading's measure states should be updated after audit."""
         reading = Reading(
             temperature=Measure(80.0, Unit.CELSIUS),  # Definitely triggers
@@ -179,7 +159,7 @@ class TestAuditReading:
         audit_reading(reading)
         assert reading.temperature.state == State.IN_ALERT
 
-    def test_alert_tracker_uses_dht_namespace(self, dht_audit_queue, frozen_time):
+    def test_alert_tracker_uses_dht_namespace(self, dht_audit_events, frozen_time):
         """Alert tracker should use DHT namespace for temperature/humidity."""
         # Temperature is high (alert), humidity is within normal range
         reading = Reading(

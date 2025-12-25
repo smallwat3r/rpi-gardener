@@ -3,7 +3,6 @@
 Reads JSON lines from the Pico's USB serial output and persists
 moisture readings to the database.
 """
-import asyncio
 import json
 from datetime import UTC, datetime
 from typing import Protocol, override
@@ -11,7 +10,8 @@ from typing import Protocol, override
 from rpi.lib.alerts import AlertEvent, Namespace, get_alert_tracker
 from rpi.lib.config import get_moisture_threshold, get_settings
 from rpi.lib.db import close_db, get_db, init_db
-from rpi.lib.notifications import get_notifier
+from rpi.lib.eventbus import (AlertEventPayload, PicoReadingEvent, Topic,
+                              get_publisher)
 from rpi.lib.polling import PollingService
 from rpi.logging import configure, get_logger
 from rpi.pico.models import MoistureReading, ValidationError
@@ -54,21 +54,18 @@ class SerialDataSource:
         logger.info("Serial port %s closed", self._port)
 
 
-_pending_tasks: set[asyncio.Task] = set()
-
-
-async def _send_notification(event: AlertEvent) -> None:
-    """Send notification for alert event."""
-    notifier = get_notifier()
-    await notifier.send(event)
-
-
-def _schedule_notification(event: AlertEvent) -> None:
-    """Schedule async notification without blocking."""
-    loop = asyncio.get_running_loop()
-    task = loop.create_task(_send_notification(event))
-    _pending_tasks.add(task)
-    task.add_done_callback(_pending_tasks.discard)
+def _publish_alert(event: AlertEvent) -> None:
+    """Publish an alert event to the event bus."""
+    payload = AlertEventPayload(
+        namespace=event.namespace.value,
+        sensor_name=event.sensor_name,
+        value=event.value,
+        unit=event.unit,
+        threshold=event.threshold,
+        recording_time=event.recording_time,
+        is_resolved=event.is_resolved,
+    )
+    get_publisher().publish(Topic.ALERT, payload)
 
 
 class PicoPollingService(PollingService[list[MoistureReading]]):
@@ -80,26 +77,18 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
 
     @override
     async def initialize(self) -> None:
-        """Initialize database and register alert callback."""
+        """Initialize database, event publisher, and register alert callback."""
         await init_db()
+        self._publisher = get_publisher()
+        self._publisher.connect()
         tracker = get_alert_tracker()
-        tracker.register_callback(Namespace.PICO, _schedule_notification)
+        tracker.register_callback(Namespace.PICO, _publish_alert)
 
     @override
     async def cleanup(self) -> None:
-        """Clean up serial connection and wait for pending notifications."""
+        """Clean up serial connection, event publisher, and database."""
         self._source.close()
-        if _pending_tasks:
-            self._logger.info(
-                "Waiting for %d pending notification(s)", len(_pending_tasks)
-            )
-            try:
-                await asyncio.wait_for(
-                    asyncio.gather(*_pending_tasks, return_exceptions=True),
-                    timeout=get_settings().notifications.timeout_sec,
-                )
-            except TimeoutError:
-                self._logger.warning("Timed out waiting for pending notifications")
+        self._publisher.close()
         await close_db()
 
     @override
@@ -162,7 +151,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
 
     @override
     async def persist(self, readings: list[MoistureReading]) -> None:
-        """Persist moisture readings to the database."""
+        """Persist moisture readings to the database and publish event."""
         async with get_db() as db:
             await db.executemany(
                 "INSERT INTO pico_reading (plant_id, moisture, recording_time) "
@@ -177,6 +166,17 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
                 ],
             )
         self._logger.debug("Persisted %d readings", len(readings))
+
+        # Publish to event bus for real-time WebSocket updates
+        events = [
+            PicoReadingEvent(
+                plant_id=r.plant_id,
+                moisture=r.moisture,
+                recording_time=r.recording_time,
+            )
+            for r in readings
+        ]
+        self._publisher.publish(Topic.PICO_READING, events)
 
 
 def _create_data_source() -> PicoDataSource:

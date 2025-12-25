@@ -1,52 +1,40 @@
-"""Event handling and auditing service for the DHT22 sensor.
+"""Auditing service for the DHT22 sensor.
 
 The service is responsible for:
 - Auditing readings against predefined thresholds
-- Queuing notification events when thresholds are crossed
-- Processing events via a background async task
+- Publishing alert events to the event bus (notifications handled by web server)
 """
-import asyncio
-
 from rpi.dht.models import Measure, Reading, State
 from rpi.lib.alerts import AlertEvent, AlertState, Namespace, get_alert_tracker
 from rpi.lib.config import get_threshold_rules
-from rpi.lib.notifications import get_notifier
+from rpi.lib.eventbus import AlertEventPayload, Topic, get_publisher
 from rpi.logging import get_logger
 
 logger = get_logger("dht.audit")
 
-_queue: asyncio.Queue[AlertEvent] | None = None
-_worker_task: asyncio.Task | None = None
 
-
-def _enqueue_event(event: AlertEvent) -> None:
-    """Enqueue an alert event for processing by the background worker."""
-    if _queue is not None:
-        _queue.put_nowait(event)
-
-
-async def _event_worker() -> None:
-    """Process events from the queue asynchronously."""
-    notifier = get_notifier()
-    while True:
-        event = await _queue.get()
-        event_type = "resolution" if event.is_resolved else "alert"
-        logger.info("Processing %s for %s", event_type, event.sensor_name)
-        await notifier.send(event)
-        _queue.task_done()
+def _publish_alert(event: AlertEvent) -> None:
+    """Publish an alert event to the event bus."""
+    payload = AlertEventPayload(
+        namespace=event.namespace.value,
+        sensor_name=event.sensor_name,
+        value=event.value,
+        unit=event.unit,
+        threshold=event.threshold,
+        recording_time=event.recording_time,
+        is_resolved=event.is_resolved,
+    )
+    get_publisher().publish(Topic.ALERT, payload)
 
 
 def init() -> None:
-    """Initialize the audit service: queue, worker task, and alert callback."""
-    global _queue, _worker_task
-    _queue = asyncio.Queue()
-    _worker_task = asyncio.create_task(_event_worker())
+    """Initialize the audit service by registering the alert callback."""
     tracker = get_alert_tracker()
-    tracker.register_callback(Namespace.DHT, _enqueue_event)
+    tracker.register_callback(Namespace.DHT, _publish_alert)
 
 
 def audit_reading(reading: Reading) -> None:
-    """Audit reading values against thresholds and enqueue notification events."""
+    """Audit reading values against thresholds and publish alert events."""
     tracker = get_alert_tracker()
 
     for name, rules in get_threshold_rules().items():

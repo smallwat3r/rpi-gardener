@@ -6,6 +6,7 @@ requires-python = ">=3.14"
 dependencies = [
     "aiosqlite",
     "python-dotenv",
+    "pyzmq",
     "starlette",
     "uvicorn[standard]",
 ]

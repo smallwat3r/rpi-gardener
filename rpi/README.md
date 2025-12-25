@@ -2,29 +2,46 @@
 
 Python code for the Raspberry Pi 4.
 
+## Architecture
+
+Services communicate via a ZeroMQ event bus (IPC socket):
+
+```
+DHT Polling ──┐                  ┌── Web Server (WebSocket)
+              ├── Event Bus ─────┤
+Pico Reader ──┘                  └── Notification Service (Gmail/Slack)
+```
+
 ## Services
 
 ### DHT22 Polling Service (`dht/`)
 
 Reads temperature and humidity from the DHT22 sensor every 2 seconds.
-Handles graceful shutdown on SIGTERM/SIGINT.
+Publishes readings to the event bus.
 
     make polling
 
 ### Pico Serial Reader (`pico/`)
 
 Reads soil moisture data from a Pico microcontroller via USB serial.
-Parses JSON lines and persists readings to the database.
+Parses JSON lines and publishes readings to the event bus.
 
     make pico
 
 ### Web Server (`server/`)
 
 REST API and WebSocket server for the dashboard. Uses Starlette (ASGI).
-The frontend SPA is served by NGINX.
+Subscribes to the event bus for real-time updates.
 
     make serve     # Development (with reload)
     make server    # Production (uvicorn)
+
+### Notification Service (`notifications/`)
+
+Subscribes to alert events and sends notifications via Gmail/Slack.
+Runs independently of the web server.
+
+    python -m rpi.notifications
 
 ## Endpoints
 
@@ -36,6 +53,7 @@ The frontend SPA is served by NGINX.
 | `/dht/latest` | WS | Real-time DHT22 readings |
 | `/dht/stats` | WS | Real-time DHT22 statistics |
 | `/pico/latest` | WS | Real-time Pico readings |
+| `/alerts` | WS | Real-time threshold alerts |
 
 ## Dashboard Features
 

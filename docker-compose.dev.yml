@@ -19,6 +19,7 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - db_data:/app/data
+      - socket:/tmp
     env_file:
       - .env
     environment:
@@ -32,12 +33,23 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - db_data:/app/data
+      - socket:/tmp
     env_file:
       - .env
     environment:
       - DB_PATH=/app/data/dht.sqlite3
       - MOCK_SENSORS=1
     command: python -m rpi.pico
+
+  notifications:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - socket:/tmp
+    env_file:
+      - .env
+    command: python -m rpi.notifications
 
   nginx:
     image: nginx:alpine

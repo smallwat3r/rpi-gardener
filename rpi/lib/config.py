@@ -172,6 +172,20 @@ class CleanupSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class EventBusSettings:
+    """ZeroMQ event bus settings."""
+    socket_path: str = "ipc:///tmp/rpi-gardener.ipc"
+    enabled: bool = True
+
+    @classmethod
+    def from_env(cls) -> EventBusSettings:
+        return cls(
+            socket_path=environ.get("EVENTBUS_SOCKET", "ipc:///tmp/rpi-gardener.ipc"),
+            enabled=environ.get("EVENTBUS_ENABLED", "1") == "1",
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class Settings:
     """Application settings container."""
     db_path: str = "dht.sqlite3"
@@ -183,6 +197,7 @@ class Settings:
     display: DisplaySettings = field(default_factory=DisplaySettings)
     polling: PollingSettings = field(default_factory=PollingSettings)
     cleanup: CleanupSettings = field(default_factory=CleanupSettings)
+    eventbus: EventBusSettings = field(default_factory=EventBusSettings)
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -197,6 +212,7 @@ class Settings:
             display=DisplaySettings(),
             polling=PollingSettings(),
             cleanup=CleanupSettings(),
+            eventbus=EventBusSettings.from_env(),
         )
 
 

@@ -1,8 +1,14 @@
-"""WebSocket routes for the RPi Gardener application."""
+"""WebSocket routes for the RPi Gardener application.
+
+WebSocket connections receive real-time updates via the ZeroMQ event bus.
+The event subscriber (in entrypoint.py) broadcasts new readings to clients.
+
+Exception: Stats endpoint uses polling since stats depend on user-selected
+time window (1-24 hours) which varies per client.
+"""
 import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
-from datetime import datetime
 from typing import Any
 
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -103,22 +109,63 @@ async def _send_heartbeat(websocket: WebSocket, client_id: int) -> None:
         await asyncio.sleep(_HEARTBEAT_INTERVAL_SEC)
         try:
             await websocket.send_json({"type": "ping"})
+        except WebSocketDisconnect:
+            raise
         except Exception:
             _logger.debug("Heartbeat failed for client %s", client_id)
-            raise WebSocketDisconnect()
+            raise WebSocketDisconnect() from None
 
 
-async def _stream_data(
+async def _maintain_connection(
     websocket: WebSocket,
-    fetch_fn: DataFetcher,
     endpoint: str,
+    initial_data: Any = None,
 ) -> None:
-    """Stream data to a WebSocket client at regular intervals."""
+    """Maintain a WebSocket connection for receiving broadcasts.
+
+    Sends initial data on connect, then keeps the connection alive with
+    heartbeats. Real-time updates arrive via broadcast from the event bus.
+    """
     client_id = await connection_manager.connect(websocket, endpoint)
     heartbeat_task: asyncio.Task | None = None
 
     try:
-        # Start heartbeat task
+        # Send initial data if available
+        if initial_data is not None:
+            await websocket.send_json(initial_data)
+
+        # Start heartbeat task and wait for disconnect
+        heartbeat_task = asyncio.create_task(_send_heartbeat(websocket, client_id))
+        await heartbeat_task
+    except WebSocketDisconnect:
+        pass
+    except asyncio.CancelledError:
+        _logger.info("Connection to client %s cancelled (shutdown)", client_id)
+        raise
+    finally:
+        if heartbeat_task is not None:
+            heartbeat_task.cancel()
+            with suppress(asyncio.CancelledError, WebSocketDisconnect):
+                await heartbeat_task
+        connection_manager.disconnect(websocket, endpoint)
+        with suppress(Exception):
+            await websocket.close()
+
+
+async def _poll_data(
+    websocket: WebSocket,
+    fetch_fn: DataFetcher,
+    endpoint: str,
+) -> None:
+    """Poll database and stream data to a WebSocket client.
+
+    Used for endpoints where data depends on per-client parameters
+    (e.g., stats with user-selected time window).
+    """
+    client_id = await connection_manager.connect(websocket, endpoint)
+    heartbeat_task: asyncio.Task | None = None
+
+    try:
         heartbeat_task = asyncio.create_task(_send_heartbeat(websocket, client_id))
 
         while True:
@@ -138,34 +185,49 @@ async def _stream_data(
     finally:
         if heartbeat_task is not None:
             heartbeat_task.cancel()
-            with suppress(asyncio.CancelledError):
+            with suppress(asyncio.CancelledError, WebSocketDisconnect):
                 await heartbeat_task
         connection_manager.disconnect(websocket, endpoint)
         with suppress(Exception):
             await websocket.close()
 
 
-def _parse_hours(websocket: WebSocket) -> datetime:
-    """Parse hours query param and return from_time datetime."""
-    _, from_time = parse_hours(websocket.query_params, strict=False)
-    return from_time
-
-
 async def ws_dht_latest(websocket: WebSocket) -> None:
-    """Stream latest DHT sensor readings."""
-    await _stream_data(websocket, get_latest_dht_data, "/dht/latest")
+    """Stream latest DHT sensor readings.
+
+    Sends current reading on connect, then receives updates via event bus.
+    """
+    initial_data = await get_latest_dht_data()
+    await _maintain_connection(websocket, "/dht/latest", initial_data)
 
 
 async def ws_dht_stats(websocket: WebSocket) -> None:
-    """Stream DHT sensor statistics."""
-    from_time = _parse_hours(websocket)
+    """Stream DHT sensor statistics.
 
-    async def fetch_stats():
+    Uses polling because stats depend on user-selected time window (hours param).
+    Each client may have a different window, so we can't use the event bus.
+    """
+    _, from_time = parse_hours(websocket.query_params, strict=False)
+
+    async def fetch_stats() -> dict | None:
         return await get_stats_dht_data(from_time)
 
-    await _stream_data(websocket, fetch_stats, "/dht/stats")
+    await _poll_data(websocket, fetch_stats, "/dht/stats")
 
 
 async def ws_pico_latest(websocket: WebSocket) -> None:
-    """Stream latest Pico sensor readings."""
-    await _stream_data(websocket, get_latest_pico_data, "/pico/latest")
+    """Stream latest Pico sensor readings.
+
+    Sends current readings on connect, then receives updates via event bus.
+    """
+    initial_data = await get_latest_pico_data()
+    await _maintain_connection(websocket, "/pico/latest", initial_data)
+
+
+async def ws_alerts(websocket: WebSocket) -> None:
+    """Stream alert events (threshold violations and resolutions).
+
+    Receives real-time alerts via event bus when sensors cross thresholds.
+    No initial data - alerts are transient events.
+    """
+    await _maintain_connection(websocket, "/alerts")

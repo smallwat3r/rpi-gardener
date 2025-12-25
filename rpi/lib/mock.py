@@ -3,62 +3,46 @@
 Provides mock implementations of sensor interfaces that generate
 realistic data without requiring hardware. Used by polling/reader
 services when MOCK_SENSORS=1 is set.
+
+Uses the same random walk algorithm as scripts/seed_data.py for
+consistent data patterns between seeded and live mock data.
 """
-import math
 import random
-import time
 
 from rpi.lib.config import PlantId
 
-# Seed for reproducible "randomness" that still varies over time
-_start_time = time.time()
 
+def _random_walk(current: float, drift: float, min_val: float, max_val: float) -> float:
+    """Generate next value using random walk with bounds.
 
-def _smooth_noise(t: float, seed: float = 0.0) -> float:
-    """Generate smooth noise value between -1 and 1.
-
-    Uses multiple sine waves at different frequencies to create
-    natural-looking variations (poor man's Perlin noise).
+    Same algorithm as scripts/seed_data.py for consistent data patterns.
     """
-    return (
-        math.sin(t * 0.1 + seed) * 0.5
-        + math.sin(t * 0.23 + seed * 2) * 0.3
-        + math.sin(t * 0.07 + seed * 3) * 0.2
-    )
-
-
-def _get_time_factor() -> float:
-    """Get time factor for noise generation (changes slowly over time)."""
-    return time.time() - _start_time
+    change = random.gauss(0, drift)
+    new_val = current + change
+    return max(min_val, min(max_val, new_val))
 
 
 class MockDHTSensor:
     """Mock DHT22 sensor that generates realistic readings.
 
-    Temperature varies around 21C (typical indoor temp).
-    Humidity varies around 52% (typical indoor humidity).
-    Both have smooth, correlated variations.
+    Uses same parameters as seed_data.py:
+    - Temperature: drift=0.15, bounds 15-30
+    - Humidity: drift=0.3, bounds 30-70
     """
+
+    def __init__(self) -> None:
+        self._temperature = random.uniform(20.0, 23.0)
+        self._humidity = random.uniform(45.0, 55.0)
 
     @property
     def temperature(self) -> float:
-        t = _get_time_factor()
-        base_temp = 21.0
-        temp_variation = _smooth_noise(t, seed=1.0) * 3.0
-        temp_jitter = random.uniform(-0.1, 0.1)
-        return round(base_temp + temp_variation + temp_jitter, 1)
+        self._temperature = _random_walk(self._temperature, drift=0.15, min_val=15.0, max_val=30.0)
+        return round(self._temperature, 1)
 
     @property
     def humidity(self) -> float:
-        t = _get_time_factor()
-        base_humidity = 52.0
-        temp_variation = _smooth_noise(t, seed=1.0) * 3.0
-        humidity_variation = _smooth_noise(t, seed=2.0) * 12.0 - temp_variation * 1.5
-        humidity_jitter = random.uniform(-0.5, 0.5)
-        return round(
-            max(30.0, min(80.0, base_humidity + humidity_variation + humidity_jitter)),
-            1,
-        )
+        self._humidity = _random_walk(self._humidity, drift=0.3, min_val=30.0, max_val=70.0)
+        return round(self._humidity, 1)
 
     def exit(self) -> None:
         """No-op for mock sensor."""
@@ -67,28 +51,23 @@ class MockDHTSensor:
 class MockPicoDataSource:
     """Mock Pico data source that generates realistic moisture readings.
 
-    Each plant has different base moisture levels and variation patterns
-    to simulate real plant conditions.
+    Uses same parameters as seed_data.py:
+    - Moisture: drift=0.5, bounds 10-90
+    - Initial values: random 40-70 per plant
     """
 
     def __init__(self, frequency_sec: float = 2.0) -> None:
         self._frequency_sec = frequency_sec
-        self._plant_configs = {
-            PlantId.PLANT_1: {"base": 55.0, "variation": 15.0, "seed": 20.0},
-            PlantId.PLANT_2: {"base": 42.0, "variation": 12.0, "seed": 21.0},
-            PlantId.PLANT_3: {"base": 35.0, "variation": 10.0, "seed": 22.0},
+        self._moisture = {
+            plant_id: random.uniform(40.0, 70.0) for plant_id in PlantId
         }
 
     def _generate_moisture(self, plant_id: PlantId) -> float:
         """Generate a realistic moisture reading for a plant."""
-        t = _get_time_factor()
-        config = self._plant_configs[plant_id]
-        moisture_variation = _smooth_noise(t, seed=config["seed"]) * config["variation"]
-        moisture_jitter = random.uniform(-1.0, 1.0)
-        return round(
-            max(5.0, min(95.0, config["base"] + moisture_variation + moisture_jitter)),
-            1,
+        self._moisture[plant_id] = _random_walk(
+            self._moisture[plant_id], drift=0.5, min_val=10.0, max_val=90.0
         )
+        return round(self._moisture[plant_id], 1)
 
     async def readline(self) -> str:
         """Generate a line of mock Pico JSON data."""

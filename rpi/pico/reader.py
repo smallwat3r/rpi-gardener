@@ -134,7 +134,11 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
             except ValidationError as e:
                 self._logger.warning("Validation failed for %s: %s", key, e)
 
-        return readings if readings else None
+        if readings:
+            summary = ", ".join(f"plant-{r.plant_id}: {r.moisture}%" for r in readings)
+            self._logger.info("Read %s", summary)
+            return readings
+        return None
 
     @override
     async def audit(self, readings: list[MoistureReading]) -> bool:

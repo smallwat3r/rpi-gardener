@@ -9,7 +9,7 @@ from datetime import datetime
 
 from rpi.lib.alerts import AlertEvent, Namespace
 from rpi.lib.eventbus import EventSubscriber, Topic
-from rpi.lib.notifications import get_notifier
+from rpi.lib.notifications import get_notifier, get_sensor_label
 from rpi.logging import configure, get_logger
 
 logger = get_logger("notifications.service")
@@ -40,8 +40,9 @@ async def run() -> None:
         async for topic, data in subscriber.receive():
             try:
                 event = _parse_alert_event(data)
+                label = get_sensor_label(event.sensor_name)
                 event_type = "resolution" if event.is_resolved else "alert"
-                logger.info("Processing %s for %s", event_type, event.sensor_name)
+                logger.info("Processing %s for %s", event_type, label)
                 await notifier.send(event)
             except Exception as e:
                 logger.error("Failed to process notification: %s", e)

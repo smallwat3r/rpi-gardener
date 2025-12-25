@@ -195,8 +195,9 @@ class NoOpNotifier(AbstractNotifier):
     @override
     async def send(self, event: AlertEvent) -> None:
         """Log the event but don't send a notification."""
+        label = get_sensor_label(event.sensor_name)
         event_type = "resolution" if event.is_resolved else "alert"
-        logger.info("Notification service disabled, ignoring %s for %s", event_type, event.sensor_name)
+        logger.info("Notifications disabled, skipping %s for %s", event_type, label)
 
 
 _BACKEND_MAP: dict[NotificationBackend, type[AbstractNotifier]] = {

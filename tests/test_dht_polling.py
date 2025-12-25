@@ -1,31 +1,12 @@
 """Tests for the DHT22 polling module."""
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from rpi.dht.models import Measure, Reading, State, Unit
 from rpi.dht.polling import DHTPollingService
-
-
-@pytest.fixture
-def mock_sensor():
-    """Create a mock DHT sensor."""
-    sensor = MagicMock()
-    sensor.temperature = 22.0
-    sensor.humidity = 50.0
-    sensor.exit = MagicMock()
-    return sensor
-
-
-@pytest.fixture
-def mock_display():
-    """Create a mock display."""
-    display = MagicMock()
-    display.clear = MagicMock()
-    display.render_reading = MagicMock()
-    return display
 
 
 class TestDHTPollingServiceAudit:

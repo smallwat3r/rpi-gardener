@@ -134,15 +134,12 @@ class TestProcessReadings:
 class TestAuditMoisture:
     """Tests for moisture alert logic."""
 
-    def setup_method(self):
-        """Register Pico alerts callback before each test."""
-        from rpi.pico.reader import _register_pico_alerts
-        _register_pico_alerts()
-
     @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
-    async def test_no_alert_when_above_threshold(self, mock_threshold, mock_get_notifier, frozen_time):
+    async def test_no_alert_when_above_threshold(
+        self, mock_threshold, mock_get_notifier, pico_alerts_registered, frozen_time
+    ):
         notifier = MagicMock()
         notifier.send = AsyncMock()
         mock_get_notifier.return_value = notifier
@@ -156,7 +153,9 @@ class TestAuditMoisture:
     @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
-    async def test_alert_when_below_threshold(self, mock_threshold, mock_get_notifier, frozen_time):
+    async def test_alert_when_below_threshold(
+        self, mock_threshold, mock_get_notifier, pico_alerts_registered, frozen_time
+    ):
         notifier = MagicMock()
         notifier.send = AsyncMock()
         mock_get_notifier.return_value = notifier
@@ -176,7 +175,9 @@ class TestAuditMoisture:
     @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
-    async def test_no_duplicate_alerts(self, mock_threshold, mock_get_notifier, frozen_time):
+    async def test_no_duplicate_alerts(
+        self, mock_threshold, mock_get_notifier, pico_alerts_registered, frozen_time
+    ):
         notifier = MagicMock()
         notifier.send = AsyncMock()
         mock_get_notifier.return_value = notifier
@@ -194,7 +195,9 @@ class TestAuditMoisture:
     @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
-    async def test_new_alert_after_recovery(self, mock_threshold, mock_get_notifier, frozen_time):
+    async def test_new_alert_after_recovery(
+        self, mock_threshold, mock_get_notifier, pico_alerts_registered, frozen_time
+    ):
         notifier = MagicMock()
         notifier.send = AsyncMock()
         mock_get_notifier.return_value = notifier
@@ -215,7 +218,9 @@ class TestAuditMoisture:
     @pytest.mark.asyncio
     @patch.object(reader, "get_notifier")
     @patch.object(reader, "get_moisture_threshold", return_value=30)
-    async def test_independent_plant_states(self, mock_threshold, mock_get_notifier, frozen_time):
+    async def test_independent_plant_states(
+        self, mock_threshold, mock_get_notifier, pico_alerts_registered, frozen_time
+    ):
         notifier = MagicMock()
         notifier.send = AsyncMock()
         mock_get_notifier.return_value = notifier

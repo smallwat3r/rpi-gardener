@@ -23,7 +23,7 @@ devdeps:  ## Install development dependencies (includes pytest)
 
 .PHONY: test
 test:  ## Run pytest test suite
-	uv run pytest tests/ -v
+	uv run python -m pytest tests/ -v
 
 .PHONY: isort
 isort:  ## Sort Python imports

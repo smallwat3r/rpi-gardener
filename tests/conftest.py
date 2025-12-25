@@ -1,4 +1,5 @@
 """Shared pytest fixtures for the test suite."""
+import asyncio
 import logging
 import sys
 from datetime import datetime, timezone
@@ -19,7 +20,7 @@ sys.modules["PIL.ImageDraw"] = MagicMock()
 sys.modules["PIL.ImageFont"] = MagicMock()
 
 from rpi.dht.models import Measure, Reading, State, Unit
-from rpi.lib.alerts import reset_alert_tracker
+from rpi.lib.alerts import Namespace, get_alert_tracker, reset_alert_tracker
 from rpi.lib.config import set_settings
 
 
@@ -67,3 +68,48 @@ def sample_reading(frozen_time):
     )
 
 
+@pytest.fixture
+def mock_sensor():
+    """Create a mock DHT sensor."""
+    sensor = MagicMock()
+    sensor.temperature = 22.0
+    sensor.humidity = 50.0
+    sensor.exit = MagicMock()
+    return sensor
+
+
+@pytest.fixture
+def mock_display():
+    """Create a mock display."""
+    display = MagicMock()
+    display.clear = MagicMock()
+    display.render_reading = MagicMock()
+    return display
+
+
+@pytest.fixture
+def dht_audit_queue():
+    """Initialize DHT audit queue and register callback.
+
+    Use this fixture when testing DHT audit functionality that needs
+    the event queue and callback registration.
+    """
+    from rpi.dht import audit
+    from rpi.dht.audit import _enqueue_event
+
+    audit._queue = asyncio.Queue()
+    tracker = get_alert_tracker()
+    tracker.register_callback(Namespace.DHT, _enqueue_event)
+    return audit._queue
+
+
+@pytest.fixture
+def pico_alerts_registered():
+    """Register Pico alerts callback.
+
+    Use this fixture when testing Pico moisture auditing that needs
+    the alert callback registration.
+    """
+    from rpi.pico.reader import _register_pico_alerts
+
+    _register_pico_alerts()

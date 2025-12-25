@@ -3,7 +3,7 @@
 import gc
 import ujson
 import utime
-from machine import ADC, Pin, I2C
+from machine import ADC, Pin, I2C, WDT
 
 from ssd1306 import SSD1306_I2C
 
@@ -26,7 +26,7 @@ class Plant:
 
     @property
     def id(self):
-        return self.name[-1]
+        return self.name.split("-")[-1]
 
 
 class Calibration:
@@ -57,7 +57,6 @@ class Display(SSD1306_I2C):
     def clear(self):
         self._content = []
         self.fill(0)
-        self.show()
 
     def add_content(self, text):
         self._content.append(text)
@@ -102,9 +101,10 @@ def update_display(display, readings):
 def main():
     """Main loop for reading sensors and sending data via USB serial."""
     display = init_display()
+    wdt = WDT(timeout=8000)
+    readings = {plant.name: 0 for plant in plants}
 
     while True:
-        readings = {}
         for plant in plants:
             readings[plant.name] = read_moisture(plant)
 
@@ -115,6 +115,7 @@ def main():
 
         utime.sleep(POLLING_INTERVAL_SEC)
         gc.collect()
+        wdt.feed()
 
 
 if __name__ == "__main__":

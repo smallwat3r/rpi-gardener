@@ -163,8 +163,12 @@ class DisplaySettings:
 class PollingSettings:
     """Polling service settings."""
     frequency_sec: int = 2
-    cleanup_interval_cycles: int = 1800  # ~1 hour at 2s intervals
-    cleanup_retention_days: int = 3
+
+
+@dataclass(frozen=True, slots=True)
+class CleanupSettings:
+    """Database cleanup settings (used by cron job)."""
+    retention_days: int = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,6 +182,7 @@ class Settings:
     pico: PicoSettings = field(default_factory=PicoSettings)
     display: DisplaySettings = field(default_factory=DisplaySettings)
     polling: PollingSettings = field(default_factory=PollingSettings)
+    cleanup: CleanupSettings = field(default_factory=CleanupSettings)
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -191,6 +196,7 @@ class Settings:
             pico=PicoSettings.from_env(),
             display=DisplaySettings(),
             polling=PollingSettings(),
+            cleanup=CleanupSettings(),
         )
 
 

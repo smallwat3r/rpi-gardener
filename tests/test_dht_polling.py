@@ -1,6 +1,5 @@
 """Tests for the DHT22 polling module."""
 from contextlib import asynccontextmanager
-from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -154,38 +153,6 @@ class TestDHTPollingServicePersist:
         assert params[0] == sample_reading.temperature.value
         assert params[1] == sample_reading.humidity.value
         assert params[2] == sample_reading.recording_time
-
-
-class TestDHTPollingServiceClearOldRecords:
-    """Tests for clearing old database records."""
-
-    @pytest.fixture
-    def service(self, mock_sensor, mock_display):
-        """Create a DHTPollingService instance for testing."""
-        return DHTPollingService(mock_sensor, mock_display)
-
-    @pytest.mark.asyncio
-    async def test_clear_old_records_deletes_old_data(self, service, frozen_time):
-        with patch("rpi.lib.polling.datetime") as mock_dt:
-            mock_dt.now.return_value = frozen_time
-            mock_db = AsyncMock()
-            mock_db.execute = AsyncMock()
-
-            @asynccontextmanager
-            async def mock_get_db():
-                yield mock_db
-
-            with patch("rpi.dht.polling.get_db", mock_get_db):
-                await service.clear_old_records()
-
-            # Should delete from both tables
-            assert mock_db.execute.call_count == 2
-
-            # Check cutoff date (3 days retention by default)
-            first_call = mock_db.execute.call_args_list[0]
-            cutoff = first_call[0][1][0]
-            expected_cutoff = frozen_time - timedelta(days=3)
-            assert cutoff == expected_cutoff
 
 
 class TestDHTPollingServiceErrorHandling:

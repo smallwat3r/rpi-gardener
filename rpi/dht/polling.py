@@ -105,14 +105,6 @@ class DHTPollingService(PollingService[Reading]):
             )
 
     @override
-    async def clear_old_records(self) -> None:
-        """Clear historical data older than retention period."""
-        cutoff = self.get_cutoff_time()
-        async with get_db() as db:
-            await db.execute("DELETE FROM reading WHERE recording_time < ?", (cutoff,))
-            await db.execute("DELETE FROM pico_reading WHERE recording_time < ?", (cutoff,))
-
-    @override
     def on_poll_error(self, error: Exception) -> None:
         """Handle DHT22-specific errors."""
         if isinstance(error, RuntimeError):

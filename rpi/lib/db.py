@@ -225,6 +225,7 @@ async def init_db() -> None:
         _logger.info("Opened persistent database connection: %s", get_settings().db_path)
 
     await _db._connection.execute("PRAGMA journal_mode=WAL")
+    await _db._connection.execute("PRAGMA auto_vacuum=INCREMENTAL")
     await _db._connection.execute(_INIT_READING_SQL)
     await _db.executescript(_IDX_READING_SQL)
     await _db._connection.execute(_INIT_PICO_SQL)

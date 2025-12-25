@@ -1,12 +1,11 @@
 """Generic async polling service abstraction.
 
 Provides a reusable base class for sensor polling services that follow
-the poll → audit → persist pattern with configurable intervals and cleanup.
+the poll → audit → persist pattern with configurable intervals.
 """
 import asyncio
 import signal
 from abc import ABC, abstractmethod
-from datetime import UTC, datetime, timedelta
 from types import FrameType
 
 from rpi.lib.config import get_settings
@@ -20,7 +19,6 @@ class PollingService[T](ABC):
 
     Implements the common polling loop pattern with:
     - Configurable polling frequency
-    - Periodic cleanup of old data
     - Graceful shutdown handling
     - Error recovery
     """
@@ -29,22 +27,16 @@ class PollingService[T](ABC):
         self,
         name: str,
         frequency_sec: int | None = None,
-        cleanup_interval_cycles: int | None = None,
-        cleanup_retention_days: int | None = None,
     ) -> None:
         """Initialize the polling service.
 
         Args:
             name: Service name for logging.
             frequency_sec: Polling frequency in seconds.
-            cleanup_interval_cycles: Run cleanup every N poll cycles.
-            cleanup_retention_days: Delete data older than this many days.
         """
         self.name = name
         polling_cfg = get_settings().polling
         self.frequency_sec = frequency_sec or polling_cfg.frequency_sec
-        self.cleanup_interval_cycles = cleanup_interval_cycles or polling_cfg.cleanup_interval_cycles
-        self.cleanup_retention_days = cleanup_retention_days or polling_cfg.cleanup_retention_days
         self._shutdown_requested = False
         self._logger = get_logger(f"polling.{name}")
 
@@ -91,23 +83,12 @@ class PollingService[T](ABC):
             reading: The validated reading to persist.
         """
 
-    async def clear_old_records(self) -> None:
-        """Clear historical data older than retention period.
-
-        Override this method to implement cleanup logic for your sensor type.
-        Default implementation does nothing.
-        """
-
     def on_poll_error(self, error: Exception) -> None:
         """Handle an error that occurred during polling.
 
         Override to customize error handling. Default logs the error.
         """
         self._logger.debug("%s poll error: %s", self.name, error)
-
-    def get_cutoff_time(self) -> datetime:
-        """Get the cutoff datetime for cleanup operations."""
-        return datetime.now(UTC) - timedelta(days=self.cleanup_retention_days)
 
     def _handle_shutdown(self, signum: int, frame: FrameType | None) -> None:
         """Handle shutdown signals gracefully."""
@@ -133,27 +114,15 @@ class PollingService[T](ABC):
         self._logger.info("%s polling service started", self.name)
 
         loop = asyncio.get_event_loop()
-        poll_count = 0
 
         try:
             while not self._shutdown_requested:
                 cycle_start = loop.time()
 
-                # Run cleanup periodically
-                if poll_count % self.cleanup_interval_cycles == 0:
-                    self._logger.info(
-                        "Running cleanup (data older than %d days)...",
-                        self.cleanup_retention_days
-                    )
-                    await self.clear_old_records()
-
-                # Poll → Audit → Persist
                 try:
                     await self._poll_cycle()
                 except Exception as e:
                     self.on_poll_error(e)
-
-                poll_count += 1
 
                 # Sleep only the remaining time to maintain consistent intervals
                 elapsed = loop.time() - cycle_start
@@ -172,8 +141,7 @@ class PollingService[T](ABC):
         1. Sets up signal handlers for graceful shutdown
         2. Calls initialize()
         3. Enters the polling loop (poll → audit → persist)
-        4. Periodically runs cleanup
-        5. Calls cleanup() on exit
+        4. Calls cleanup() on exit
         """
         self._setup_signal_handlers()
         asyncio.run(self._run_loop())

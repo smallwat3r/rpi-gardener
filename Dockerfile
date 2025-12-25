@@ -22,7 +22,7 @@ RUN python -m venv /opt/venv \
 # Runtime
 FROM python:3.14-slim-bookworm AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgpiod2 i2c-tools fonts-dejavu-core tini \
+    libgpiod2 i2c-tools fonts-dejavu-core tini cron \
     && rm -rf /var/lib/apt/lists/* /root/.cache \
     && find /var/log -type f -delete
 
@@ -37,7 +37,9 @@ COPY --chown=appuser:appgroup rpi/ ./rpi/
 COPY --from=frontend-builder --chown=appuser:appgroup /static/dist ./rpi/server/static/dist
 COPY --chown=root:root docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY --chown=root:root docker/entrypoint.sh /entrypoint.sh
+COPY --chown=root:root docker/crontab /etc/cron.d/db-cleanup
 RUN chmod 755 /entrypoint.sh \
+    && chmod 644 /etc/cron.d/db-cleanup \
     && mkdir -p /app/data \
     && chown appuser:appgroup /app/data
 

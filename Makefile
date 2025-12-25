@@ -63,7 +63,9 @@ dev:  ## Start Docker services (local development, no hardware)
 	docker compose -f docker-compose.dev.yml up -d --build
 
 .PHONY: dev-rebuild
-dev-rebuild:  ## Rebuild dev Docker without cache (use after FE changes)
+dev-rebuild:  ## Rebuild dev Docker (clears static volume for fresh FE)
+	docker compose -f docker-compose.dev.yml down
+	docker volume rm -f rpi-gardener-dev-static
 	docker compose -f docker-compose.dev.yml build --no-cache
 	docker compose -f docker-compose.dev.yml up -d
 

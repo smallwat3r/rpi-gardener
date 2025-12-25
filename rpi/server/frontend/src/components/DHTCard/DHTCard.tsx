@@ -1,9 +1,12 @@
-import { useMemo } from 'preact/hooks';
+import { useMemo, useState, useCallback } from 'preact/hooks';
 import type { DHTReading, DHTStats, Thresholds } from '@/types';
 import { LineChart, type SeriesConfig, type ThresholdLine } from '@/components/LineChart';
 import { StatDisplay } from '@/components/StatDisplay';
 import { WarningBadge } from '@/components/WarningBadge';
+import { Modal } from '@/components/Modal';
 import styles from './DHTCard.module.css';
+
+type ModalChart = 'temperature' | 'humidity' | null;
 
 interface DHTCardProps {
   latest: DHTReading | null;
@@ -34,6 +37,10 @@ function getValueStatus(value: number, min: number, max: number): AlertStatus {
 }
 
 export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) {
+  const [openModal, setOpenModal] = useState<ModalChart>(null);
+
+  const closeModal = useCallback(() => setOpenModal(null), []);
+
   const data = useMemo(
     () => chartData as unknown as Record<string, number>[],
     [chartData]
@@ -93,6 +100,7 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
                 max={stats.max_temperature}
                 unit="°C"
               />
+              <button class={styles.expandBtn} onClick={() => setOpenModal('temperature')} aria-label="Expand temperature chart">⛶</button>
             </div>
             <LineChart data={data} series={TEMP_SERIES} yAxes={TEMP_Y_AXES} thresholds={tempThresholds} colorAxis={false} showArea={false} />
           </section>
@@ -110,11 +118,20 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
                 max={stats.max_humidity}
                 unit="%"
               />
+              <button class={styles.expandBtn} onClick={() => setOpenModal('humidity')} aria-label="Expand humidity chart">⛶</button>
             </div>
             <LineChart data={data} series={HUMIDITY_SERIES} yAxes={HUMIDITY_Y_AXES} thresholds={humidityThresholds} colorAxis={false} showArea={false} />
           </section>
         </div>
       </div>
+
+      <Modal isOpen={openModal === 'temperature'} onClose={closeModal} title="Temperature">
+        <LineChart data={data} series={TEMP_SERIES} yAxes={TEMP_Y_AXES} thresholds={tempThresholds} colorAxis={false} showArea={false} height={400} />
+      </Modal>
+
+      <Modal isOpen={openModal === 'humidity'} onClose={closeModal} title="Humidity">
+        <LineChart data={data} series={HUMIDITY_SERIES} yAxes={HUMIDITY_Y_AXES} thresholds={humidityThresholds} colorAxis={false} showArea={false} height={400} />
+      </Modal>
     </article>
   );
 }

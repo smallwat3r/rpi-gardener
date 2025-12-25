@@ -1,7 +1,8 @@
-import { useMemo } from 'preact/hooks';
+import { useMemo, useState, useCallback } from 'preact/hooks';
 import type { PicoReading, PicoChartDataPoint, Thresholds } from '@/types';
 import { LineChart, type SeriesConfig, type ThresholdLine } from '@/components/LineChart';
 import { WarningBadge } from '@/components/WarningBadge';
+import { Modal } from '@/components/Modal';
 import styles from './PicoCard.module.css';
 
 const PLANT_COLOR = '#a78bfa';
@@ -19,6 +20,10 @@ interface PicoCardProps {
 }
 
 export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
+  const [openPlantId, setOpenPlantId] = useState<number | string | null>(null);
+
+  const closeModal = useCallback(() => setOpenPlantId(null), []);
+
   const data = useMemo(
     () => chartData as unknown as Record<string, number>[],
     [chartData]
@@ -58,6 +63,8 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
     );
   }
 
+  const openPlant = latest.find(p => p.plant_id === openPlantId);
+
   return (
     <article class={styles.card} aria-labelledby="pico-card-header">
       <h2 id="pico-card-header" class={styles.header}>Soil Moisture</h2>
@@ -75,6 +82,7 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
                     {plant.moisture}%
                   </p>
                   {status === 'alert' && <WarningBadge>Needs water</WarningBadge>}
+                  <button class={styles.expandBtn} onClick={() => setOpenPlantId(plant.plant_id)} aria-label={`Expand ${label} chart`}>⛶</button>
                 </div>
                 <LineChart
                   data={data}
@@ -90,6 +98,20 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
           })}
         </div>
       </div>
+
+      {openPlant && (
+        <Modal isOpen={true} onClose={closeModal} title={formatPlantLabel(openPlant.plant_id)}>
+          <LineChart
+            data={data}
+            series={getPlantSeries(openPlant.plant_id)}
+            yAxes={Y_AXES}
+            thresholds={getPlantThresholds(openPlant.plant_id)}
+            colorAxis={false}
+            showArea={false}
+            height={400}
+          />
+        </Modal>
+      )}
     </article>
   );
 }

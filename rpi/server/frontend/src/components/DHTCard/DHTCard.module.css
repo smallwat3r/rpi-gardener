@@ -58,6 +58,23 @@
   flex-wrap: wrap;
 }
 
+.expandBtn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.expandBtn:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
 .chartHeader h3 {
   font-size: var(--font-size-sm);
   font-weight: 600;

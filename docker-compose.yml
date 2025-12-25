@@ -30,6 +30,7 @@ services:
     volumes:
       - db_data:/app/data
       - socket:/tmp
+      - static:/app/rpi/server/static
     env_file: .env
     environment:
       - DB_PATH=/app/data/dht.sqlite3
@@ -46,7 +47,7 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/rpi-ssl.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./rpi/server/static:/var/www/html/static:ro
+      - static:/var/www/html/static:ro
       - socket:/tmp
       - certs:/etc/nginx/certs:ro
     depends_on:
@@ -60,3 +61,5 @@ volumes:
     name: rpi-gardener-socket
   certs:
     name: rpi-gardener-certs
+  static:
+    name: rpi-gardener-static

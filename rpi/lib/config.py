@@ -175,13 +175,11 @@ class CleanupSettings:
 class EventBusSettings:
     """ZeroMQ event bus settings."""
     socket_path: str = "ipc:///tmp/rpi-gardener.ipc"
-    enabled: bool = True
 
     @classmethod
     def from_env(cls) -> EventBusSettings:
         return cls(
             socket_path=environ.get("EVENTBUS_SOCKET", "ipc:///tmp/rpi-gardener.ipc"),
-            enabled=environ.get("EVENTBUS_ENABLED", "1") == "1",
         )
 
 

@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 from starlette.applications import Starlette
 from starlette.routing import Route, WebSocketRoute
 
-from rpi.lib.config import get_settings
 from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.logging import configure, get_logger
 
@@ -38,26 +37,20 @@ async def _event_subscriber_task(subscriber: EventSubscriber) -> None:
 @asynccontextmanager
 async def lifespan(app: Starlette) -> AsyncIterator[None]:
     """Application lifespan manager for startup/shutdown tasks."""
-    subscriber_task = None
-    subscriber = None
-
-    if get_settings().eventbus.enabled:
-        subscriber = EventSubscriber()
-        subscriber.connect()
-        subscriber_task = asyncio.create_task(_event_subscriber_task(subscriber))
-        _logger.info("Event bus subscriber started")
+    subscriber = EventSubscriber()
+    subscriber.connect()
+    subscriber_task = asyncio.create_task(_event_subscriber_task(subscriber))
+    _logger.info("Event bus subscriber started")
 
     try:
         yield
     finally:
-        if subscriber_task is not None:
-            subscriber_task.cancel()
-            try:
-                await subscriber_task
-            except asyncio.CancelledError:
-                pass
-        if subscriber is not None:
-            subscriber.close()
+        subscriber_task.cancel()
+        try:
+            await subscriber_task
+        except asyncio.CancelledError:
+            pass
+        subscriber.close()
         _logger.info("Event bus subscriber stopped")
 
 

@@ -8,7 +8,6 @@ import signal
 from datetime import datetime
 
 from rpi.lib.alerts import AlertEvent, Namespace
-from rpi.lib.config import get_settings
 from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.lib.notifications import get_notifier
 from rpi.logging import configure, get_logger
@@ -31,12 +30,6 @@ def _parse_alert_event(data: dict) -> AlertEvent:
 
 async def run() -> None:
     """Run the notification service."""
-    settings = get_settings()
-
-    if not settings.eventbus.enabled:
-        logger.warning("Event bus disabled, notification service exiting")
-        return
-
     subscriber = EventSubscriber(topics=[Topic.ALERT])
     subscriber.connect()
     notifier = get_notifier()

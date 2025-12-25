@@ -100,18 +100,12 @@ class EventPublisher:
     """
 
     def __init__(self) -> None:
-        settings = get_settings().eventbus
-        self._enabled = settings.enabled
-        self._socket_path = settings.socket_path
+        self._socket_path = get_settings().eventbus.socket_path
         self._context: zmq.Context | None = None
         self._socket: zmq.Socket | None = None
 
     def connect(self) -> None:
         """Connect to the event bus as a publisher."""
-        if not self._enabled:
-            logger.info("Event bus disabled, skipping publisher connection")
-            return
-
         self._context = zmq.Context()
         self._socket = self._context.socket(zmq.PUB)
         self._socket.connect(self._socket_path)
@@ -124,7 +118,7 @@ class EventPublisher:
             topic: The topic to publish to (e.g., Topic.DHT_READING).
             data: Event or list of Events to publish.
         """
-        if not self._enabled or self._socket is None:
+        if self._socket is None:
             return
 
         if isinstance(data, list):
@@ -159,9 +153,7 @@ class EventSubscriber:
         Args:
             topics: List of topics to subscribe to. If None, subscribes to all.
         """
-        settings = get_settings().eventbus
-        self._enabled = settings.enabled
-        self._socket_path = settings.socket_path
+        self._socket_path = get_settings().eventbus.socket_path
         self._topics = topics or list(Topic)
         self._context: zmq.asyncio.Context | None = None
         self._socket: zmq.asyncio.Socket | None = None
@@ -172,10 +164,6 @@ class EventSubscriber:
         The subscriber binds (stable endpoint) while publishers connect.
         This allows multiple publishers to send to a single subscriber.
         """
-        if not self._enabled:
-            logger.info("Event bus disabled, skipping subscriber connection")
-            return
-
         self._context = zmq.asyncio.Context()
         self._socket = self._context.socket(zmq.SUB)
         self._socket.bind(self._socket_path)
@@ -188,7 +176,7 @@ class EventSubscriber:
 
     async def receive(self) -> AsyncIterator[tuple[Topic, dict[str, Any]]]:
         """Async iterator that yields (topic, data) tuples as they arrive."""
-        if not self._enabled or self._socket is None:
+        if self._socket is None:
             return
 
         while True:

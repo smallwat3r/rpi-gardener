@@ -67,19 +67,3 @@ def sample_reading(frozen_time):
     )
 
 
-@pytest.fixture
-def mock_notifier():
-    """Mock notifier for testing alerts."""
-    notifier = MagicMock()
-    notifier.send = MagicMock()
-    with patch("rpi.lib.notifications.get_notifier", return_value=notifier):
-        yield notifier
-
-
-@pytest.fixture
-def mock_display():
-    """Mock OLED display."""
-    with patch("rpi.dht.display.display") as mock:
-        mock.render_reading = MagicMock()
-        mock.clear = MagicMock()
-        yield mock

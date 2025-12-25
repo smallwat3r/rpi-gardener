@@ -11,7 +11,7 @@ services:
       - .env
     environment:
       - DB_PATH=/app/data/dht.sqlite3
-    command: uvicorn rpi.server:app --uds /tmp/uvicorn.sock
+    command: uvicorn rpi.server.entrypoint:create_app --factory --uds /tmp/uvicorn.sock
 
   dht-polling:
     build:

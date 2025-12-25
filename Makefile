@@ -31,11 +31,11 @@ isort:  ## Sort Python imports
 
 .PHONY: serve
 serve:  ## Start the server (for development)
-	uv run uvicorn $(RPI).server:app --host 0.0.0.0 --reload
+	uv run uvicorn $(RPI).server.entrypoint:create_app --factory --host 0.0.0.0 --reload
 
 .PHONY: server
 server:  ## Start the server with uvicorn (binded for Nginx)
-	uv run uvicorn $(RPI).server:app --uds /tmp/uvicorn.sock --workers 3
+	uv run uvicorn $(RPI).server.entrypoint:create_app --factory --uds /tmp/uvicorn.sock --workers 3
 
 .PHONY: polling
 polling:  ## Start the DHT polling service

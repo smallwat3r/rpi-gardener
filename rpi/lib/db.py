@@ -197,7 +197,6 @@ async def get_db() -> AsyncIterator[Database]:
         async with get_db() as db:
             await db.execute("INSERT INTO ...")
     """
-    global _db
     if _db is not None:
         # Use persistent connection (no close on exit)
         yield _db

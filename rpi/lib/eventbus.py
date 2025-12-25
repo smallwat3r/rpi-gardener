@@ -195,11 +195,3 @@ def get_publisher() -> EventPublisher:
     if _publisher is None:
         _publisher = EventPublisher()
     return _publisher
-
-
-def reset_publisher() -> None:
-    """Reset the global publisher (for testing)."""
-    global _publisher
-    if _publisher is not None:
-        _publisher.close()
-    _publisher = None

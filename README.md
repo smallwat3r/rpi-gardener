@@ -15,7 +15,7 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - Modern web dashboard with live charts and threshold visualization
 - Visual alerts when sensor values exceed configured thresholds
 - 128x64 OLED displays on both RPi and Pico
-- Email and Slack notifications when thresholds are crossed
+- Notifications when thresholds are crossed and when alerts resolve
 - Docker deployment
 
 ## Requirements
@@ -106,7 +106,9 @@ make test        # Run test suite
 
 ## Local Development
 
-Run the dashboard locally without RPi hardware using Docker:
+Run the dashboard locally without RPi hardware using Docker. The dev environment
+automatically uses mock sensors (`MOCK_SENSORS=1`) to generate realistic data
+without requiring physical hardware.
 
 ```bash
 # Copy and configure environment

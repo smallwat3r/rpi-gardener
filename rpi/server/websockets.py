@@ -2,7 +2,8 @@
 import asyncio
 from contextlib import suppress
 from datetime import datetime
-from typing import Any, Awaitable, Callable, TypeAlias
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
@@ -14,8 +15,7 @@ from rpi.server.validators import parse_hours
 
 _logger = get_logger("server.websockets")
 
-# Type alias for async data fetchers
-DataFetcher: TypeAlias = Callable[[], Awaitable[Any]]
+type DataFetcher = Callable[[], Awaitable[Any]]
 
 # Heartbeat interval in seconds (30s is typical for WebSocket keepalive)
 _HEARTBEAT_INTERVAL_SEC = 30

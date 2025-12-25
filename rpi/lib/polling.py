@@ -8,7 +8,6 @@ import signal
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from types import FrameType
-from typing import Generic, TypeVar
 
 from rpi.lib.config import get_settings
 from rpi.lib.utils import utcnow
@@ -16,11 +15,8 @@ from rpi.logging import get_logger
 
 logger = get_logger("lib.polling")
 
-# Type variable for the reading type
-T = TypeVar("T")
 
-
-class PollingService(ABC, Generic[T]):
+class PollingService[T](ABC):
     """Abstract base class for async sensor polling services.
 
     Implements the common polling loop pattern with:

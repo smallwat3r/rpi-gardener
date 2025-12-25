@@ -2,7 +2,7 @@
 name = "rpi-gardener"
 version = "0.1.0"
 description = "Raspberry Pi gardening monitor"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "aiosqlite",
     "python-dotenv",

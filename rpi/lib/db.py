@@ -45,7 +45,7 @@ _PICO_CHART_SQL = _load_template("pico_chart.sql")
 _PICO_LATEST_SQL = _load_template("pico_latest_recording.sql")
 
 # Global persistent database connection
-_db: "Database | None" = None
+_db: Database | None = None
 
 
 class DHTReading(TypedDict):
@@ -107,7 +107,7 @@ class Database:
             await self._connection.close()
             self._connection = None
 
-    async def __aenter__(self) -> "Database":
+    async def __aenter__(self) -> Database:
         await self.connect()
         return self
 

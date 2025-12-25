@@ -5,7 +5,7 @@ RUN npm ci
 COPY rpi/server/frontend/ ./
 RUN npm run build
 
-FROM python:3.12-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 # Install system dependencies for GPIO, I2C, display, and build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \

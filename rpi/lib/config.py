@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from os import environ
-from typing import Callable, TypeAlias
+from collections.abc import Callable
 
 from dotenv import load_dotenv
 
@@ -47,7 +47,7 @@ class GmailSettings:
     subject: str = "Sensor alert!"
 
     @classmethod
-    def from_env(cls) -> "GmailSettings":
+    def from_env(cls) -> GmailSettings:
         return cls(
             sender=environ.get("GMAIL_SENDER", ""),
             recipients=environ.get("GMAIL_RECIPIENTS", ""),
@@ -63,7 +63,7 @@ class SlackSettings:
     webhook_url: str = ""
 
     @classmethod
-    def from_env(cls) -> "SlackSettings":
+    def from_env(cls) -> SlackSettings:
         return cls(webhook_url=environ.get("SLACK_WEBHOOK_URL", ""))
 
 
@@ -78,7 +78,7 @@ class ThresholdSettings:
     plant_moisture_thresholds: dict[int, int] = field(default_factory=dict)
 
     @classmethod
-    def from_env(cls) -> "ThresholdSettings":
+    def from_env(cls) -> ThresholdSettings:
         min_moisture = int(environ.get("MIN_MOISTURE", 30))
         plant_thresholds = {
             plant_id: int(environ.get(f"MIN_MOISTURE_PLANT_{plant_id.value}", min_moisture))
@@ -110,7 +110,7 @@ class NotificationSettings:
     timeout_sec: int = 30
 
     @classmethod
-    def from_env(cls) -> "NotificationSettings":
+    def from_env(cls) -> NotificationSettings:
         backends_str = environ.get("NOTIFICATION_BACKENDS", "gmail")
         backends = [b.strip() for b in backends_str.split(",") if b.strip()]
         return cls(
@@ -135,7 +135,7 @@ class PicoSettings:
     plant_id_max_length: int = 64
 
     @classmethod
-    def from_env(cls) -> "PicoSettings":
+    def from_env(cls) -> PicoSettings:
         return cls(
             serial_port=environ.get("PICO_SERIAL_PORT", "/dev/ttyACM0"),
             serial_baud=int(environ.get("PICO_SERIAL_BAUD", "115200")),
@@ -175,7 +175,7 @@ class Settings:
     polling: PollingSettings = field(default_factory=PollingSettings)
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         """Create settings from environment variables."""
         return cls(
             db_path=environ.get("DB_PATH", "dht.sqlite3"),
@@ -223,7 +223,7 @@ def parse_pico_plant_id(raw_id: str) -> int | None:
     return None
 
 
-ThresholdRule: TypeAlias = tuple[Callable[[float, float], bool], int]
+type ThresholdRule = tuple[Callable[[float, float], bool], int]
 
 
 def get_threshold_rules() -> dict[MeasureName, tuple[ThresholdRule, ...]]:

@@ -10,14 +10,12 @@ import urllib.request
 from abc import ABC, abstractmethod
 from email.message import EmailMessage
 from smtplib import SMTP
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
 
+from rpi.lib.alerts import AlertEvent
 from rpi.lib.config import (MeasureName, NotificationBackend, PlantId,
                             get_settings)
 from rpi.logging import get_logger
-
-if TYPE_CHECKING:
-    from rpi.lib.alerts import AlertEvent
 
 logger = get_logger("lib.notifications")
 
@@ -39,7 +37,7 @@ def get_sensor_label(sensor_name: str | int) -> str:
     return str(sensor_name).replace("-", " ").title()
 
 
-def format_alert_message(event: "AlertEvent") -> str:
+def format_alert_message(event: AlertEvent) -> str:
     """Format an alert event as a notification message."""
     label = get_sensor_label(event.sensor_name)
     time_str = event.recording_time.strftime("%H:%M:%S")
@@ -62,7 +60,7 @@ class AbstractNotifier(ABC):
     """Abstract base class for notification backends."""
 
     @abstractmethod
-    async def send(self, event: "AlertEvent") -> None:
+    async def send(self, event: AlertEvent) -> None:
         """Send a notification for the given alert event."""
 
     async def _send_with_retry(
@@ -127,7 +125,7 @@ class GmailNotifier(AbstractNotifier):
 
         await self._send_with_retry(do_send, "Email")
 
-    async def send(self, event: "AlertEvent") -> None:
+    async def send(self, event: AlertEvent) -> None:
         """Send email notification."""
         base_subject = get_settings().notifications.gmail.subject
         subject = f"{base_subject} - Resolved" if event.is_resolved else base_subject
@@ -170,7 +168,7 @@ class SlackNotifier(AbstractNotifier):
 
         await self._send_with_retry(do_send, "Slack")
 
-    async def send(self, event: "AlertEvent") -> None:
+    async def send(self, event: AlertEvent) -> None:
         """Send Slack notification."""
         label = get_sensor_label(event.sensor_name)
         time_str = event.recording_time.strftime("%H:%M:%S")
@@ -197,7 +195,7 @@ class CompositeNotifier(AbstractNotifier):
     def __init__(self, notifiers: list[AbstractNotifier]):
         self._notifiers = notifiers
 
-    async def send(self, event: "AlertEvent") -> None:
+    async def send(self, event: AlertEvent) -> None:
         """Send notification to all configured backends concurrently."""
         await asyncio.gather(
             *(notifier.send(event) for notifier in self._notifiers),
@@ -208,7 +206,7 @@ class CompositeNotifier(AbstractNotifier):
 class NoOpNotifier(AbstractNotifier):
     """No-op notifier that logs but doesn't send notifications."""
 
-    async def send(self, event: "AlertEvent") -> None:
+    async def send(self, event: AlertEvent) -> None:
         """Log the event but don't send a notification."""
         event_type = "resolution" if event.is_resolved else "alert"
         logger.info("Notification service disabled, ignoring %s for %s", event_type, event.sensor_name)

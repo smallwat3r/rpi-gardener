@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+# Fix data directory permissions (for mounted volumes)
+if [ -d /app/data ] && id appuser >/dev/null 2>&1; then
+    chown -R appuser:appgroup /app/data
+fi
+
 echo "Validating configuration..."
 python -c "from rpi.lib.config import validate_config; validate_config()"
 
@@ -15,6 +20,11 @@ async def setup():
 
 asyncio.run(setup())
 "
+
+# Fix database file permissions after creation
+if [ -d /app/data ] && id appuser >/dev/null 2>&1; then
+    chown -R appuser:appgroup /app/data
+fi
 
 echo "Starting application..."
 exec "$@"

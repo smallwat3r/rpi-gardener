@@ -11,9 +11,15 @@ __pycache__
 *.pyd
 .Python
 *.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
 
 # Node
 node_modules
+npm-debug.log*
 
 # Frontend build output (rebuilt in Docker)
 rpi/server/static/dist
@@ -31,6 +37,10 @@ rpi/server/static/dist
 .vscode
 *.swp
 *.swo
+*~
+
+# Tests (not needed in production image)
+tests/
 
 # Project specific
 img/
@@ -41,3 +51,7 @@ nginx/
 Dockerfile*
 docker-compose*.yml
 .dockerignore
+
+# Documentation
+*.md
+LICENSE

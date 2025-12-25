@@ -1,32 +1,39 @@
+# Frontend
 FROM node:20-alpine AS frontend-builder
-WORKDIR /app/rpi/server/frontend
+WORKDIR /build
 COPY rpi/server/frontend/package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 COPY rpi/server/frontend/ ./
 RUN npm run build
 
-FROM python:3.14-slim-bookworm
+# Python dependencies
+FROM python:3.14-slim-bookworm AS python-builder
+WORKDIR /build
+RUN pip install --no-cache-dir uv
+COPY pyproject.toml ./
+RUN python -m venv /opt/venv \
+    && . /opt/venv/bin/activate \
+    && uv pip install --no-cache ".[dev]"
+
+# Runtime
+FROM python:3.14-slim-bookworm AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends tini \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-COPY pyproject.toml .
-RUN pip install --no-cache-dir uv \
-    && uv pip install --system --no-cache "."
-
+COPY --from=python-builder /opt/venv /opt/venv
 COPY rpi/ ./rpi/
 COPY scripts/ ./scripts/
+COPY --from=frontend-builder /static/dist ./rpi/server/static/dist
 COPY docker/entrypoint.sh /entrypoint.sh
-COPY --from=frontend-builder /app/rpi/server/static/dist ./rpi/server/static/dist
+RUN chmod 755 /entrypoint.sh && mkdir -p /app/data
 
-RUN chmod +x /entrypoint.sh
-
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
-ENV DB_PATH=/app/data/dht.sqlite3
-
-RUN mkdir -p /app/data
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH=/app \
+    DB_PATH=/app/data/dht.sqlite3
 
 EXPOSE 5000
-
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["uvicorn", "rpi.server:app", "--host", "0.0.0.0", "--port", "5000"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
+CMD ["uvicorn", "rpi.server:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]

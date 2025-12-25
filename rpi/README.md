@@ -4,11 +4,11 @@ Python code for the Raspberry Pi 4.
 
 ## Architecture
 
-Services communicate via a ZeroMQ event bus (IPC socket):
+Services communicate via Redis pub/sub:
 
 ```
 DHT Polling ──┐                  ┌── Web Server (WebSocket)
-              ├── Event Bus ─────┤
+              ├── Redis ─────────┤
 Pico Reader ──┘                  └── Notification Service (Gmail/Slack)
 ```
 

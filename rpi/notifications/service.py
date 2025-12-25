@@ -31,7 +31,7 @@ def _parse_alert_event(data: dict) -> AlertEvent:
 async def run() -> None:
     """Run the notification service."""
     subscriber = EventSubscriber(topics=[Topic.ALERT])
-    subscriber.connect()
+    await subscriber.connect()
     notifier = get_notifier()
 
     logger.info("Notification service started")
@@ -46,7 +46,7 @@ async def run() -> None:
             except Exception as e:
                 logger.error("Failed to process notification: %s", e)
     finally:
-        subscriber.close()
+        await subscriber.close()
         logger.info("Notification service stopped")
 
 

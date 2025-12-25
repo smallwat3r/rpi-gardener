@@ -173,13 +173,13 @@ class CleanupSettings:
 
 @dataclass(frozen=True, slots=True)
 class EventBusSettings:
-    """ZeroMQ event bus settings."""
-    socket_path: str = "ipc:///tmp/rpi-gardener.ipc"
+    """Redis event bus settings."""
+    redis_url: str = "redis://localhost:6379/0"
 
     @classmethod
     def from_env(cls) -> EventBusSettings:
         return cls(
-            socket_path=environ.get("EVENTBUS_SOCKET", "ipc:///tmp/rpi-gardener.ipc"),
+            redis_url=environ.get("REDIS_URL", "redis://localhost:6379/0"),
         )
 
 

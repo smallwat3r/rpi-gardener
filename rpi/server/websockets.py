@@ -1,6 +1,6 @@
 """WebSocket routes for the RPi Gardener application.
 
-WebSocket connections receive real-time updates via the ZeroMQ event bus.
+WebSocket connections receive real-time updates via Redis pub/sub.
 The event subscriber (in entrypoint.py) broadcasts new readings to clients.
 
 Exception: Stats endpoint uses polling since stats depend on user-selected

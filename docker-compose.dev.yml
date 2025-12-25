@@ -1,4 +1,14 @@
 services:
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
   app:
     build:
       context: .
@@ -11,7 +21,11 @@ services:
       - .env
     environment:
       - DB_PATH=/app/data/dht.sqlite3
+      - REDIS_URL=redis://redis:6379/0
     command: uvicorn rpi.server.entrypoint:create_app --factory --uds /tmp/uvicorn.sock
+    depends_on:
+      redis:
+        condition: service_healthy
 
   dht-polling:
     build:
@@ -19,13 +33,16 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - db_data:/app/data
-      - socket:/tmp
     env_file:
       - .env
     environment:
       - DB_PATH=/app/data/dht.sqlite3
       - MOCK_SENSORS=1
+      - REDIS_URL=redis://redis:6379/0
     command: python -m rpi.dht
+    depends_on:
+      redis:
+        condition: service_healthy
 
   pico-reader:
     build:
@@ -33,23 +50,29 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - db_data:/app/data
-      - socket:/tmp
     env_file:
       - .env
     environment:
       - DB_PATH=/app/data/dht.sqlite3
       - MOCK_SENSORS=1
+      - REDIS_URL=redis://redis:6379/0
     command: python -m rpi.pico
+    depends_on:
+      redis:
+        condition: service_healthy
 
   notifications:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    volumes:
-      - socket:/tmp
     env_file:
       - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
     command: python -m rpi.notifications
+    depends_on:
+      redis:
+        condition: service_healthy
 
   nginx:
     image: nginx:alpine
@@ -64,6 +87,8 @@ services:
       - app
 
 volumes:
+  redis_data:
+    name: rpi-gardener-dev-redis
   db_data:
     name: rpi-gardener-dev-db
   socket:

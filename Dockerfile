@@ -9,7 +9,7 @@ RUN npm run build
 # Python dependencies
 FROM python:3.14-slim-bookworm AS python-builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc python3-dev libzmq3-dev \
+    gcc python3-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 RUN pip install --no-cache-dir uv
@@ -22,7 +22,7 @@ RUN python -m venv /opt/venv \
 # Runtime
 FROM python:3.14-slim-bookworm AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgpiod2 i2c-tools fonts-dejavu-core tini cron libzmq5 \
+    libgpiod2 i2c-tools fonts-dejavu-core tini cron \
     && rm -rf /var/lib/apt/lists/* /root/.cache \
     && find /var/log -type f -delete
 

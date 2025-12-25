@@ -38,7 +38,7 @@ async def _event_subscriber_task(subscriber: EventSubscriber) -> None:
 async def lifespan(app: Starlette) -> AsyncIterator[None]:
     """Application lifespan manager for startup/shutdown tasks."""
     subscriber = EventSubscriber()
-    subscriber.connect()
+    await subscriber.connect()
     subscriber_task = asyncio.create_task(_event_subscriber_task(subscriber))
     _logger.info("Event bus subscriber started")
 
@@ -50,7 +50,7 @@ async def lifespan(app: Starlette) -> AsyncIterator[None]:
             await subscriber_task
         except asyncio.CancelledError:
             pass
-        subscriber.close()
+        await subscriber.close()
         _logger.info("Event bus subscriber stopped")
 
 

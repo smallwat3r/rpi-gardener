@@ -1,19 +1,18 @@
-"""ZeroMQ-based event bus for real-time sensor data broadcasting.
+"""Redis-based event bus for real-time sensor data broadcasting.
 
 Provides pub/sub messaging between polling services (publishers) and
-the web server (subscriber) for real-time WebSocket updates.
+the web server/notification service (subscribers) for real-time updates.
 """
 import json
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
-from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-import zmq
-import zmq.asyncio
+import redis
+import redis.asyncio as aioredis
 
 from rpi.lib.config import get_settings
 from rpi.logging import get_logger
@@ -96,20 +95,16 @@ class EventPublisher:
     """Publishes sensor readings to the event bus.
 
     Used by polling services (DHT, Pico) to broadcast new readings.
-    Non-blocking: if no subscribers are connected, messages are dropped.
     """
 
     def __init__(self) -> None:
-        self._socket_path = get_settings().eventbus.socket_path
-        self._context: zmq.Context | None = None
-        self._socket: zmq.Socket | None = None
+        self._redis_url = get_settings().eventbus.redis_url
+        self._client: redis.Redis | None = None
 
     def connect(self) -> None:
-        """Connect to the event bus as a publisher."""
-        self._context = zmq.Context()
-        self._socket = self._context.socket(zmq.PUB)
-        self._socket.connect(self._socket_path)
-        logger.info("Event publisher connected to %s", self._socket_path)
+        """Connect to Redis."""
+        self._client = redis.from_url(self._redis_url)
+        logger.info("Event publisher connected to Redis")
 
     def publish(self, topic: Topic, data: Event | list[Event]) -> None:
         """Publish a message to the event bus.
@@ -118,7 +113,7 @@ class EventPublisher:
             topic: The topic to publish to (e.g., Topic.DHT_READING).
             data: Event or list of Events to publish.
         """
-        if self._socket is None:
+        if self._client is None:
             return
 
         if isinstance(data, list):
@@ -127,24 +122,21 @@ class EventPublisher:
             payload = data.to_dict()
 
         message = json.dumps(payload)
-        self._socket.send_multipart([topic.encode(), message.encode()])
+        self._client.publish(topic, message)
         logger.debug("Published to %s: %s", topic, message)
 
     def close(self) -> None:
         """Close the publisher connection."""
-        if self._socket is not None:
-            self._socket.close()
-            self._socket = None
-        if self._context is not None:
-            self._context.term()
-            self._context = None
+        if self._client is not None:
+            self._client.close()
+            self._client = None
         logger.info("Event publisher closed")
 
 
 class EventSubscriber:
     """Subscribes to sensor readings from the event bus.
 
-    Used by the web server to receive real-time updates for WebSocket broadcast.
+    Used by the web server and notification service to receive real-time updates.
     """
 
     def __init__(self, topics: list[Topic] | None = None) -> None:
@@ -153,58 +145,43 @@ class EventSubscriber:
         Args:
             topics: List of topics to subscribe to. If None, subscribes to all.
         """
-        self._socket_path = get_settings().eventbus.socket_path
+        self._redis_url = get_settings().eventbus.redis_url
         self._topics = topics or list(Topic)
-        self._context: zmq.asyncio.Context | None = None
-        self._socket: zmq.asyncio.Socket | None = None
+        self._client: aioredis.Redis | None = None
+        self._pubsub: aioredis.client.PubSub | None = None
 
-    def connect(self) -> None:
-        """Bind to the event bus as a subscriber.
-
-        The subscriber binds (stable endpoint) while publishers connect.
-        This allows multiple publishers to send to a single subscriber.
-        """
-        self._context = zmq.asyncio.Context()
-        self._socket = self._context.socket(zmq.SUB)
-        self._socket.bind(self._socket_path)
-
-        for topic in self._topics:
-            self._socket.setsockopt_string(zmq.SUBSCRIBE, topic)
-            logger.debug("Subscribed to topic: %s", topic)
-
-        logger.info("Event subscriber bound to %s", self._socket_path)
+    async def connect(self) -> None:
+        """Connect to Redis and subscribe to topics."""
+        self._client = aioredis.from_url(self._redis_url)
+        self._pubsub = self._client.pubsub()
+        await self._pubsub.subscribe(*self._topics)
+        logger.info("Event subscriber connected to Redis, topics: %s", self._topics)
 
     async def receive(self) -> AsyncIterator[tuple[Topic, dict[str, Any]]]:
         """Async iterator that yields (topic, data) tuples as they arrive."""
-        if self._socket is None:
+        if self._pubsub is None:
             return
 
-        while True:
+        async for message in self._pubsub.listen():
+            if message["type"] != "message":
+                continue
+
             try:
-                parts = await self._socket.recv_multipart()
-                if len(parts) != 2:
-                    logger.warning("Invalid message format: %s", parts)
-                    continue
-
-                topic_bytes, message_bytes = parts
-                topic = Topic(topic_bytes.decode())
-                data = json.loads(message_bytes.decode())
+                topic = Topic(message["channel"].decode())
+                data = json.loads(message["data"].decode())
                 yield topic, data
-            except zmq.ZMQError as e:
-                if e.errno == zmq.ETERM:
-                    break
-                logger.error("ZMQ error: %s", e)
-                raise
+            except (ValueError, json.JSONDecodeError) as e:
+                logger.warning("Invalid message: %s", e)
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the subscriber connection."""
-        if self._socket is not None:
-            self._socket.close()
-            self._socket = None
-        if self._context is not None:
-            with suppress(zmq.ZMQError):
-                self._context.term()
-            self._context = None
+        if self._pubsub is not None:
+            await self._pubsub.unsubscribe()
+            await self._pubsub.close()
+            self._pubsub = None
+        if self._client is not None:
+            await self._client.close()
+            self._client = None
         logger.info("Event subscriber closed")
 
 

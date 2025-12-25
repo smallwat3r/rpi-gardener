@@ -23,6 +23,16 @@ def configure(level: int = logging.INFO) -> None:
     root.setLevel(level)
     root.addHandler(handler)
 
+    # Configure uvicorn loggers to use the same format
+    for uvicorn_logger in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        uv_log = logging.getLogger(uvicorn_logger)
+        uv_log.handlers.clear()
+        uv_log.addHandler(handler)
+
+    # Silence verbose websocket connection open/close logs from uvicorn
+    # (we have our own more detailed logs in rpi.server.websockets)
+    logging.getLogger("uvicorn.protocols.websockets").setLevel(logging.WARNING)
+
     _configured = True
 
 

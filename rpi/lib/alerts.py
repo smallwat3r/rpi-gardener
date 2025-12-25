@@ -26,7 +26,7 @@ class Namespace(Enum):
     PICO = "pico"
 
 
-@dataclass
+@dataclass(slots=True)
 class AlertEvent:
     """Details about an alert state transition."""
     namespace: Namespace

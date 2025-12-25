@@ -112,20 +112,20 @@ class TestDHTPollingServicePoll:
         return DHTPollingService(mock_sensor, mock_display)
 
     @pytest.mark.asyncio
-    @patch("rpi.dht.polling.utcnow")
     @patch("asyncio.to_thread")
-    async def test_poll_updates_reading(self, mock_to_thread, mock_time, service, mock_display, frozen_time):
-        mock_time.return_value = frozen_time
+    async def test_poll_updates_reading(self, mock_to_thread, service, mock_display, frozen_time):
+        with patch("rpi.dht.polling.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
 
-        # Mock to_thread to return the values directly
-        mock_to_thread.side_effect = [25.5, 60.0]
+            # Mock to_thread to return the values directly
+            mock_to_thread.side_effect = [25.5, 60.0]
 
-        result = await service.poll()
+            result = await service.poll()
 
-        assert result.temperature.value == 25.5
-        assert result.humidity.value == 60.0
-        assert result.recording_time == frozen_time
-        mock_display.render_reading.assert_called_once()
+            assert result.temperature.value == 25.5
+            assert result.humidity.value == 60.0
+            assert result.recording_time == frozen_time
+            mock_display.render_reading.assert_called_once()
 
 
 class TestDHTPollingServicePersist:
@@ -165,27 +165,27 @@ class TestDHTPollingServiceClearOldRecords:
         return DHTPollingService(mock_sensor, mock_display)
 
     @pytest.mark.asyncio
-    @patch("rpi.lib.polling.utcnow")
-    async def test_clear_old_records_deletes_old_data(self, mock_time, service, frozen_time):
-        mock_time.return_value = frozen_time
-        mock_db = AsyncMock()
-        mock_db.execute = AsyncMock()
+    async def test_clear_old_records_deletes_old_data(self, service, frozen_time):
+        with patch("rpi.lib.polling.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock()
 
-        @asynccontextmanager
-        async def mock_get_db():
-            yield mock_db
+            @asynccontextmanager
+            async def mock_get_db():
+                yield mock_db
 
-        with patch("rpi.dht.polling.get_db", mock_get_db):
-            await service.clear_old_records()
+            with patch("rpi.dht.polling.get_db", mock_get_db):
+                await service.clear_old_records()
 
-        # Should delete from both tables
-        assert mock_db.execute.call_count == 2
+            # Should delete from both tables
+            assert mock_db.execute.call_count == 2
 
-        # Check cutoff date (3 days retention by default)
-        first_call = mock_db.execute.call_args_list[0]
-        cutoff = first_call[0][1][0]
-        expected_cutoff = frozen_time - timedelta(days=3)
-        assert cutoff == expected_cutoff
+            # Check cutoff date (3 days retention by default)
+            first_call = mock_db.execute.call_args_list[0]
+            cutoff = first_call[0][1][0]
+            expected_cutoff = frozen_time - timedelta(days=3)
+            assert cutoff == expected_cutoff
 
 
 class TestDHTPollingServiceErrorHandling:

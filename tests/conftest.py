@@ -2,8 +2,8 @@
 import asyncio
 import logging
 import sys
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -48,14 +48,7 @@ def reset_settings():
 @pytest.fixture
 def frozen_time():
     """Return a fixed datetime for deterministic tests."""
-    return datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
-
-
-@pytest.fixture
-def mock_utcnow(frozen_time):
-    """Patch utcnow() to return a fixed time."""
-    with patch("rpi.lib.utils.utcnow", return_value=frozen_time) as mock:
-        yield mock
+    return datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -110,6 +103,7 @@ def pico_alerts_registered():
     Use this fixture when testing Pico moisture auditing that needs
     the alert callback registration.
     """
-    from rpi.pico.reader import _register_pico_alerts
+    from rpi.pico.reader import _schedule_notification
 
-    _register_pico_alerts()
+    tracker = get_alert_tracker()
+    tracker.register_callback(Namespace.PICO, _schedule_notification)

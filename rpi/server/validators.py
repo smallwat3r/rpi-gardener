@@ -1,8 +1,6 @@
 """Shared query parameter parsing utilities."""
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
-
-from rpi.lib.utils import utcnow
 
 MIN_HOURS = 1
 MAX_HOURS = 24
@@ -39,4 +37,4 @@ def parse_hours(params: Any, *, strict: bool = True) -> tuple[int, datetime]:
             raise InvalidParameter(f"Hours must be between {MIN_HOURS} and {MAX_HOURS}")
         hours = max(MIN_HOURS, min(MAX_HOURS, hours))
 
-    return hours, utcnow() - timedelta(hours=hours)
+    return hours, datetime.now(UTC) - timedelta(hours=hours)

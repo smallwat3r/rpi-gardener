@@ -37,7 +37,7 @@ DHT22_BOUNDS = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class GmailSettings:
     """Gmail notification settings."""
     sender: str = ""
@@ -57,7 +57,7 @@ class GmailSettings:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SlackSettings:
     """Slack notification settings."""
     webhook_url: str = ""
@@ -67,7 +67,7 @@ class SlackSettings:
         return cls(webhook_url=environ.get("SLACK_WEBHOOK_URL", ""))
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ThresholdSettings:
     """Sensor threshold settings."""
     max_temperature: int = 25
@@ -98,7 +98,7 @@ class ThresholdSettings:
         return self.plant_moisture_thresholds.get(plant_id, self.min_moisture)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class NotificationSettings:
     """Notification service settings."""
     enabled: bool = False
@@ -124,7 +124,7 @@ class NotificationSettings:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PicoSettings:
     """Pico serial connection settings."""
     serial_port: str = "/dev/ttyACM0"
@@ -143,7 +143,7 @@ class PicoSettings:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DisplaySettings:
     """OLED display settings."""
     width: int = 128
@@ -155,7 +155,7 @@ class DisplaySettings:
     text_y_humidity: int = 20
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PollingSettings:
     """Polling service settings."""
     frequency_sec: int = 2
@@ -163,7 +163,7 @@ class PollingSettings:
     cleanup_retention_days: int = 3
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Settings:
     """Application settings container."""
     db_path: str = "dht.sqlite3"

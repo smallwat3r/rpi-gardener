@@ -6,15 +6,16 @@ faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
 import asyncio
+from datetime import UTC, datetime
 from typing import Protocol, override
 
-from rpi.dht.audit import audit_reading, start_worker
+from rpi.dht.audit import audit_reading
+from rpi.dht.audit import init as init_audit
 from rpi.dht.display import DisplayProtocol
 from rpi.dht.models import Measure, Reading, Unit
 from rpi.lib.config import DHT22_BOUNDS, MeasureName
 from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.polling import PollingService
-from rpi.lib.utils import utcnow
 from rpi.logging import configure, get_logger
 
 logger = get_logger("dht.polling")
@@ -42,14 +43,14 @@ class DHTPollingService(PollingService[Reading]):
         self._reading = Reading(
             Measure(0.0, Unit.CELSIUS),
             Measure(0.0, Unit.PERCENT),
-            utcnow(),
+            datetime.now(UTC),
         )
 
     @override
     async def initialize(self) -> None:
         """Initialize database and audit worker."""
         await init_db()
-        start_worker()
+        init_audit()
         self._display.clear()
 
     @override
@@ -68,7 +69,7 @@ class DHTPollingService(PollingService[Reading]):
 
         self._reading.temperature.value = temperature
         self._reading.humidity.value = humidity
-        self._reading.recording_time = utcnow()
+        self._reading.recording_time = datetime.now(UTC)
 
         logger.info("Read %s, %s", str(self._reading.temperature),
                     str(self._reading.humidity))

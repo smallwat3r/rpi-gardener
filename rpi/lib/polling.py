@@ -6,11 +6,10 @@ the poll → audit → persist pattern with configurable intervals and cleanup.
 import asyncio
 import signal
 from abc import ABC, abstractmethod
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from types import FrameType
 
 from rpi.lib.config import get_settings
-from rpi.lib.utils import utcnow
 from rpi.logging import get_logger
 
 logger = get_logger("lib.polling")
@@ -106,9 +105,9 @@ class PollingService[T](ABC):
         """
         self._logger.debug("%s poll error: %s", self.name, error)
 
-    def get_cutoff_time(self):
+    def get_cutoff_time(self) -> datetime:
         """Get the cutoff datetime for cleanup operations."""
-        return utcnow() - timedelta(days=self.cleanup_retention_days)
+        return datetime.now(UTC) - timedelta(days=self.cleanup_retention_days)
 
     def _handle_shutdown(self, signum: int, frame: FrameType | None) -> None:
         """Handle shutdown signals gracefully."""

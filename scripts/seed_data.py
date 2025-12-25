@@ -3,11 +3,10 @@
 import argparse
 import asyncio
 import random
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
-from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.config import PlantId
-from rpi.lib.utils import utcnow
+from rpi.lib.db import close_db, get_db, init_db
 
 
 def _random_walk(current: float, drift: float, min_val: float, max_val: float) -> float:
@@ -19,7 +18,7 @@ def _random_walk(current: float, drift: float, min_val: float, max_val: float) -
 
 def generate_dht_data(num_records: int, interval: timedelta) -> list[tuple]:
     """Generate realistic DHT sensor readings using random walk."""
-    now = utcnow()
+    now = datetime.now(UTC)
     data = []
 
     temperature = random.uniform(20.0, 23.0)
@@ -36,7 +35,7 @@ def generate_dht_data(num_records: int, interval: timedelta) -> list[tuple]:
 
 def generate_pico_data(num_records: int, interval: timedelta) -> list[tuple]:
     """Generate realistic Pico moisture readings using random walk."""
-    now = utcnow()
+    now = datetime.now(UTC)
     data = []
     plant_ids = list(PlantId)
 

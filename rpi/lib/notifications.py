@@ -8,7 +8,6 @@ import json
 import ssl
 import urllib.request
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from email.message import EmailMessage
 from smtplib import SMTP
 from typing import override
@@ -16,6 +15,7 @@ from typing import override
 from rpi.lib.alerts import AlertEvent
 from rpi.lib.config import (MeasureName, NotificationBackend, PlantId,
                             get_settings)
+from rpi.lib.retry import with_retry
 from rpi.logging import get_logger
 
 logger = get_logger("lib.notifications")
@@ -64,38 +64,6 @@ class AbstractNotifier(ABC):
     async def send(self, event: AlertEvent) -> None:
         """Send a notification for the given alert event."""
 
-    async def _send_with_retry(
-        self,
-        send_fn: Callable[[], None],
-        backend_name: str,
-    ) -> None:
-        """Execute send function with retry logic and exponential backoff.
-
-        Runs the blocking send_fn in a thread and uses async sleep for backoff,
-        ensuring retries don't block other async tasks.
-        """
-        last_error: Exception | None = None
-        max_retries = get_settings().notifications.max_retries
-
-        for attempt in range(max_retries):
-            try:
-                await asyncio.to_thread(send_fn)
-                return
-            except OSError as e:
-                last_error = e
-                backoff = get_settings().notifications.initial_backoff_sec * (2 ** attempt)
-                logger.warning(
-                    "%s send attempt %d/%d failed: %s. Retrying in %ds...",
-                    backend_name, attempt + 1, max_retries, e, backoff)
-                await asyncio.sleep(backoff)
-            except Exception as e:
-                logger.error("%s send failed (non-retryable): %s", backend_name, e)
-                return
-
-        logger.error(
-            "%s send failed after %d attempts. Last error: %s",
-            backend_name, max_retries, last_error)
-
 
 class GmailNotifier(AbstractNotifier):
     """Gmail notification backend."""
@@ -124,7 +92,14 @@ class GmailNotifier(AbstractNotifier):
                 server.send_message(message)
             logger.info("Sent email notification for %s", sensor_name)
 
-        await self._send_with_retry(do_send, "Email")
+        await with_retry(
+            do_send,
+            name="Email",
+            logger=logger,
+            max_retries=cfg.max_retries,
+            initial_backoff_sec=cfg.initial_backoff_sec,
+            run_in_thread=True,
+        )
 
     @override
     async def send(self, event: AlertEvent) -> None:
@@ -168,7 +143,14 @@ class SlackNotifier(AbstractNotifier):
                     raise OSError(f"Slack API returned status {resp.status}")
             logger.info("Sent Slack notification for %s", sensor_name)
 
-        await self._send_with_retry(do_send, "Slack")
+        await with_retry(
+            do_send,
+            name="Slack",
+            logger=logger,
+            max_retries=cfg.max_retries,
+            initial_backoff_sec=cfg.initial_backoff_sec,
+            run_in_thread=True,
+        )
 
     @override
     async def send(self, event: AlertEvent) -> None:

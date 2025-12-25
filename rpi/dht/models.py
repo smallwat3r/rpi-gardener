@@ -14,7 +14,7 @@ class State(Enum):
     IN_ALERT = auto()
 
 
-@dataclass
+@dataclass(slots=True)
 class Measure:
     value: float
     unit: Unit
@@ -24,7 +24,7 @@ class Measure:
         return f"{self.value}{self.unit}"
 
 
-@dataclass
+@dataclass(slots=True)
 class Reading:
     temperature: Measure
     humidity: Measure

@@ -1,6 +1,6 @@
 """Tests for server request validators."""
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -21,43 +21,43 @@ class MockParams:
 class TestParseHoursStrict:
     """Tests for parse_hours in strict mode (default)."""
 
-    @patch("rpi.server.validators.utcnow")
-    def test_default_hours_when_not_provided(self, mock_utcnow, frozen_time):
-        mock_utcnow.return_value = frozen_time
-        params = MockParams()
+    def test_default_hours_when_not_provided(self, frozen_time):
+        with patch("rpi.server.validators.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
+            params = MockParams()
 
-        hours, from_time = parse_hours(params)
+            hours, from_time = parse_hours(params)
 
-        assert hours == DEFAULT_HOURS
-        assert from_time == frozen_time - timedelta(hours=DEFAULT_HOURS)
+            assert hours == DEFAULT_HOURS
+            assert from_time == frozen_time - timedelta(hours=DEFAULT_HOURS)
 
-    @patch("rpi.server.validators.utcnow")
-    def test_valid_hours_parsed(self, mock_utcnow, frozen_time):
-        mock_utcnow.return_value = frozen_time
-        params = MockParams({"hours": "12"})
+    def test_valid_hours_parsed(self, frozen_time):
+        with patch("rpi.server.validators.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
+            params = MockParams({"hours": "12"})
 
-        hours, from_time = parse_hours(params)
+            hours, from_time = parse_hours(params)
 
-        assert hours == 12
-        assert from_time == frozen_time - timedelta(hours=12)
+            assert hours == 12
+            assert from_time == frozen_time - timedelta(hours=12)
 
-    @patch("rpi.server.validators.utcnow")
-    def test_min_hours_boundary(self, mock_utcnow, frozen_time):
-        mock_utcnow.return_value = frozen_time
-        params = MockParams({"hours": str(MIN_HOURS)})
+    def test_min_hours_boundary(self, frozen_time):
+        with patch("rpi.server.validators.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
+            params = MockParams({"hours": str(MIN_HOURS)})
 
-        hours, from_time = parse_hours(params)
+            hours, from_time = parse_hours(params)
 
-        assert hours == MIN_HOURS
+            assert hours == MIN_HOURS
 
-    @patch("rpi.server.validators.utcnow")
-    def test_max_hours_boundary(self, mock_utcnow, frozen_time):
-        mock_utcnow.return_value = frozen_time
-        params = MockParams({"hours": str(MAX_HOURS)})
+    def test_max_hours_boundary(self, frozen_time):
+        with patch("rpi.server.validators.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
+            params = MockParams({"hours": str(MAX_HOURS)})
 
-        hours, from_time = parse_hours(params)
+            hours, from_time = parse_hours(params)
 
-        assert hours == MAX_HOURS
+            assert hours == MAX_HOURS
 
     def test_below_min_raises(self):
         params = MockParams({"hours": "0"})
@@ -99,48 +99,48 @@ class TestParseHoursStrict:
 class TestParseHoursNonStrict:
     """Tests for parse_hours in non-strict mode."""
 
-    @patch("rpi.server.validators.utcnow")
-    def test_default_for_invalid_input(self, mock_utcnow, frozen_time):
-        mock_utcnow.return_value = frozen_time
-        params = MockParams({"hours": "invalid"})
+    def test_default_for_invalid_input(self, frozen_time):
+        with patch("rpi.server.validators.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
+            params = MockParams({"hours": "invalid"})
 
-        hours, from_time = parse_hours(params, strict=False)
+            hours, from_time = parse_hours(params, strict=False)
 
-        assert hours == DEFAULT_HOURS
-        assert from_time == frozen_time - timedelta(hours=DEFAULT_HOURS)
+            assert hours == DEFAULT_HOURS
+            assert from_time == frozen_time - timedelta(hours=DEFAULT_HOURS)
 
-    @patch("rpi.server.validators.utcnow")
-    def test_clamp_below_min(self, mock_utcnow, frozen_time):
-        mock_utcnow.return_value = frozen_time
-        params = MockParams({"hours": "0"})
+    def test_clamp_below_min(self, frozen_time):
+        with patch("rpi.server.validators.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
+            params = MockParams({"hours": "0"})
 
-        hours, from_time = parse_hours(params, strict=False)
+            hours, from_time = parse_hours(params, strict=False)
 
-        assert hours == MIN_HOURS
+            assert hours == MIN_HOURS
 
-    @patch("rpi.server.validators.utcnow")
-    def test_clamp_above_max(self, mock_utcnow, frozen_time):
-        mock_utcnow.return_value = frozen_time
-        params = MockParams({"hours": "100"})
+    def test_clamp_above_max(self, frozen_time):
+        with patch("rpi.server.validators.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
+            params = MockParams({"hours": "100"})
 
-        hours, from_time = parse_hours(params, strict=False)
+            hours, from_time = parse_hours(params, strict=False)
 
-        assert hours == MAX_HOURS
+            assert hours == MAX_HOURS
 
-    @patch("rpi.server.validators.utcnow")
-    def test_valid_hours_unchanged(self, mock_utcnow, frozen_time):
-        mock_utcnow.return_value = frozen_time
-        params = MockParams({"hours": "6"})
+    def test_valid_hours_unchanged(self, frozen_time):
+        with patch("rpi.server.validators.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
+            params = MockParams({"hours": "6"})
 
-        hours, from_time = parse_hours(params, strict=False)
+            hours, from_time = parse_hours(params, strict=False)
 
-        assert hours == 6
+            assert hours == 6
 
-    @patch("rpi.server.validators.utcnow")
-    def test_negative_clamped_to_min(self, mock_utcnow, frozen_time):
-        mock_utcnow.return_value = frozen_time
-        params = MockParams({"hours": "-5"})
+    def test_negative_clamped_to_min(self, frozen_time):
+        with patch("rpi.server.validators.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen_time
+            params = MockParams({"hours": "-5"})
 
-        hours, from_time = parse_hours(params, strict=False)
+            hours, from_time = parse_hours(params, strict=False)
 
-        assert hours == MIN_HOURS
+            assert hours == MIN_HOURS

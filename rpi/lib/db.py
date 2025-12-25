@@ -17,6 +17,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncIterator, TypedDict
 
+type SQLParams = tuple | dict[str, Any]
+
 import aiosqlite
 
 from rpi.lib.config import get_settings
@@ -139,10 +141,11 @@ class Database:
         finally:
             self._in_transaction = False
 
-    async def execute(self, sql: str, params: tuple = ()) -> None:
+    async def execute(self, sql: str, params: SQLParams = ()) -> None:
         """Execute a SQL statement.
 
         Auto-commits unless inside a transaction() context.
+        Supports both positional (tuple) and named (dict) parameters.
         """
         if self._connection is None:
             raise RuntimeError("Database not connected")
@@ -150,10 +153,11 @@ class Database:
         if not self._in_transaction:
             await self._connection.commit()
 
-    async def executemany(self, sql: str, params_seq: list[tuple]) -> None:
+    async def executemany(self, sql: str, params_seq: list[SQLParams]) -> None:
         """Execute a SQL statement with multiple parameter sets.
 
         Auto-commits unless inside a transaction() context.
+        Supports both positional (tuple) and named (dict) parameters.
         """
         if self._connection is None:
             raise RuntimeError("Database not connected")
@@ -167,14 +171,14 @@ class Database:
             raise RuntimeError("Database not connected")
         await self._connection.executescript(sql)
 
-    async def fetchone(self, sql: str, params: tuple = ()) -> dict[str, Any] | None:
+    async def fetchone(self, sql: str, params: SQLParams = ()) -> dict[str, Any] | None:
         """Fetch a single row."""
         if self._connection is None:
             raise RuntimeError("Database not connected")
         async with self._connection.execute(sql, params) as cursor:
             return await cursor.fetchone()
 
-    async def fetchall(self, sql: str, params: tuple = ()) -> list[dict[str, Any]]:
+    async def fetchall(self, sql: str, params: SQLParams = ()) -> list[dict[str, Any]]:
         """Fetch all rows."""
         if self._connection is None:
             raise RuntimeError("Database not connected")

@@ -36,8 +36,8 @@ async def _event_worker() -> None:
         _queue.task_done()
 
 
-def start_worker() -> None:
-    """Start the background worker task for processing events."""
+def init() -> None:
+    """Initialize the audit service: queue, worker task, and alert callback."""
     global _queue, _worker_task
     _queue = asyncio.Queue()
     _worker_task = asyncio.create_task(_event_worker())

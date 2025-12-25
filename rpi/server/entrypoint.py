@@ -13,6 +13,10 @@ from .websockets import ws_dht_latest, ws_dht_stats, ws_pico_latest
 def create_app() -> Starlette:
     """Create and configure the Starlette application.
 
+    Database connections are created per-request via get_db() context manager,
+    which provides better concurrency and isolation for the web server.
+    Polling services use init_db() for persistent connections instead.
+
     Returns:
         Configured Starlette application instance.
     """

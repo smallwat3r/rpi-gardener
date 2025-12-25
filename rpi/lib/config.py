@@ -27,6 +27,10 @@ class PlantId(IntEnum):
     PLANT_3 = 3
 
 
+# Type alias for raw plant ID values (used when parsing from Pico data)
+type PlantIdValue = int
+
+
 # Patterns
 PICO_PLANT_ID_PATTERN = re.compile(r"^plant-(\d+)$")
 

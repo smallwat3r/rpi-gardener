@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from rpi.lib.config import get_settings, parse_pico_plant_id
+from rpi.lib.config import PlantIdValue, get_settings, parse_pico_plant_id
 
 
 class ValidationError(Exception):
@@ -13,7 +13,7 @@ class ValidationError(Exception):
 class MoistureReading:
     """A validated moisture reading from a single plant sensor."""
 
-    plant_id: int
+    plant_id: PlantIdValue
     moisture: float
     recording_time: datetime
 
@@ -39,7 +39,7 @@ class MoistureReading:
         return cls(plant_id, moisture, recording_time)
 
     @staticmethod
-    def _validate_plant_id(raw_id: str) -> int:
+    def _validate_plant_id(raw_id: str) -> PlantIdValue:
         """Parse and validate plant_id from Pico's 'plant-N' format."""
         if not isinstance(raw_id, str):
             raise ValidationError(

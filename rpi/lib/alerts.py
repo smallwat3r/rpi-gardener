@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
 
+from rpi.lib.config import PlantIdValue
 from rpi.logging import get_logger
 
 logger = get_logger("lib.alerts")
@@ -18,6 +19,9 @@ class AlertState(Enum):
     """Possible alert states for a sensor."""
     OK = auto()
     IN_ALERT = auto()
+
+
+type SensorName = str | PlantIdValue
 
 
 class Namespace(Enum):
@@ -30,7 +34,7 @@ class Namespace(Enum):
 class AlertEvent:
     """Details about an alert state transition."""
     namespace: Namespace
-    sensor_name: str | int
+    sensor_name: SensorName
     value: float
     unit: str
     threshold: float | None  # None for resolution events
@@ -52,7 +56,7 @@ class AlertTracker:
 
     def __init__(self) -> None:
         """Initialize the tracker with empty state."""
-        self._states: dict[tuple[Namespace, str | int], AlertState] = {}
+        self._states: dict[tuple[Namespace, SensorName], AlertState] = {}
         self._callbacks: dict[Namespace, AlertCallback] = {}
 
     def register_callback(self, namespace: Namespace, callback: AlertCallback) -> None:
@@ -65,14 +69,14 @@ class AlertTracker:
         self._callbacks[namespace] = callback
         logger.debug("Registered alert callback for namespace %s", namespace.value)
 
-    def _make_key(self, namespace: Namespace, sensor_name: str | int) -> tuple[Namespace, str | int]:
+    def _make_key(self, namespace: Namespace, sensor_name: SensorName) -> tuple[Namespace, SensorName]:
         """Create a unique key for a sensor in a namespace."""
         return (namespace, sensor_name)
 
     def check(
         self,
         namespace: Namespace,
-        sensor_name: str | int,
+        sensor_name: SensorName,
         value: float,
         unit: str,
         threshold: float,
@@ -134,7 +138,7 @@ class AlertTracker:
         self._states[key] = new_state
         return new_state
 
-    def get_state(self, namespace: Namespace, sensor_name: str | int) -> AlertState:
+    def get_state(self, namespace: Namespace, sensor_name: SensorName) -> AlertState:
         """Get current alert state for a sensor."""
         key = self._make_key(namespace, sensor_name)
         return self._states.get(key, AlertState.OK)
@@ -142,7 +146,7 @@ class AlertTracker:
     def reset(
         self,
         namespace: Namespace | None = None,
-        sensor_name: str | int | None = None,
+        sensor_name: SensorName | None = None,
     ) -> None:
         """Reset alert state for one sensor, one namespace, or all.
 

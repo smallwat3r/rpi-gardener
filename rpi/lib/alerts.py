@@ -4,10 +4,10 @@ Provides a unified AlertTracker singleton that tracks per-sensor alert states
 across different namespaces (DHT, Pico) and triggers callbacks only on state
 transitions (to prevent notification spam).
 """
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
-from collections.abc import Callable
 
 from rpi.logging import get_logger
 

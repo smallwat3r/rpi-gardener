@@ -2,8 +2,8 @@
 import pytest
 
 from rpi.dht import audit
-from rpi.dht.models import Measure, Reading, State, Unit
 from rpi.dht.audit import audit_reading
+from rpi.dht.models import Measure, Reading, State, Unit
 from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
 
 

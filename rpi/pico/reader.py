@@ -7,9 +7,10 @@ import asyncio
 import json
 from typing import Protocol
 
-from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.alerts import AlertEvent, Namespace, get_alert_tracker
-from rpi.lib.config import get_moisture_threshold, get_settings, parse_pico_plant_id
+from rpi.lib.config import (get_moisture_threshold, get_settings,
+                            parse_pico_plant_id)
+from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.notifications import get_notifier
 from rpi.lib.utils import utcnow
 from rpi.logging import configure, get_logger

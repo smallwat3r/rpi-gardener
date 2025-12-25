@@ -1,10 +1,10 @@
 """Centralized configuration for the RPi Gardener application."""
 import operator
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from os import environ
-from collections.abc import Callable
 
 from dotenv import load_dotenv
 

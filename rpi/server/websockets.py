@@ -1,15 +1,15 @@
 """WebSocket routes for the RPi Gardener application."""
 import asyncio
+from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from datetime import datetime
-from collections.abc import Awaitable, Callable
 from typing import Any
 
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
+from rpi.lib.config import get_settings
 from rpi.lib.db import (get_latest_dht_data, get_latest_pico_data,
                         get_stats_dht_data)
-from rpi.lib.config import get_settings
 from rpi.logging import get_logger
 from rpi.server.validators import parse_hours
 

@@ -4,13 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from rpi.server.validators import (
-    DEFAULT_HOURS,
-    MAX_HOURS,
-    MIN_HOURS,
-    InvalidParameter,
-    parse_hours,
-)
+from rpi.server.validators import (DEFAULT_HOURS, MAX_HOURS, MIN_HOURS,
+                                   InvalidParameter, parse_hours)
 
 
 class MockParams:

@@ -8,11 +8,11 @@ seconds, else cache results would be returned.
 import asyncio
 from typing import Protocol
 
+from rpi.dht.audit import audit_reading, start_worker
 from rpi.dht.display import DisplayProtocol
 from rpi.dht.models import Measure, Reading, Unit
-from rpi.dht.audit import audit_reading, start_worker
-from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.config import DHT22_BOUNDS, MeasureName
+from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.polling import PollingService
 from rpi.lib.utils import utcnow
 from rpi.logging import configure, get_logger

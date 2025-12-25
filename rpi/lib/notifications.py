@@ -8,9 +8,9 @@ import json
 import ssl
 import urllib.request
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from email.message import EmailMessage
 from smtplib import SMTP
-from collections.abc import Callable
 
 from rpi.lib.alerts import AlertEvent
 from rpi.lib.config import (MeasureName, NotificationBackend, PlantId,

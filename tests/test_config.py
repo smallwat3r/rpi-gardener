@@ -3,21 +3,11 @@ from unittest.mock import patch
 
 import pytest
 
-from rpi.lib.config import (
-    ConfigurationError,
-    GmailSettings,
-    NotificationBackend,
-    NotificationSettings,
-    PicoSettings,
-    PlantId,
-    Settings,
-    SlackSettings,
-    ThresholdSettings,
-    get_settings,
-    parse_pico_plant_id,
-    set_settings,
-    validate_config,
-)
+from rpi.lib.config import (ConfigurationError, GmailSettings,
+                            NotificationBackend, NotificationSettings,
+                            PicoSettings, PlantId, Settings, SlackSettings,
+                            ThresholdSettings, get_settings,
+                            parse_pico_plant_id, set_settings, validate_config)
 
 
 class TestParsePicoPlantId:

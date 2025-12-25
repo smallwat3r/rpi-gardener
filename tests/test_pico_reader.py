@@ -7,8 +7,8 @@ import pytest
 from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
 from rpi.lib.config import PlantId
 from rpi.pico import reader
-from rpi.pico.reader import (ValidationError, _audit_moisture,
-                             _parse_plant_id, _validate_moisture)
+from rpi.pico.reader import (ValidationError, _audit_moisture, _parse_plant_id,
+                             _validate_moisture)
 
 
 class TestParsePlantId:

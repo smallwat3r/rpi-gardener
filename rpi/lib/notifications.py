@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from email.message import EmailMessage
 from smtplib import SMTP
+from typing import override
 
 from rpi.lib.alerts import AlertEvent
 from rpi.lib.config import (MeasureName, NotificationBackend, PlantId,
@@ -125,6 +126,7 @@ class GmailNotifier(AbstractNotifier):
 
         await self._send_with_retry(do_send, "Email")
 
+    @override
     async def send(self, event: AlertEvent) -> None:
         """Send email notification."""
         base_subject = get_settings().notifications.gmail.subject
@@ -168,6 +170,7 @@ class SlackNotifier(AbstractNotifier):
 
         await self._send_with_retry(do_send, "Slack")
 
+    @override
     async def send(self, event: AlertEvent) -> None:
         """Send Slack notification."""
         label = get_sensor_label(event.sensor_name)
@@ -195,6 +198,7 @@ class CompositeNotifier(AbstractNotifier):
     def __init__(self, notifiers: list[AbstractNotifier]):
         self._notifiers = notifiers
 
+    @override
     async def send(self, event: AlertEvent) -> None:
         """Send notification to all configured backends concurrently."""
         await asyncio.gather(
@@ -206,6 +210,7 @@ class CompositeNotifier(AbstractNotifier):
 class NoOpNotifier(AbstractNotifier):
     """No-op notifier that logs but doesn't send notifications."""
 
+    @override
     async def send(self, event: AlertEvent) -> None:
         """Log the event but don't send a notification."""
         event_type = "resolution" if event.is_resolved else "alert"

@@ -6,7 +6,7 @@ faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
 import asyncio
-from typing import Protocol
+from typing import Protocol, override
 
 from rpi.dht.audit import audit_reading, start_worker
 from rpi.dht.display import DisplayProtocol
@@ -45,18 +45,21 @@ class DHTPollingService(PollingService[Reading]):
             utcnow(),
         )
 
+    @override
     async def initialize(self) -> None:
         """Initialize database and audit worker."""
         await init_db()
         start_worker()
         self._display.clear()
 
+    @override
     async def cleanup(self) -> None:
         """Clean up DHT22 sensor, display, and database connection."""
         self._display.clear()
         self._dht.exit()
         await close_db()
 
+    @override
     async def poll(self) -> Reading | None:
         """Poll the DHT22 sensor for new reading values."""
         # Run sync sensor reads in thread pool
@@ -72,6 +75,7 @@ class DHTPollingService(PollingService[Reading]):
         self._display.render_reading(self._reading)
         return self._reading
 
+    @override
     async def audit(self, reading: Reading) -> bool:
         """Audit the reading against thresholds and DHT22 bounds."""
         # Check DHT22 bounds
@@ -89,6 +93,7 @@ class DHTPollingService(PollingService[Reading]):
         audit_reading(reading)
         return True
 
+    @override
     async def persist(self, reading: Reading) -> None:
         """Persist the reading values into the database."""
         async with get_db() as db:
@@ -98,6 +103,7 @@ class DHTPollingService(PollingService[Reading]):
                  reading.recording_time)
             )
 
+    @override
     async def clear_old_records(self) -> None:
         """Clear historical data older than retention period."""
         cutoff = self.get_cutoff_time()
@@ -105,6 +111,7 @@ class DHTPollingService(PollingService[Reading]):
             await db.execute("DELETE FROM reading WHERE recording_time < ?", (cutoff,))
             await db.execute("DELETE FROM pico_reading WHERE recording_time < ?", (cutoff,))
 
+    @override
     def on_poll_error(self, error: Exception) -> None:
         """Handle DHT22-specific errors."""
         if isinstance(error, RuntimeError):

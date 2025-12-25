@@ -39,11 +39,11 @@ server:  ## Start the server with uvicorn (binded for Nginx)
 
 .PHONY: polling
 polling:  ## Start the DHT polling service
-	uv run python -m $(RPI).dht.polling
+	uv run python -m $(RPI).dht
 
 .PHONY: pico
 pico:  ## Start the Pico serial reader
-	uv run python -m $(RPI).pico.reader
+	uv run python -m $(RPI).pico
 
 .PHONY: mpedit
 mpedit:  ## Edit remote Pico file (make mpedit file=main.py)

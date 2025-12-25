@@ -24,7 +24,7 @@ services:
     environment:
       - DB_PATH=/app/data/dht.sqlite3
       - MOCK_SENSORS=1
-    command: python -m rpi.dht.polling
+    command: python -m rpi.dht
 
   pico-reader:
     build:
@@ -37,7 +37,7 @@ services:
     environment:
       - DB_PATH=/app/data/dht.sqlite3
       - MOCK_SENSORS=1
-    command: python -m rpi.pico.reader
+    command: python -m rpi.pico
 
   nginx:
     image: nginx:alpine

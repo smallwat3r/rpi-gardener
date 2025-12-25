@@ -5,8 +5,7 @@ moisture readings to the database.
 """
 import asyncio
 import json
-
-import aioserial
+from typing import Protocol
 
 from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.alerts import AlertEvent, Namespace, get_alert_tracker
@@ -16,6 +15,40 @@ from rpi.lib.utils import utcnow
 from rpi.logging import configure, get_logger
 
 logger = get_logger("pico.reader")
+
+
+class PicoDataSource(Protocol):
+    """Protocol for Pico data sources."""
+
+    async def readline(self) -> str: ...
+    def close(self) -> None: ...
+
+
+class SerialDataSource:
+    """Real serial port data source wrapper."""
+
+    def __init__(self) -> None:
+        import aioserial
+        pico_cfg = get_settings().pico
+        self._serial = aioserial.AioSerial(
+            port=pico_cfg.serial_port,
+            baudrate=pico_cfg.serial_baud,
+            timeout=pico_cfg.serial_timeout_sec,
+        )
+        self._port = pico_cfg.serial_port
+        logger.info("Connected to Pico on %s", self._port)
+
+    async def readline(self) -> str:
+        """Read a line from serial port."""
+        data = await self._serial.readline_async()
+        if not data:
+            return ""
+        return data.decode("utf-8")
+
+    def close(self) -> None:
+        """Close the serial connection."""
+        self._serial.close()
+        logger.info("Serial port %s closed", self._port)
 
 
 _pending_tasks: set[asyncio.Task] = set()
@@ -133,34 +166,20 @@ async def _handle_line(line: str) -> None:
         logger.warning("Invalid JSON: %s", e)
 
 
-async def read_serial() -> None:
-    """Read lines from serial port asynchronously."""
+async def read_data(source: PicoDataSource) -> None:
+    """Read lines from data source asynchronously."""
     await init_db()
     _register_pico_alerts()
-    pico_cfg = get_settings().pico
-    serial_port = pico_cfg.serial_port
-    logger.info("Opening serial port %s", serial_port)
-
-    ser = aioserial.AioSerial(
-        port=serial_port,
-        baudrate=pico_cfg.serial_baud,
-        timeout=pico_cfg.serial_timeout_sec,
-    )
-    logger.info("Connected to Pico on %s", serial_port)
 
     try:
         while True:
-            line = await ser.readline_async()
+            line = await source.readline()
             if not line:
-                logger.debug("Serial read timeout, no data received")
+                logger.debug("Read timeout, no data received")
                 continue
-            try:
-                await _handle_line(line.decode("utf-8"))
-            except UnicodeDecodeError as e:
-                logger.warning("Failed to decode line: %s", e)
+            await _handle_line(line)
     finally:
-        ser.close()
-        logger.info("Serial port %s closed", serial_port)
+        source.close()
         # Wait for pending notification tasks to complete (with timeout)
         if _pending_tasks:
             logger.info("Waiting for %d pending notification(s)", len(_pending_tasks))
@@ -174,10 +193,20 @@ async def read_serial() -> None:
         await close_db()
 
 
+def _create_data_source() -> PicoDataSource:
+    """Create data source based on configuration."""
+    if get_settings().mock_sensors:
+        from rpi.lib.mock import MockPicoDataSource
+        logger.info("Using mock Pico data source")
+        return MockPicoDataSource(get_settings().polling.frequency_sec)
+    return SerialDataSource()
+
+
 def main() -> None:
-    """Start the async serial reader."""
+    """Start the async data reader."""
     configure()
-    asyncio.run(read_serial())
+    source = _create_data_source()
+    asyncio.run(read_data(source))
 
 
 if __name__ == "__main__":

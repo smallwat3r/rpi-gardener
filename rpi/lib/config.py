@@ -168,6 +168,7 @@ class Settings:
     """Application settings container."""
     db_path: str = "dht.sqlite3"
     db_timeout_sec: float = 30.0
+    mock_sensors: bool = False
     thresholds: ThresholdSettings = field(default_factory=ThresholdSettings)
     notifications: NotificationSettings = field(default_factory=NotificationSettings)
     pico: PicoSettings = field(default_factory=PicoSettings)
@@ -180,6 +181,7 @@ class Settings:
         return cls(
             db_path=environ.get("DB_PATH", "dht.sqlite3"),
             db_timeout_sec=float(environ.get("DB_TIMEOUT_SEC", "30.0")),
+            mock_sensors=environ.get("MOCK_SENSORS", "0") == "1",
             thresholds=ThresholdSettings.from_env(),
             notifications=NotificationSettings.from_env(),
             pico=PicoSettings.from_env(),

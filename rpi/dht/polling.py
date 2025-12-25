@@ -6,11 +6,9 @@ faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
 import asyncio
+from typing import Protocol
 
-from adafruit_dht import DHT22
-from board import D17
-
-from rpi.dht.display import get_display
+from rpi.dht.display import DisplayProtocol
 from rpi.dht.models import Measure, Reading, Unit
 from rpi.dht.audit import audit_reading, start_worker
 from rpi.lib.db import close_db, get_db, init_db
@@ -22,12 +20,25 @@ from rpi.logging import configure, get_logger
 logger = get_logger("dht.polling")
 
 
+class DHTSensor(Protocol):
+    """Protocol for DHT sensor interface."""
+
+    @property
+    def temperature(self) -> float: ...
+
+    @property
+    def humidity(self) -> float: ...
+
+    def exit(self) -> None: ...
+
+
 class DHTPollingService(PollingService[Reading]):
     """Polling service for the DHT22 temperature/humidity sensor."""
 
-    def __init__(self) -> None:
+    def __init__(self, sensor: DHTSensor, display: DisplayProtocol) -> None:
         super().__init__(name="DHT22")
-        self._dht: DHT22 | None = None
+        self._dht = sensor
+        self._display = display
         self._reading = Reading(
             Measure(0.0, Unit.CELSIUS),
             Measure(0.0, Unit.PERCENT),
@@ -35,24 +46,19 @@ class DHTPollingService(PollingService[Reading]):
         )
 
     async def initialize(self) -> None:
-        """Initialize DHT22 sensor and database."""
+        """Initialize database and audit worker."""
         await init_db()
         start_worker()
-        get_display().clear()
-        self._dht = DHT22(D17)
+        self._display.clear()
 
     async def cleanup(self) -> None:
         """Clean up DHT22 sensor, display, and database connection."""
-        get_display().clear()
-        if self._dht:
-            self._dht.exit()
+        self._display.clear()
+        self._dht.exit()
         await close_db()
 
     async def poll(self) -> Reading | None:
         """Poll the DHT22 sensor for new reading values."""
-        if self._dht is None:
-            return None
-
         # Run sync sensor reads in thread pool
         temperature = await asyncio.to_thread(lambda: self._dht.temperature)
         humidity = await asyncio.to_thread(lambda: self._dht.humidity)
@@ -63,7 +69,7 @@ class DHTPollingService(PollingService[Reading]):
 
         logger.info("Read %s, %s", str(self._reading.temperature),
                     str(self._reading.humidity))
-        get_display().render_reading(self._reading)
+        self._display.render_reading(self._reading)
         return self._reading
 
     async def audit(self, reading: Reading) -> bool:
@@ -109,10 +115,34 @@ class DHTPollingService(PollingService[Reading]):
             super().on_poll_error(error)
 
 
+def _create_sensor() -> DHTSensor:
+    """Create sensor based on configuration."""
+    from rpi.lib.config import get_settings
+    if get_settings().mock_sensors:
+        from rpi.lib.mock import MockDHTSensor
+        logger.info("Using mock DHT sensor")
+        return MockDHTSensor()
+    from adafruit_dht import DHT22
+    from board import D17
+    return DHT22(D17)
+
+
+def _create_display() -> DisplayProtocol:
+    """Create display based on configuration."""
+    from rpi.lib.config import get_settings
+    if get_settings().mock_sensors:
+        from rpi.lib.mock import MockDisplay
+        return MockDisplay()
+    from rpi.dht.display import Display
+    return Display()
+
+
 def main() -> None:
     """Main entry point for the polling service."""
     configure()
-    service = DHTPollingService()
+    sensor = _create_sensor()
+    display = _create_display()
+    service = DHTPollingService(sensor, display)
     service.run()
 
 

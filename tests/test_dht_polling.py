@@ -9,17 +9,32 @@ from rpi.dht.models import Measure, Reading, State, Unit
 from rpi.dht.polling import DHTPollingService
 
 
+@pytest.fixture
+def mock_sensor():
+    """Create a mock DHT sensor."""
+    sensor = MagicMock()
+    sensor.temperature = 22.0
+    sensor.humidity = 50.0
+    sensor.exit = MagicMock()
+    return sensor
+
+
+@pytest.fixture
+def mock_display():
+    """Create a mock display."""
+    display = MagicMock()
+    display.clear = MagicMock()
+    display.render_reading = MagicMock()
+    return display
+
+
 class TestDHTPollingServiceAudit:
     """Tests for DHT22 sensor boundary validation during audit."""
 
     @pytest.fixture
-    def service(self):
+    def service(self, mock_sensor, mock_display):
         """Create a DHTPollingService instance for testing."""
-        with patch("rpi.dht.polling.init_db"), \
-             patch("rpi.dht.polling.start_worker"), \
-             patch("rpi.dht.polling.get_display"):
-            svc = DHTPollingService()
-            return svc
+        return DHTPollingService(mock_sensor, mock_display)
 
     @pytest.mark.asyncio
     async def test_valid_reading_passes(self, service, sample_reading):
@@ -111,25 +126,15 @@ class TestDHTPollingServicePoll:
     """Tests for polling the DHT22 sensor."""
 
     @pytest.fixture
-    def service(self):
+    def service(self, mock_sensor, mock_display):
         """Create a DHTPollingService instance for testing."""
-        with patch("rpi.dht.polling.init_db"), \
-             patch("rpi.dht.polling.start_worker"), \
-             patch("rpi.dht.polling.get_display"):
-            svc = DHTPollingService()
-            return svc
+        return DHTPollingService(mock_sensor, mock_display)
 
     @pytest.mark.asyncio
-    @patch("rpi.dht.polling.get_display")
     @patch("rpi.dht.polling.utcnow")
     @patch("asyncio.to_thread")
-    async def test_poll_updates_reading(self, mock_to_thread, mock_time, mock_display, service, frozen_time):
+    async def test_poll_updates_reading(self, mock_to_thread, mock_time, service, mock_display, frozen_time):
         mock_time.return_value = frozen_time
-
-        mock_dht = MagicMock()
-        mock_dht.temperature = 25.5
-        mock_dht.humidity = 60.0
-        service._dht = mock_dht
 
         # Mock to_thread to return the values directly
         mock_to_thread.side_effect = [25.5, 60.0]
@@ -139,27 +144,16 @@ class TestDHTPollingServicePoll:
         assert result.temperature.value == 25.5
         assert result.humidity.value == 60.0
         assert result.recording_time == frozen_time
-        mock_display.return_value.render_reading.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_poll_returns_none_without_dht(self, service):
-        """Poll should return None if DHT is not initialized."""
-        service._dht = None
-        result = await service.poll()
-        assert result is None
+        mock_display.render_reading.assert_called_once()
 
 
 class TestDHTPollingServicePersist:
     """Tests for persisting readings to the database."""
 
     @pytest.fixture
-    def service(self):
+    def service(self, mock_sensor, mock_display):
         """Create a DHTPollingService instance for testing."""
-        with patch("rpi.dht.polling.init_db"), \
-             patch("rpi.dht.polling.start_worker"), \
-             patch("rpi.dht.polling.get_display"):
-            svc = DHTPollingService()
-            return svc
+        return DHTPollingService(mock_sensor, mock_display)
 
     @pytest.mark.asyncio
     async def test_persist_inserts_reading(self, service, sample_reading):
@@ -185,13 +179,9 @@ class TestDHTPollingServiceClearOldRecords:
     """Tests for clearing old database records."""
 
     @pytest.fixture
-    def service(self):
+    def service(self, mock_sensor, mock_display):
         """Create a DHTPollingService instance for testing."""
-        with patch("rpi.dht.polling.init_db"), \
-             patch("rpi.dht.polling.start_worker"), \
-             patch("rpi.dht.polling.get_display"):
-            svc = DHTPollingService()
-            return svc
+        return DHTPollingService(mock_sensor, mock_display)
 
     @pytest.mark.asyncio
     @patch("rpi.lib.polling.utcnow")
@@ -221,13 +211,9 @@ class TestDHTPollingServiceErrorHandling:
     """Tests for error handling in the polling service."""
 
     @pytest.fixture
-    def service(self):
+    def service(self, mock_sensor, mock_display):
         """Create a DHTPollingService instance for testing."""
-        with patch("rpi.dht.polling.init_db"), \
-             patch("rpi.dht.polling.start_worker"), \
-             patch("rpi.dht.polling.get_display"):
-            svc = DHTPollingService()
-            return svc
+        return DHTPollingService(mock_sensor, mock_display)
 
     def test_on_poll_error_handles_runtime_error(self, service, caplog):
         """RuntimeError from DHT should be logged as debug."""

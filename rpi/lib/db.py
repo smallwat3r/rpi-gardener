@@ -373,33 +373,11 @@ async def get_latest_pico_data() -> list[PicoReading]:
         return cast(list[PicoReading], rows)
 
 
-async def get_setting(key: str) -> str | None:
-    """Get a single setting value by key."""
-    async with get_db() as db:
-        row = await db.fetchone(
-            "SELECT value FROM settings WHERE key = ?", (key,)
-        )
-        return row["value"] if row else None
-
-
 async def get_all_settings() -> dict[str, str]:
     """Get all settings as a dictionary."""
     async with get_db() as db:
         rows = await db.fetchall("SELECT key, value FROM settings")
         return {row["key"]: row["value"] for row in rows}
-
-
-async def set_setting(key: str, value: str) -> None:
-    """Set a single setting value (upsert)."""
-    async with get_db() as db:
-        await db.execute(
-            """INSERT INTO settings (key, value, updated_at)
-               VALUES (?, ?, datetime('now'))
-               ON CONFLICT(key) DO UPDATE SET
-                   value = excluded.value,
-                   updated_at = excluded.updated_at""",
-            (key, value),
-        )
 
 
 async def set_settings_batch(settings: dict[str, str]) -> None:

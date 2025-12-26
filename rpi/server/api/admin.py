@@ -12,21 +12,6 @@ from rpi.server.auth import require_auth
 
 logger = get_logger("server.api.admin")
 
-# Settings keys used in the database
-SETTINGS_KEYS = {
-    "threshold.temperature.min",
-    "threshold.temperature.max",
-    "threshold.humidity.min",
-    "threshold.humidity.max",
-    "threshold.moisture.default",
-    "threshold.moisture.1",
-    "threshold.moisture.2",
-    "threshold.moisture.3",
-    "notification.enabled",
-    "notification.backends",
-    "cleanup.retention_days",
-}
-
 
 def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
     """Convert flat DB settings to structured response format."""

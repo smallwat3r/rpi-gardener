@@ -6,6 +6,7 @@ via configured backends (Gmail, Slack, etc.).
 
 import asyncio
 import signal
+from contextlib import suppress
 from datetime import datetime
 from typing import Any
 
@@ -68,12 +69,9 @@ def main() -> None:
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, loop.stop)
 
-    try:
+    with suppress(KeyboardInterrupt):
         loop.run_until_complete(run())
-    except KeyboardInterrupt:
-        pass
-    finally:
-        loop.close()
+    loop.close()
 
 
 if __name__ == "__main__":

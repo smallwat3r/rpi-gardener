@@ -2,7 +2,7 @@
 
 import asyncio
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from starlette.applications import Starlette
 from starlette.routing import Route, WebSocketRoute
@@ -52,10 +52,8 @@ async def lifespan(app: Starlette) -> AsyncIterator[None]:
         yield
     finally:
         subscriber_task.cancel()
-        try:
+        with suppress(asyncio.CancelledError):
             await subscriber_task
-        except asyncio.CancelledError:
-            pass
         await subscriber.close()
         _logger.info("Event bus subscriber stopped")
 

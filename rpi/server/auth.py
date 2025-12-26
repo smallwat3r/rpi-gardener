@@ -4,6 +4,7 @@ import base64
 import hashlib
 import secrets
 from collections.abc import Awaitable, Callable
+from contextlib import suppress
 from functools import wraps
 
 from starlette.requests import Request
@@ -46,14 +47,12 @@ def _parse_basic_auth(request: Request) -> str | None:
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Basic "):
         return None
-    try:
+    with suppress(ValueError, UnicodeDecodeError):
         decoded = base64.b64decode(auth_header[6:]).decode("utf-8")
         if ":" in decoded:
             username, password = decoded.split(":", 1)
             if username == AUTH_USERNAME:
                 return password
-    except (ValueError, UnicodeDecodeError):
-        pass
     return None
 
 

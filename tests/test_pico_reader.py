@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
-from rpi.lib.config import PlantId
+from rpi.lib.config import PlantId, ThresholdType
 from rpi.pico.models import MoistureReading, ValidationError
 
 
@@ -180,7 +180,10 @@ class TestPicoPollingServiceAudit:
         assert len(pico_audit_events) == 0
         tracker = get_alert_tracker()
         assert (
-            tracker.get_state(Namespace.PICO, PlantId.PLANT_1) == AlertState.OK
+            tracker.get_state(
+                Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
+            )
+            == AlertState.OK
         )
 
     @pytest.mark.asyncio
@@ -199,7 +202,9 @@ class TestPicoPollingServiceAudit:
         assert event.namespace == Namespace.PICO
         tracker = get_alert_tracker()
         assert (
-            tracker.get_state(Namespace.PICO, PlantId.PLANT_1)
+            tracker.get_state(
+                Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
+            )
             == AlertState.IN_ALERT
         )
 
@@ -238,10 +243,45 @@ class TestPicoPollingServiceAudit:
         assert len(pico_audit_events) == 2
         tracker = get_alert_tracker()
         assert (
-            tracker.get_state(Namespace.PICO, PlantId.PLANT_1)
+            tracker.get_state(
+                Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
+            )
             == AlertState.IN_ALERT
         )
         assert (
-            tracker.get_state(Namespace.PICO, PlantId.PLANT_2)
+            tracker.get_state(
+                Namespace.PICO, PlantId.PLANT_2, ThresholdType.MIN
+            )
             == AlertState.IN_ALERT
         )
+
+    @pytest.mark.asyncio
+    @patch("rpi.pico.reader.get_moisture_threshold", return_value=30)
+    async def test_hysteresis_prevents_moisture_flapping(
+        self, mock_threshold, service, pico_audit_events, frozen_time
+    ):
+        """Alert should not clear until moisture recovers past hysteresis band.
+
+        With min_moisture=30 and hysteresis=3:
+        - Alert triggers at moisture < 30
+        - Alert clears at moisture >= 33 (30 + 3)
+        - Value between 30-33 should stay IN_ALERT
+        """
+        # Trigger alert with low moisture
+        await service.audit(
+            [MoistureReading(PlantId.PLANT_1, 25.0, frozen_time)]
+        )
+        assert len(pico_audit_events) == 1
+
+        # Rise to 31 - within hysteresis band (30-33), should stay IN_ALERT
+        await service.audit(
+            [MoistureReading(PlantId.PLANT_1, 31.0, frozen_time)]
+        )
+        assert len(pico_audit_events) == 1  # No recovery event
+
+        # Rise to 35 - above hysteresis band, should recover
+        await service.audit(
+            [MoistureReading(PlantId.PLANT_1, 35.0, frozen_time)]
+        )
+        assert len(pico_audit_events) == 2
+        assert pico_audit_events[1].is_resolved is True

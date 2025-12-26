@@ -1,8 +1,6 @@
 """Centralized configuration for the RPi Gardener application."""
 
-import operator
 import re
-from collections.abc import Callable
 from enum import IntEnum, StrEnum
 from functools import cached_property, lru_cache
 from typing import Annotated, Any, Literal, Self
@@ -32,6 +30,13 @@ class Unit(StrEnum):
     PERCENT = "%"
 
 
+class ThresholdType(StrEnum):
+    """Type of threshold being checked."""
+
+    MIN = "min"  # Alert when value < threshold
+    MAX = "max"  # Alert when value > threshold
+
+
 class MeasureName(StrEnum):
     TEMPERATURE = "temperature"
     HUMIDITY = "humidity"
@@ -49,6 +54,12 @@ type PlantIdValue = int
 
 # Patterns
 PICO_PLANT_ID_PATTERN = re.compile(r"^plant-(\d+)$")
+
+# Hysteresis offsets for alert recovery (prevents flapping)
+# Alert triggers at threshold, clears at threshold ± hysteresis
+HYSTERESIS_TEMPERATURE = 1  # °C
+HYSTERESIS_HUMIDITY = 3  # %
+HYSTERESIS_MOISTURE = 3  # %
 
 # DHT22 sensor physical bounds
 DHT22_BOUNDS = {
@@ -424,20 +435,41 @@ def parse_pico_plant_id(raw_id: str) -> int | None:
     return None
 
 
-type ThresholdRule = tuple[Callable[[float, float], bool], int]
+type ThresholdRule = tuple[
+    ThresholdType, int, float
+]  # (type, value, hysteresis)
 
 
 def get_threshold_rules() -> dict[MeasureName, tuple[ThresholdRule, ...]]:
-    """Get threshold rules based on current settings."""
+    """Get threshold rules based on current settings.
+
+    Returns a dict mapping measure name to a tuple of (threshold_type, value, hysteresis).
+    """
     s = get_settings()
     return {
         MeasureName.TEMPERATURE: (
-            (operator.lt, s.thresholds.min_temperature),
-            (operator.gt, s.thresholds.max_temperature),
+            (
+                ThresholdType.MIN,
+                s.thresholds.min_temperature,
+                HYSTERESIS_TEMPERATURE,
+            ),
+            (
+                ThresholdType.MAX,
+                s.thresholds.max_temperature,
+                HYSTERESIS_TEMPERATURE,
+            ),
         ),
         MeasureName.HUMIDITY: (
-            (operator.lt, s.thresholds.min_humidity),
-            (operator.gt, s.thresholds.max_humidity),
+            (
+                ThresholdType.MIN,
+                s.thresholds.min_humidity,
+                HYSTERESIS_HUMIDITY,
+            ),
+            (
+                ThresholdType.MAX,
+                s.thresholds.max_humidity,
+                HYSTERESIS_HUMIDITY,
+            ),
         ),
     }
 

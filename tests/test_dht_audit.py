@@ -3,7 +3,7 @@
 from rpi.dht.audit import audit_reading
 from rpi.dht.models import Measure, Reading, State
 from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
-from rpi.lib.config import Unit
+from rpi.lib.config import ThresholdType, Unit
 
 
 class TestAuditReading:
@@ -205,8 +205,102 @@ class TestAuditReading:
         audit_reading(reading)
 
         tracker = get_alert_tracker()
+        # Temperature is above max threshold
         assert (
-            tracker.get_state(Namespace.DHT, "temperature")
+            tracker.get_state(Namespace.DHT, "temperature", ThresholdType.MAX)
             == AlertState.IN_ALERT
         )
-        assert tracker.get_state(Namespace.DHT, "humidity") == AlertState.OK
+        # Humidity is within normal range (neither MIN nor MAX violated)
+        assert (
+            tracker.get_state(Namespace.DHT, "humidity", ThresholdType.MIN)
+            == AlertState.OK
+        )
+        assert (
+            tracker.get_state(Namespace.DHT, "humidity", ThresholdType.MAX)
+            == AlertState.OK
+        )
+
+    def test_hysteresis_prevents_flapping(self, dht_audit_events, frozen_time):
+        """Alert should not clear until value recovers past hysteresis band.
+
+        With max_temperature=25 and hysteresis=1:
+        - Alert triggers at temp > 25
+        - Alert clears at temp <= 24 (25 - 1)
+        - Value between 24-25 should stay IN_ALERT
+        """
+        # Use humidity 60% which should be within any reasonable threshold range
+        safe_humidity = 60.0
+
+        # Trigger alert with high temperature
+        reading1 = Reading(
+            temperature=Measure(26.0, Unit.CELSIUS),  # Above 25, triggers
+            humidity=Measure(safe_humidity, Unit.PERCENT),
+            recording_time=frozen_time,
+        )
+        audit_reading(reading1)
+        assert len(dht_audit_events) == 1
+        assert reading1.temperature.state == State.IN_ALERT
+
+        # Drop to 24.5 - within hysteresis band (24-25), should stay IN_ALERT
+        reading2 = Reading(
+            temperature=Measure(24.5, Unit.CELSIUS),  # Below 25 but above 24
+            humidity=Measure(safe_humidity, Unit.PERCENT),
+            recording_time=frozen_time,
+        )
+        audit_reading(reading2)
+        # No new events (still in alert, no recovery)
+        assert len(dht_audit_events) == 1
+        assert reading2.temperature.state == State.IN_ALERT
+
+        # Drop to 23 - below hysteresis band, should recover
+        reading3 = Reading(
+            temperature=Measure(23.0, Unit.CELSIUS),  # Below 24, recovers
+            humidity=Measure(safe_humidity, Unit.PERCENT),
+            recording_time=frozen_time,
+        )
+        audit_reading(reading3)
+        # Recovery event triggered
+        assert len(dht_audit_events) == 2
+        assert dht_audit_events[1].is_resolved is True
+        assert reading3.temperature.state == State.OK
+
+    def test_hysteresis_min_threshold(self, dht_audit_events, frozen_time):
+        """Hysteresis also works for MIN thresholds.
+
+        With min_temperature=18 and hysteresis=1:
+        - Alert triggers at temp < 18
+        - Alert clears at temp >= 19 (18 + 1)
+        """
+        # Use humidity 60% which should be within any reasonable threshold range
+        safe_humidity = 60.0
+
+        # Trigger alert with low temperature
+        reading1 = Reading(
+            temperature=Measure(17.0, Unit.CELSIUS),  # Below 18, triggers
+            humidity=Measure(safe_humidity, Unit.PERCENT),
+            recording_time=frozen_time,
+        )
+        audit_reading(reading1)
+        assert len(dht_audit_events) == 1
+        assert reading1.temperature.state == State.IN_ALERT
+
+        # Rise to 18.5 - within hysteresis band (18-19), should stay IN_ALERT
+        reading2 = Reading(
+            temperature=Measure(18.5, Unit.CELSIUS),  # Above 18 but below 19
+            humidity=Measure(safe_humidity, Unit.PERCENT),
+            recording_time=frozen_time,
+        )
+        audit_reading(reading2)
+        assert len(dht_audit_events) == 1
+        assert reading2.temperature.state == State.IN_ALERT
+
+        # Rise to 20 - above hysteresis band, should recover
+        reading3 = Reading(
+            temperature=Measure(20.0, Unit.CELSIUS),  # Above 19, recovers
+            humidity=Measure(safe_humidity, Unit.PERCENT),
+            recording_time=frozen_time,
+        )
+        audit_reading(reading3)
+        assert len(dht_audit_events) == 2
+        assert dht_audit_events[1].is_resolved is True
+        assert reading3.temperature.state == State.OK

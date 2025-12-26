@@ -6,12 +6,7 @@ The service is responsible for:
 """
 
 from rpi.dht.models import Measure, Reading, State
-from rpi.lib.alerts import (
-    AlertState,
-    Namespace,
-    get_alert_tracker,
-    publish_alert,
-)
+from rpi.lib.alerts import Namespace, get_alert_tracker, publish_alert
 from rpi.lib.config import get_threshold_rules
 from rpi.logging import get_logger
 
@@ -31,34 +26,22 @@ def audit_reading(reading: Reading) -> None:
     for name, rules in get_threshold_rules().items():
         measure: Measure = getattr(reading, name)
 
-        # Check each rule for this measure
-        for comparator, threshold in rules:
-            is_violated = comparator(measure.value, threshold)
-            if is_violated:
-                alert_state = tracker.check(
-                    namespace=Namespace.DHT,
-                    sensor_name=name,
-                    value=measure.value,
-                    unit=measure.unit,
-                    threshold=threshold,
-                    is_violated=True,
-                    recording_time=reading.recording_time,
-                )
-                measure.state = (
-                    State.IN_ALERT
-                    if alert_state == AlertState.IN_ALERT
-                    else State.OK
-                )
-                break
-        else:
-            # No threshold violated
+        # Check all threshold rules for this measure
+        for threshold_type, threshold, hysteresis in rules:
             tracker.check(
                 namespace=Namespace.DHT,
                 sensor_name=name,
                 value=measure.value,
                 unit=measure.unit,
-                threshold=0,
-                is_violated=False,
+                threshold=threshold,
+                threshold_type=threshold_type,
+                hysteresis=hysteresis,
                 recording_time=reading.recording_time,
             )
-            measure.state = State.OK
+
+        # Set measure state based on any active alert
+        measure.state = (
+            State.IN_ALERT
+            if tracker.is_any_alert(Namespace.DHT, name)
+            else State.OK
+        )

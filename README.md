@@ -148,7 +148,7 @@ The RPi reads from `/dev/ttyACM0` and persists readings directly to the database
 
 ## Data Management
 
-- Historical data is automatically deleted after the configured retention period (default: 3 days)
+- Historical data is automatically deleted after the configured retention period (default: 7 days)
 - Retention period can be changed via the admin interface
 - Database persisted in Docker volume `rpi-gardener-db`
 - Regenerate SSL certs by removing volume: `docker volume rm rpi-gardener-certs`

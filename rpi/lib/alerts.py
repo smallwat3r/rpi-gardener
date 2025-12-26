@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
 
-from rpi.lib.config import PlantIdValue
+from rpi.lib.config import PlantIdValue, Unit
 from rpi.lib.eventbus import AlertEventPayload, Topic, get_publisher
 from rpi.logging import get_logger
 
@@ -41,7 +41,7 @@ class AlertEvent:
     namespace: Namespace
     sensor_name: SensorName
     value: float
-    unit: str
+    unit: Unit
     threshold: float | None  # None for resolution events
     recording_time: datetime
     is_resolved: bool = False
@@ -89,7 +89,7 @@ class AlertTracker:
         namespace: Namespace,
         sensor_name: SensorName,
         value: float,
-        unit: str,
+        unit: Unit,
         threshold: float,
         is_violated: bool,
         recording_time: datetime,
@@ -100,7 +100,7 @@ class AlertTracker:
             namespace: The namespace this sensor belongs to.
             sensor_name: Identifier for the sensor being checked.
             value: Current sensor reading value.
-            unit: Unit of measurement (e.g., "c", "%").
+            unit: Unit of measurement.
             threshold: The threshold value that was checked against.
             is_violated: True if the value violates the threshold.
             recording_time: When the reading was taken.

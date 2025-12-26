@@ -1,8 +1,9 @@
 """Tests for the DHT22 audit and event service."""
 
 from rpi.dht.audit import audit_reading
-from rpi.dht.models import Measure, Reading, State, Unit
+from rpi.dht.models import Measure, Reading, State
 from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
+from rpi.lib.config import Unit
 
 
 class TestAuditReading:

@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import Protocol, override
 
 from rpi.lib.alerts import Namespace, get_alert_tracker, publish_alert
-from rpi.lib.config import get_moisture_threshold, get_settings
+from rpi.lib.config import Unit, get_moisture_threshold, get_settings
 from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.eventbus import PicoReadingEvent, Topic, get_publisher
 from rpi.lib.polling import PollingService
@@ -131,7 +131,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
                 namespace=Namespace.PICO,
                 sensor_name=reading.plant_id,
                 value=reading.moisture,
-                unit="%",
+                unit=Unit.PERCENT,
                 threshold=threshold,
                 is_violated=is_thirsty,
                 recording_time=reading.recording_time,

@@ -13,8 +13,8 @@ from typing import Protocol, override
 from rpi.dht.audit import audit_reading
 from rpi.dht.audit import init as init_audit
 from rpi.dht.display import DisplayProtocol
-from rpi.dht.models import Measure, Reading, Unit
-from rpi.lib.config import DHT22_BOUNDS, MeasureName
+from rpi.dht.models import Measure, Reading
+from rpi.lib.config import DHT22_BOUNDS, MeasureName, Unit
 from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.eventbus import DHTReadingEvent, Topic, get_publisher
 from rpi.lib.polling import PollingService

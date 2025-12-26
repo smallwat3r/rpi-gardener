@@ -1,0 +1,31 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.0
+          - pydantic-settings>=2.0
+          - aiosqlite
+          - redis
+          - starlette
+          - types-redis
+        args: [--config-file=pyproject.toml]
+        pass_filenames: false
+        entry: mypy rpi tests scripts
+
+  - repo: local
+    hooks:
+      - id: biome
+        name: biome
+        language: system
+        entry: bash -c 'cd rpi/server/frontend && npm run check'
+        files: ^rpi/server/frontend/src/
+        pass_filenames: false

@@ -25,6 +25,13 @@ class NotificationBackend(StrEnum):
     SLACK = "slack"
 
 
+class Unit(StrEnum):
+    """Measurement units for sensor readings."""
+
+    CELSIUS = "°C"
+    PERCENT = "%"
+
+
 class MeasureName(StrEnum):
     TEMPERATURE = "temperature"
     HUMIDITY = "humidity"

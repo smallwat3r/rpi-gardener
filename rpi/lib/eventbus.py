@@ -15,7 +15,7 @@ from typing import Any, Literal
 import redis
 import redis.asyncio as aioredis
 
-from rpi.lib.config import get_settings
+from rpi.lib.config import Unit, get_settings
 from rpi.logging import get_logger
 
 logger = get_logger("lib.eventbus")
@@ -98,7 +98,7 @@ class AlertEventPayload(Event):
     namespace: str
     sensor_name: str | int
     value: float
-    unit: str
+    unit: Unit
     threshold: float | None
     recording_time: datetime
     is_resolved: bool = False

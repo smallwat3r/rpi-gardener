@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from rpi.lib.config import Unit
 from rpi.lib.eventbus import (
     AlertEventPayload,
     DHTReadingEvent,
@@ -61,7 +62,7 @@ class TestAlertEventPayload:
             namespace="dht",
             sensor_name="temperature",
             value=28.0,
-            unit="c",
+            unit=Unit.CELSIUS,
             threshold=25.0,
             recording_time=datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC),
             is_resolved=False,
@@ -71,7 +72,7 @@ class TestAlertEventPayload:
         assert result["namespace"] == "dht"
         assert result["sensor_name"] == "temperature"
         assert result["value"] == 28.0
-        assert result["unit"] == "c"
+        assert result["unit"] == Unit.CELSIUS
         assert result["threshold"] == 25.0
         assert result["recording_time"] == "2024-06-15 12:00:00"
         assert result["is_resolved"] is False
@@ -82,7 +83,7 @@ class TestAlertEventPayload:
             namespace="pico",
             sensor_name=1,
             value=35.0,
-            unit="%",
+            unit=Unit.PERCENT,
             threshold=None,
             recording_time=datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC),
             is_resolved=True,

@@ -2,12 +2,9 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, StrEnum, auto
+from enum import Enum, auto
 
-
-class Unit(StrEnum):
-    CELSIUS = "c"
-    PERCENT = "%"
+from rpi.lib.config import Unit
 
 
 class State(Enum):

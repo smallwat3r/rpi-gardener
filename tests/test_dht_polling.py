@@ -5,8 +5,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from rpi.dht.models import Measure, Reading, Unit
+from rpi.dht.models import Measure, Reading
 from rpi.dht.polling import DHTPollingService
+from rpi.lib.config import Unit
 
 
 class TestDHTPollingServiceAudit:

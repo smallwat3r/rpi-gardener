@@ -19,9 +19,9 @@ sys.modules["PIL.Image"] = MagicMock()
 sys.modules["PIL.ImageDraw"] = MagicMock()
 sys.modules["PIL.ImageFont"] = MagicMock()
 
-from rpi.dht.models import Measure, Reading, State, Unit
+from rpi.dht.models import Measure, Reading, State
 from rpi.lib.alerts import Namespace, get_alert_tracker, reset_alert_tracker
-from rpi.lib.config import set_settings
+from rpi.lib.config import Unit, set_settings
 
 
 @pytest.fixture(autouse=True)

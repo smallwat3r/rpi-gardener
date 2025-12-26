@@ -1,4 +1,5 @@
 """Application factory for the web server."""
+
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -12,8 +13,12 @@ from rpi.logging import configure, get_logger
 from .api.dashboard import get_dashboard
 from .api.health import health_check
 from .api.thresholds import get_thresholds
-from .websockets import (connection_manager, ws_alerts, ws_dht_latest,
-                         ws_pico_latest)
+from .websockets import (
+    connection_manager,
+    ws_alerts,
+    ws_dht_latest,
+    ws_pico_latest,
+)
 
 _logger = get_logger("server.entrypoint")
 

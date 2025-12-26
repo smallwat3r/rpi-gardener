@@ -4,6 +4,7 @@ Provides a unified AlertTracker singleton that tracks per-sensor alert states
 across different namespaces (DHT, Pico) and triggers callbacks only on state
 transitions (to prevent notification spam).
 """
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -17,6 +18,7 @@ logger = get_logger("lib.alerts")
 
 class AlertState(Enum):
     """Possible alert states for a sensor."""
+
     OK = auto()
     IN_ALERT = auto()
 
@@ -26,6 +28,7 @@ type SensorName = str | PlantIdValue
 
 class Namespace(Enum):
     """Alert namespace identifiers."""
+
     DHT = "dht"
     PICO = "pico"
 
@@ -33,6 +36,7 @@ class Namespace(Enum):
 @dataclass(slots=True)
 class AlertEvent:
     """Details about an alert state transition."""
+
     namespace: Namespace
     sensor_name: SensorName
     value: float
@@ -59,7 +63,9 @@ class AlertTracker:
         self._states: dict[tuple[Namespace, SensorName], AlertState] = {}
         self._callbacks: dict[Namespace, AlertCallback] = {}
 
-    def register_callback(self, namespace: Namespace, callback: AlertCallback) -> None:
+    def register_callback(
+        self, namespace: Namespace, callback: AlertCallback
+    ) -> None:
         """Register a callback for a specific namespace.
 
         Args:
@@ -67,9 +73,13 @@ class AlertTracker:
             callback: Function called when a sensor transitions state.
         """
         self._callbacks[namespace] = callback
-        logger.debug("Registered alert callback for namespace %s", namespace.value)
+        logger.debug(
+            "Registered alert callback for namespace %s", namespace.value
+        )
 
-    def _make_key(self, namespace: Namespace, sensor_name: SensorName) -> tuple[Namespace, SensorName]:
+    def _make_key(
+        self, namespace: Namespace, sensor_name: SensorName
+    ) -> tuple[Namespace, SensorName]:
         """Create a unique key for a sensor in a namespace."""
         return (namespace, sensor_name)
 
@@ -103,42 +113,61 @@ class AlertTracker:
 
         callback = self._callbacks.get(namespace)
 
-        if new_state == AlertState.IN_ALERT and previous_state != AlertState.IN_ALERT:
+        if (
+            new_state == AlertState.IN_ALERT
+            and previous_state != AlertState.IN_ALERT
+        ):
             logger.info(
                 "[%s] %s crossed threshold: %.1f%s (threshold: %.0f)",
-                namespace.value, sensor_name, value, unit, threshold
+                namespace.value,
+                sensor_name,
+                value,
+                unit,
+                threshold,
             )
             if callback:
-                callback(AlertEvent(
-                    namespace=namespace,
-                    sensor_name=sensor_name,
-                    value=value,
-                    unit=unit,
-                    threshold=threshold,
-                    recording_time=recording_time,
-                    is_resolved=False,
-                ))
+                callback(
+                    AlertEvent(
+                        namespace=namespace,
+                        sensor_name=sensor_name,
+                        value=value,
+                        unit=unit,
+                        threshold=threshold,
+                        recording_time=recording_time,
+                        is_resolved=False,
+                    )
+                )
 
-        elif new_state == AlertState.OK and previous_state == AlertState.IN_ALERT:
+        elif (
+            new_state == AlertState.OK
+            and previous_state == AlertState.IN_ALERT
+        ):
             logger.info(
                 "[%s] %s returned to normal: %.1f%s",
-                namespace.value, sensor_name, value, unit
+                namespace.value,
+                sensor_name,
+                value,
+                unit,
             )
             if callback:
-                callback(AlertEvent(
-                    namespace=namespace,
-                    sensor_name=sensor_name,
-                    value=value,
-                    unit=unit,
-                    threshold=None,
-                    recording_time=recording_time,
-                    is_resolved=True,
-                ))
+                callback(
+                    AlertEvent(
+                        namespace=namespace,
+                        sensor_name=sensor_name,
+                        value=value,
+                        unit=unit,
+                        threshold=None,
+                        recording_time=recording_time,
+                        is_resolved=True,
+                    )
+                )
 
         self._states[key] = new_state
         return new_state
 
-    def get_state(self, namespace: Namespace, sensor_name: SensorName) -> AlertState:
+    def get_state(
+        self, namespace: Namespace, sensor_name: SensorName
+    ) -> AlertState:
         """Get current alert state for a sensor."""
         key = self._make_key(namespace, sensor_name)
         return self._states.get(key, AlertState.OK)

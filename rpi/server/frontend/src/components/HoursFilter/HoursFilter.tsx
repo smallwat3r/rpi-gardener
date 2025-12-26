@@ -11,14 +11,16 @@ export function HoursFilter({ value, onChange }: HoursFilterProps) {
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
-    const hours = Math.min(24, Math.max(1, parseInt(inputValue) || 3));
+    const hours = Math.min(24, Math.max(1, parseInt(inputValue, 10) || 3));
     setInputValue(hours.toString());
     onChange(hours);
   };
 
   return (
     <form class={styles.form} onSubmit={handleSubmit}>
-      <label class={styles.label} htmlFor="hours">Hours ago</label>
+      <label class={styles.label} htmlFor="hours">
+        Hours ago
+      </label>
       <input
         type="number"
         id="hours"
@@ -28,7 +30,9 @@ export function HoursFilter({ value, onChange }: HoursFilterProps) {
         value={inputValue}
         onInput={(e) => setInputValue((e.target as HTMLInputElement).value)}
       />
-      <button type="submit" class={styles.button}>Update</button>
+      <button type="submit" class={styles.button}>
+        Update
+      </button>
     </form>
   );
 }

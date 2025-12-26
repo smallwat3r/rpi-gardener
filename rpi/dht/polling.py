@@ -5,6 +5,7 @@ exists yet. Polling frequency is set to 2 seconds, we can't make it poll
 faster as the DHT22 sensor is set-up to measure for new data every 2
 seconds, else cache results would be returned.
 """
+
 import asyncio
 from datetime import UTC, datetime
 from typing import Protocol, override
@@ -75,8 +76,11 @@ class DHTPollingService(PollingService[Reading]):
         self._reading.humidity.value = humidity
         self._reading.recording_time = datetime.now(UTC)
 
-        logger.info("Read %s, %s", str(self._reading.temperature),
-                    str(self._reading.humidity))
+        logger.info(
+            "Read %s, %s",
+            str(self._reading.temperature),
+            str(self._reading.humidity),
+        )
         self._display.render_reading(self._reading)
         return self._reading
 
@@ -90,7 +94,8 @@ class DHTPollingService(PollingService[Reading]):
             if measure < bmin or measure > bmax:
                 logger.error(
                     "%s reading outside bounds of DHT22 sensor: %s",
-                    name.capitalize(), measure
+                    name.capitalize(),
+                    measure,
                 )
                 return False
 
@@ -104,8 +109,11 @@ class DHTPollingService(PollingService[Reading]):
         async with get_db() as db:
             await db.execute(
                 "INSERT INTO reading (temperature, humidity, recording_time) VALUES (?, ?, ?)",
-                (reading.temperature.value, reading.humidity.value,
-                 reading.recording_time)
+                (
+                    reading.temperature.value,
+                    reading.humidity.value,
+                    reading.recording_time,
+                ),
             )
 
         # Publish to event bus for real-time WebSocket updates
@@ -130,22 +138,28 @@ class DHTPollingService(PollingService[Reading]):
 def _create_sensor() -> DHTSensor:
     """Create sensor based on configuration."""
     from rpi.lib.config import get_settings
+
     if get_settings().mock_sensors:
         from rpi.lib.mock import MockDHTSensor
+
         logger.info("Using mock DHT sensor")
         return MockDHTSensor()
     from adafruit_dht import DHT22
     from board import D17
+
     return DHT22(D17)
 
 
 def _create_display() -> DisplayProtocol:
     """Create display based on configuration."""
     from rpi.lib.config import get_settings
+
     if get_settings().mock_sensors:
         from rpi.lib.mock import MockDisplay
+
         return MockDisplay()
     from rpi.dht.display import Display
+
     return Display()
 
 

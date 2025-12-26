@@ -1,4 +1,5 @@
 """Logging configuration for the RPi Gardener application."""
+
 import logging
 import sys
 

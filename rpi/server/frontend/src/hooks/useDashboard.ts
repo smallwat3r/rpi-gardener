@@ -1,7 +1,14 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { fetchDashboardData, fetchThresholds } from '@/api/dashboard';
+import type {
+  DashboardData,
+  DHTReading,
+  DHTStats,
+  PicoChartDataPoint,
+  PicoReading,
+  Thresholds,
+} from '@/types';
 import { useWebSocket } from './useWebSocket';
-import type { DashboardData, DHTReading, DHTStats, PicoChartDataPoint, PicoReading, Thresholds } from '@/types';
 
 export function useDashboard(initialHours: number = 3) {
   const [hours, setHours] = useState(initialHours);
@@ -15,12 +22,16 @@ export function useDashboard(initialHours: number = 3) {
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {
     fetchThresholds()
-      .then((t) => { if (mountedRef.current) setThresholds(t); })
+      .then((t) => {
+        if (mountedRef.current) setThresholds(t);
+      })
       .catch(() => {});
   }, []);
 
@@ -48,16 +59,19 @@ export function useDashboard(initialHours: number = 3) {
     loadData();
   }, [loadData]);
 
-  const handleDhtLatest = useCallback((reading: DHTReading | null) => {
-    if (!reading || reading.epoch === lastDhtEpoch.current) return;
-    lastDhtEpoch.current = reading.epoch;
-    setData((prev) => {
-      if (!prev) return prev;
-      const cutoff = Date.now() - hours * 60 * 60 * 1000;
-      const newChartData = [...prev.data.filter((r) => r.epoch >= cutoff), reading];
-      return { ...prev, latest: reading, data: newChartData };
-    });
-  }, [hours]);
+  const handleDhtLatest = useCallback(
+    (reading: DHTReading | null) => {
+      if (!reading || reading.epoch === lastDhtEpoch.current) return;
+      lastDhtEpoch.current = reading.epoch;
+      setData((prev) => {
+        if (!prev) return prev;
+        const cutoff = Date.now() - hours * 60 * 60 * 1000;
+        const newChartData = [...prev.data.filter((r) => r.epoch >= cutoff), reading];
+        return { ...prev, latest: reading, data: newChartData };
+      });
+    },
+    [hours],
+  );
 
   const handlePicoLatest = useCallback((picoReadings: PicoReading[] | null) => {
     if (!picoReadings?.length || picoReadings[0].epoch === lastPicoEpoch.current) return;

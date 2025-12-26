@@ -3,6 +3,7 @@
 Provides a Display class for rendering temperature and humidity readings
 on an SSD1306 OLED display connected via I2C.
 """
+
 from typing import Protocol
 
 from rpi.dht.models import Reading
@@ -13,6 +14,7 @@ class DisplayProtocol(Protocol):
     """Protocol for display interface."""
 
     def clear(self) -> None: ...
+
     def render_reading(self, reading: Reading) -> None: ...
 
 
@@ -47,13 +49,13 @@ class Display:
             (cfg.text_x_offset, cfg.text_y_temp),
             f"T: {reading.temperature}",
             font=font,
-            fill=255
+            fill=255,
         )
         draw.text(
             (cfg.text_x_offset, cfg.text_y_humidity),
             f"H: {reading.humidity}",
             font=font,
-            fill=255
+            fill=255,
         )
         self._oled.image(image)
         self._oled.show()

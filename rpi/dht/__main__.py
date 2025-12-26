@@ -6,6 +6,7 @@ are exceeded.
 
 Usage: python -m rpi.dht
 """
+
 from rpi.dht.polling import main
 
 if __name__ == "__main__":

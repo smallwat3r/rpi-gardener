@@ -1,4 +1,5 @@
 """Tests for the database cleanup module."""
+
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 

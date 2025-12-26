@@ -1,4 +1,5 @@
 """Shared pytest fixtures for the test suite."""
+
 import logging
 import sys
 from datetime import UTC, datetime

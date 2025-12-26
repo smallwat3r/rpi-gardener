@@ -3,6 +3,7 @@
 Reads JSON lines from the Pico's USB serial output and persists
 moisture readings to the database.
 """
+
 import json
 from datetime import UTC, datetime
 from typing import Protocol, override
@@ -10,8 +11,12 @@ from typing import Protocol, override
 from rpi.lib.alerts import AlertEvent, Namespace, get_alert_tracker
 from rpi.lib.config import get_moisture_threshold, get_settings
 from rpi.lib.db import close_db, get_db, init_db
-from rpi.lib.eventbus import (AlertEventPayload, PicoReadingEvent, Topic,
-                              get_publisher)
+from rpi.lib.eventbus import (
+    AlertEventPayload,
+    PicoReadingEvent,
+    Topic,
+    get_publisher,
+)
 from rpi.lib.polling import PollingService
 from rpi.logging import configure, get_logger
 from rpi.pico.models import MoistureReading, ValidationError
@@ -110,7 +115,9 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
             return None
 
         if not isinstance(data, dict):
-            self._logger.warning("Expected JSON object, got %s", type(data).__name__)
+            self._logger.warning(
+                "Expected JSON object, got %s", type(data).__name__
+            )
             return None
 
         recording_time = datetime.now(UTC)
@@ -124,7 +131,9 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
                 self._logger.warning("Validation failed for %s: %s", key, e)
 
         if readings:
-            summary = ", ".join(f"plant-{r.plant_id}: {r.moisture}%" for r in readings)
+            summary = ", ".join(
+                f"plant-{r.plant_id}: {r.moisture}%" for r in readings
+            )
             self._logger.info("Read %s", summary)
             return readings
         return None

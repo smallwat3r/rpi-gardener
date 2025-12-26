@@ -1,5 +1,4 @@
 """Tests for the DHT22 audit and event service."""
-import pytest
 
 from rpi.dht.audit import audit_reading
 from rpi.dht.models import Measure, Reading, State, Unit
@@ -17,11 +16,17 @@ class TestAuditReading:
         assert sample_reading.temperature.state == State.OK
         assert sample_reading.humidity.state == State.OK
 
-    def test_high_temperature_triggers_event(self, dht_audit_events, frozen_time):
+    def test_high_temperature_triggers_event(
+        self, dht_audit_events, frozen_time
+    ):
         """Temperature above max should trigger an event."""
         reading = Reading(
-            temperature=Measure(80.0, Unit.CELSIUS),  # Very high, definitely over threshold
-            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
+            temperature=Measure(
+                80.0, Unit.CELSIUS
+            ),  # Very high, definitely over threshold
+            humidity=Measure(
+                55.0, Unit.PERCENT
+            ),  # Safe value within thresholds
             recording_time=frozen_time,
         )
 
@@ -34,11 +39,17 @@ class TestAuditReading:
         assert event.value == 80.0
         assert event.namespace == Namespace.DHT
 
-    def test_low_temperature_triggers_event(self, dht_audit_events, frozen_time):
+    def test_low_temperature_triggers_event(
+        self, dht_audit_events, frozen_time
+    ):
         """Temperature below min should trigger an event."""
         reading = Reading(
-            temperature=Measure(-10.0, Unit.CELSIUS),  # Very low, definitely under threshold
-            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
+            temperature=Measure(
+                -10.0, Unit.CELSIUS
+            ),  # Very low, definitely under threshold
+            humidity=Measure(
+                55.0, Unit.PERCENT
+            ),  # Safe value within thresholds
             recording_time=frozen_time,
         )
 
@@ -52,7 +63,9 @@ class TestAuditReading:
         """Humidity above max should trigger an event."""
         reading = Reading(
             temperature=Measure(22.0, Unit.CELSIUS),
-            humidity=Measure(99.0, Unit.PERCENT),  # Very high, definitely over threshold
+            humidity=Measure(
+                99.0, Unit.PERCENT
+            ),  # Very high, definitely over threshold
             recording_time=frozen_time,
         )
 
@@ -66,7 +79,9 @@ class TestAuditReading:
         """Humidity below min should trigger an event."""
         reading = Reading(
             temperature=Measure(22.0, Unit.CELSIUS),
-            humidity=Measure(5.0, Unit.PERCENT),  # Very low, definitely under threshold
+            humidity=Measure(
+                5.0, Unit.PERCENT
+            ),  # Very low, definitely under threshold
             recording_time=frozen_time,
         )
 
@@ -80,12 +95,16 @@ class TestAuditReading:
         """Consecutive alerts should not trigger duplicate events."""
         reading1 = Reading(
             temperature=Measure(80.0, Unit.CELSIUS),  # Definitely triggers
-            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
+            humidity=Measure(
+                55.0, Unit.PERCENT
+            ),  # Safe value within thresholds
             recording_time=frozen_time,
         )
         reading2 = Reading(
             temperature=Measure(81.0, Unit.CELSIUS),  # Still in alert
-            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
+            humidity=Measure(
+                55.0, Unit.PERCENT
+            ),  # Safe value within thresholds
             recording_time=frozen_time,
         )
 
@@ -103,7 +122,9 @@ class TestAuditReading:
         # Initial alert
         reading1 = Reading(
             temperature=Measure(80.0, Unit.CELSIUS),  # Definitely triggers
-            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
+            humidity=Measure(
+                55.0, Unit.PERCENT
+            ),  # Safe value within thresholds
             recording_time=frozen_time,
         )
         audit_reading(reading1)
@@ -112,7 +133,9 @@ class TestAuditReading:
         # Recovery - use very safe middle value
         reading2 = Reading(
             temperature=Measure(20.0, Unit.CELSIUS),
-            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
+            humidity=Measure(
+                55.0, Unit.PERCENT
+            ),  # Safe value within thresholds
             recording_time=frozen_time,
         )
         audit_reading(reading2)
@@ -122,8 +145,12 @@ class TestAuditReading:
 
         # New alert
         reading3 = Reading(
-            temperature=Measure(80.0, Unit.CELSIUS),  # Definitely triggers again
-            humidity=Measure(55.0, Unit.PERCENT),  # Safe value within thresholds
+            temperature=Measure(
+                80.0, Unit.CELSIUS
+            ),  # Definitely triggers again
+            humidity=Measure(
+                55.0, Unit.PERCENT
+            ),  # Safe value within thresholds
             recording_time=frozen_time,
         )
         audit_reading(reading3)
@@ -159,17 +186,26 @@ class TestAuditReading:
         audit_reading(reading)
         assert reading.temperature.state == State.IN_ALERT
 
-    def test_alert_tracker_uses_dht_namespace(self, dht_audit_events, frozen_time):
+    def test_alert_tracker_uses_dht_namespace(
+        self, dht_audit_events, frozen_time
+    ):
         """Alert tracker should use DHT namespace for temperature/humidity."""
         # Temperature is high (alert), humidity is within normal range
         reading = Reading(
-            temperature=Measure(80.0, Unit.CELSIUS),  # Above max, triggers alert
-            humidity=Measure(55.0, Unit.PERCENT),  # Between min (40) and max (65), no alert
+            temperature=Measure(
+                80.0, Unit.CELSIUS
+            ),  # Above max, triggers alert
+            humidity=Measure(
+                55.0, Unit.PERCENT
+            ),  # Between min (40) and max (65), no alert
             recording_time=frozen_time,
         )
 
         audit_reading(reading)
 
         tracker = get_alert_tracker()
-        assert tracker.get_state(Namespace.DHT, "temperature") == AlertState.IN_ALERT
+        assert (
+            tracker.get_state(Namespace.DHT, "temperature")
+            == AlertState.IN_ALERT
+        )
         assert tracker.get_state(Namespace.DHT, "humidity") == AlertState.OK

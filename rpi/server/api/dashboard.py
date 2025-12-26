@@ -3,9 +3,13 @@ from sqlite3 import DatabaseError
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from rpi.lib.db import (get_initial_dht_data, get_initial_pico_data,
-                        get_latest_dht_data, get_latest_pico_data,
-                        get_stats_dht_data)
+from rpi.lib.db import (
+    get_initial_dht_data,
+    get_initial_pico_data,
+    get_latest_dht_data,
+    get_latest_pico_data,
+    get_stats_dht_data,
+)
 from rpi.logging import get_logger
 from rpi.server.validators import InvalidParameter, parse_hours
 
@@ -20,14 +24,16 @@ async def get_dashboard(request: Request) -> JSONResponse:
         return JSONResponse({"error": str(err)}, status_code=400)
 
     try:
-        return JSONResponse({
-            "hours": hours,
-            "data": await get_initial_dht_data(from_time),
-            "stats": await get_stats_dht_data(from_time),
-            "latest": await get_latest_dht_data(),
-            "pico_data": await get_initial_pico_data(from_time),
-            "pico_latest": await get_latest_pico_data(),
-        })
+        return JSONResponse(
+            {
+                "hours": hours,
+                "data": await get_initial_dht_data(from_time),
+                "stats": await get_stats_dht_data(from_time),
+                "latest": await get_latest_dht_data(),
+                "pico_data": await get_initial_pico_data(from_time),
+                "pico_latest": await get_latest_pico_data(),
+            }
+        )
     except DatabaseError:
         logger.exception("Database error fetching dashboard data")
         return JSONResponse({"error": "Database unavailable"}, status_code=503)

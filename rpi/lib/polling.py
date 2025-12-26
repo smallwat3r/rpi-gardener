@@ -3,6 +3,7 @@
 Provides a reusable base class for sensor polling services that follow
 the poll → audit → persist pattern with configurable intervals.
 """
+
 import asyncio
 import signal
 from abc import ABC, abstractmethod
@@ -93,7 +94,9 @@ class PollingService[T](ABC):
     def _handle_shutdown(self, signum: int, frame: FrameType | None) -> None:
         """Handle shutdown signals gracefully."""
         signal_name = signal.Signals(signum).name
-        self._logger.info("Received %s, initiating graceful shutdown...", signal_name)
+        self._logger.info(
+            "Received %s, initiating graceful shutdown...", signal_name
+        )
         self._shutdown_requested = True
 
     def _setup_signal_handlers(self) -> None:

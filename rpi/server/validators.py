@@ -1,4 +1,5 @@
 """Shared query parameter parsing utilities."""
+
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -29,12 +30,16 @@ def parse_hours(params: Any, *, strict: bool = True) -> tuple[int, datetime]:
         hours = int(params.get("hours", DEFAULT_HOURS))
     except (ValueError, TypeError):
         if strict:
-            raise InvalidParameter("Parameter needs to be an integer")
+            raise InvalidParameter(
+                "Parameter needs to be an integer"
+            ) from None
         hours = DEFAULT_HOURS
 
     if not (MIN_HOURS <= hours <= MAX_HOURS):
         if strict:
-            raise InvalidParameter(f"Hours must be between {MIN_HOURS} and {MAX_HOURS}")
+            raise InvalidParameter(
+                f"Hours must be between {MIN_HOURS} and {MAX_HOURS}"
+            )
         hours = max(MIN_HOURS, min(MAX_HOURS, hours))
 
     return hours, datetime.now(UTC) - timedelta(hours=hours)

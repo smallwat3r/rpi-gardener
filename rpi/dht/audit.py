@@ -4,6 +4,7 @@ The service is responsible for:
 - Auditing readings against predefined thresholds
 - Publishing alert events to the event bus (notifications handled by web server)
 """
+
 from rpi.dht.models import Measure, Reading, State
 from rpi.lib.alerts import AlertEvent, AlertState, Namespace, get_alert_tracker
 from rpi.lib.config import get_threshold_rules
@@ -53,7 +54,11 @@ def audit_reading(reading: Reading) -> None:
                     is_violated=True,
                     recording_time=reading.recording_time,
                 )
-                measure.state = State.IN_ALERT if alert_state == AlertState.IN_ALERT else State.OK
+                measure.state = (
+                    State.IN_ALERT
+                    if alert_state == AlertState.IN_ALERT
+                    else State.OK
+                )
                 break
         else:
             # No threshold violated

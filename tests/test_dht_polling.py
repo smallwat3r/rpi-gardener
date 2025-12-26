@@ -1,10 +1,11 @@
 """Tests for the DHT22 polling module."""
+
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from rpi.dht.models import Measure, Reading, State, Unit
+from rpi.dht.models import Measure, Reading, Unit
 from rpi.dht.polling import DHTPollingService
 
 
@@ -112,7 +113,9 @@ class TestDHTPollingServicePoll:
 
     @pytest.mark.asyncio
     @patch("asyncio.to_thread")
-    async def test_poll_updates_reading(self, mock_to_thread, service, mock_display, frozen_time):
+    async def test_poll_updates_reading(
+        self, mock_to_thread, service, mock_display, frozen_time
+    ):
         with patch("rpi.dht.polling.datetime") as mock_dt:
             mock_dt.now.return_value = frozen_time
 

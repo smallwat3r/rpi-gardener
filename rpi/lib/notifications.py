@@ -3,6 +3,7 @@
 Provides an abstract notification interface with pluggable backends.
 Supports Gmail and Slack notifications, or both simultaneously.
 """
+
 import asyncio
 import json
 import ssl
@@ -13,8 +14,12 @@ from smtplib import SMTP
 from typing import override
 
 from rpi.lib.alerts import AlertEvent
-from rpi.lib.config import (MeasureName, NotificationBackend, PlantId,
-                            get_settings)
+from rpi.lib.config import (
+    MeasureName,
+    NotificationBackend,
+    PlantId,
+    get_settings,
+)
 from rpi.lib.retry import with_retry
 from rpi.logging import get_logger
 
@@ -44,11 +49,7 @@ def format_alert_message(event: AlertEvent) -> str:
     time_str = event.recording_time.strftime("%H:%M:%S")
 
     if event.is_resolved:
-        return (
-            f"{label} resolved\n\n"
-            f"Current value: {event.value:.1f}{event.unit}\n"
-            f"Time: {time_str}"
-        )
+        return f"{label} resolved\n\nCurrent value: {event.value:.1f}{event.unit}\nTime: {time_str}"
     return (
         f"{label} alert!\n\n"
         f"Current value: {event.value:.1f}{event.unit}\n"
@@ -78,7 +79,9 @@ class GmailNotifier(AbstractNotifier):
         msg.set_content(body)
         return msg
 
-    async def _send_email(self, message: EmailMessage, sensor_name: str | int) -> None:
+    async def _send_email(
+        self, message: EmailMessage, sensor_name: str | int
+    ) -> None:
         """Send an email with retry logic and exponential backoff."""
         cfg = get_settings().notifications
         gmail = cfg.gmail
@@ -105,7 +108,9 @@ class GmailNotifier(AbstractNotifier):
     async def send(self, event: AlertEvent) -> None:
         """Send email notification."""
         base_subject = get_settings().notifications.gmail.subject
-        subject = f"{base_subject} - Resolved" if event.is_resolved else base_subject
+        subject = (
+            f"{base_subject} - Resolved" if event.is_resolved else base_subject
+        )
         message = self._build_email(subject, format_alert_message(event))
         await self._send_email(message, event.sensor_name)
 
@@ -113,15 +118,25 @@ class GmailNotifier(AbstractNotifier):
 class SlackNotifier(AbstractNotifier):
     """Slack webhook notification backend."""
 
-    def _build_payload(self, title: str, fields: list[dict], time_str: str) -> dict:
+    def _build_payload(
+        self, title: str, fields: list[dict], time_str: str
+    ) -> dict:
         """Build a Slack message payload."""
         return {
             "text": title,
             "blocks": [
-                {"type": "header", "text": {"type": "plain_text", "text": title}},
+                {
+                    "type": "header",
+                    "text": {"type": "plain_text", "text": title},
+                },
                 {"type": "section", "fields": fields},
-                {"type": "context", "elements": [{"type": "mrkdwn", "text": f":clock1: {time_str}"}]},
-            ]
+                {
+                    "type": "context",
+                    "elements": [
+                        {"type": "mrkdwn", "text": f":clock1: {time_str}"}
+                    ],
+                },
+            ],
         }
 
     async def _send_slack(self, payload: dict, sensor_name: str | int) -> None:
@@ -161,13 +176,22 @@ class SlackNotifier(AbstractNotifier):
         if event.is_resolved:
             title = f"{label} Resolved"
             fields = [
-                {"type": "mrkdwn", "text": f"*Current:*\n{event.value:.1f}{event.unit}"},
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Current:*\n{event.value:.1f}{event.unit}",
+                },
             ]
         else:
             title = f"{label} Alert"
             fields = [
-                {"type": "mrkdwn", "text": f"*Current:*\n{event.value:.1f}{event.unit}"},
-                {"type": "mrkdwn", "text": f"*Threshold:*\n{event.threshold:.0f}{event.unit}"},
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Current:*\n{event.value:.1f}{event.unit}",
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Threshold:*\n{event.threshold:.0f}{event.unit}",
+                },
             ]
 
         payload = self._build_payload(title, fields, time_str)
@@ -197,7 +221,9 @@ class NoOpNotifier(AbstractNotifier):
         """Log the event but don't send a notification."""
         label = get_sensor_label(event.sensor_name)
         event_type = "resolution" if event.is_resolved else "alert"
-        logger.info("Notifications disabled, skipping %s for %s", event_type, label)
+        logger.info(
+            "Notifications disabled, skipping %s for %s", event_type, label
+        )
 
 
 _BACKEND_MAP: dict[NotificationBackend, type[AbstractNotifier]] = {

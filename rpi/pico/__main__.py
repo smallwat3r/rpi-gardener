@@ -6,6 +6,7 @@ need watering.
 
 Usage: python -m rpi.pico
 """
+
 from rpi.pico.reader import main
 
 if __name__ == "__main__":

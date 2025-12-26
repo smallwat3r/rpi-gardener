@@ -1,9 +1,9 @@
-import { useMemo, useState, useCallback } from 'preact/hooks';
-import type { DHTReading, DHTStats, Thresholds } from '@/types';
+import { useCallback, useMemo, useState } from 'preact/hooks';
 import { LineChart, type SeriesConfig, type ThresholdLine } from '@/components/LineChart';
+import { Modal } from '@/components/Modal';
 import { StatDisplay } from '@/components/StatDisplay';
 import { WarningBadge } from '@/components/WarningBadge';
-import { Modal } from '@/components/Modal';
+import type { DHTReading, DHTStats, Thresholds } from '@/types';
 import styles from './DHTCard.module.css';
 
 type ModalChart = 'temperature' | 'humidity' | null;
@@ -41,38 +41,63 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
 
   const closeModal = useCallback(() => setOpenModal(null), []);
 
-  const data = useMemo(
-    () => chartData as unknown as Record<string, number>[],
-    [chartData]
-  );
+  const data = useMemo(() => chartData as unknown as Record<string, number>[], [chartData]);
 
   const tempThresholds = useMemo<ThresholdLine[]>(() => {
     if (!thresholds) return [];
     return [
-      { value: thresholds.temperature.min, label: `Min ${thresholds.temperature.min}°C`, color: ALERT_COLOR, yAxisIndex: 0, type: 'min' },
-      { value: thresholds.temperature.max, label: `Max ${thresholds.temperature.max}°C`, color: ALERT_COLOR, yAxisIndex: 0, type: 'max' },
+      {
+        value: thresholds.temperature.min,
+        label: `Min ${thresholds.temperature.min}°C`,
+        color: ALERT_COLOR,
+        yAxisIndex: 0,
+        type: 'min',
+      },
+      {
+        value: thresholds.temperature.max,
+        label: `Max ${thresholds.temperature.max}°C`,
+        color: ALERT_COLOR,
+        yAxisIndex: 0,
+        type: 'max',
+      },
     ];
   }, [thresholds]);
 
   const humidityThresholds = useMemo<ThresholdLine[]>(() => {
     if (!thresholds) return [];
     return [
-      { value: thresholds.humidity.min, label: `Min ${thresholds.humidity.min}%`, color: ALERT_COLOR, yAxisIndex: 0, type: 'min' },
-      { value: thresholds.humidity.max, label: `Max ${thresholds.humidity.max}%`, color: ALERT_COLOR, yAxisIndex: 0, type: 'max' },
+      {
+        value: thresholds.humidity.min,
+        label: `Min ${thresholds.humidity.min}%`,
+        color: ALERT_COLOR,
+        yAxisIndex: 0,
+        type: 'min',
+      },
+      {
+        value: thresholds.humidity.max,
+        label: `Max ${thresholds.humidity.max}%`,
+        color: ALERT_COLOR,
+        yAxisIndex: 0,
+        type: 'max',
+      },
     ];
   }, [thresholds]);
 
-  const tempStatus = thresholds && latest
-    ? getValueStatus(latest.temperature, thresholds.temperature.min, thresholds.temperature.max)
-    : 'ok';
-  const humidityStatus = thresholds && latest
-    ? getValueStatus(latest.humidity, thresholds.humidity.min, thresholds.humidity.max)
-    : 'ok';
+  const tempStatus =
+    thresholds && latest
+      ? getValueStatus(latest.temperature, thresholds.temperature.min, thresholds.temperature.max)
+      : 'ok';
+  const humidityStatus =
+    thresholds && latest
+      ? getValueStatus(latest.humidity, thresholds.humidity.min, thresholds.humidity.max)
+      : 'ok';
 
   if (!latest || !stats) {
     return (
       <article class={styles.card} aria-labelledby="dht-card-header">
-        <h2 id="dht-card-header" class={styles.header}>Room Climate</h2>
+        <h2 id="dht-card-header" class={styles.header}>
+          Room Climate
+        </h2>
         <div class={styles.body}>
           <p class={styles.noData}>No data available</p>
         </div>
@@ -82,9 +107,13 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
 
   return (
     <article class={styles.card} aria-labelledby="dht-card-header">
-      <h2 id="dht-card-header" class={styles.header}>Room Climate</h2>
+      <h2 id="dht-card-header" class={styles.header}>
+        Room Climate
+      </h2>
       <div class={styles.body}>
-        <p class={styles.lastUpdate}>Last update: <time>{latest.recording_time}</time> UTC</p>
+        <p class={styles.lastUpdate}>
+          Last update: <time>{latest.recording_time}</time> UTC
+        </p>
         <div class={styles.charts}>
           <section class={styles.chartSection} aria-label="Temperature readings">
             <div class={styles.chartHeader}>
@@ -100,9 +129,23 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
                 max={stats.max_temperature}
                 unit="°C"
               />
-              <button class={styles.expandBtn} onClick={() => setOpenModal('temperature')} aria-label="Expand temperature chart">⛶</button>
+              <button
+                type="button"
+                class={styles.expandBtn}
+                onClick={() => setOpenModal('temperature')}
+                aria-label="Expand temperature chart"
+              >
+                ⛶
+              </button>
             </div>
-            <LineChart data={data} series={TEMP_SERIES} yAxes={TEMP_Y_AXES} thresholds={tempThresholds} colorAxis={false} showArea={false} />
+            <LineChart
+              data={data}
+              series={TEMP_SERIES}
+              yAxes={TEMP_Y_AXES}
+              thresholds={tempThresholds}
+              colorAxis={false}
+              showArea={false}
+            />
           </section>
           <section class={styles.chartSection} aria-label="Humidity readings">
             <div class={styles.chartHeader}>
@@ -118,19 +161,49 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
                 max={stats.max_humidity}
                 unit="%"
               />
-              <button class={styles.expandBtn} onClick={() => setOpenModal('humidity')} aria-label="Expand humidity chart">⛶</button>
+              <button
+                type="button"
+                class={styles.expandBtn}
+                onClick={() => setOpenModal('humidity')}
+                aria-label="Expand humidity chart"
+              >
+                ⛶
+              </button>
             </div>
-            <LineChart data={data} series={HUMIDITY_SERIES} yAxes={HUMIDITY_Y_AXES} thresholds={humidityThresholds} colorAxis={false} showArea={false} />
+            <LineChart
+              data={data}
+              series={HUMIDITY_SERIES}
+              yAxes={HUMIDITY_Y_AXES}
+              thresholds={humidityThresholds}
+              colorAxis={false}
+              showArea={false}
+            />
           </section>
         </div>
       </div>
 
       <Modal isOpen={openModal === 'temperature'} onClose={closeModal} title="Temperature">
-        <LineChart data={data} series={TEMP_SERIES} yAxes={TEMP_Y_AXES} thresholds={tempThresholds} colorAxis={false} showArea={false} height={400} />
+        <LineChart
+          data={data}
+          series={TEMP_SERIES}
+          yAxes={TEMP_Y_AXES}
+          thresholds={tempThresholds}
+          colorAxis={false}
+          showArea={false}
+          height={400}
+        />
       </Modal>
 
       <Modal isOpen={openModal === 'humidity'} onClose={closeModal} title="Humidity">
-        <LineChart data={data} series={HUMIDITY_SERIES} yAxes={HUMIDITY_Y_AXES} thresholds={humidityThresholds} colorAxis={false} showArea={false} height={400} />
+        <LineChart
+          data={data}
+          series={HUMIDITY_SERIES}
+          yAxes={HUMIDITY_Y_AXES}
+          thresholds={humidityThresholds}
+          colorAxis={false}
+          showArea={false}
+          height={400}
+        />
       </Modal>
     </article>
   );

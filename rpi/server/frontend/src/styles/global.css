@@ -1,4 +1,4 @@
-@import './theme.css';
+@import "./theme.css";
 
 *,
 *::before,
@@ -36,6 +36,11 @@ input {
   -webkit-tap-highlight-color: transparent;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   text-wrap: balance;
 }

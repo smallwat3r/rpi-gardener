@@ -6,7 +6,11 @@ interface UseWebSocketOptions<T> {
   reconnectInterval?: number;
 }
 
-export function useWebSocket<T>({ url, onMessage, reconnectInterval = 3000 }: UseWebSocketOptions<T>) {
+export function useWebSocket<T>({
+  url,
+  onMessage,
+  reconnectInterval = 3000,
+}: UseWebSocketOptions<T>) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<T | null>(null);
   const wsRef = useRef<WebSocket | null>(null);

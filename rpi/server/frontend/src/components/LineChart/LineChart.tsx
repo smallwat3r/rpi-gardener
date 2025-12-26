@@ -1,18 +1,26 @@
-import { useEffect, useRef, memo } from 'preact/compat';
-import * as echarts from 'echarts/core';
+import type { EChartsOption, LineSeriesOption } from 'echarts';
 import { LineChart as ELineChart } from 'echarts/charts';
 import {
+  GridComponent,
+  LegendComponent,
+  MarkAreaComponent,
+  MarkLineComponent,
+  TooltipComponent,
+} from 'echarts/components';
+import * as echarts from 'echarts/core';
+import { CanvasRenderer } from 'echarts/renderers';
+import { memo, useEffect, useRef } from 'preact/compat';
+import styles from './LineChart.module.css';
+
+echarts.use([
+  ELineChart,
   GridComponent,
   TooltipComponent,
   LegendComponent,
   MarkLineComponent,
   MarkAreaComponent,
-} from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
-import type { EChartsOption, LineSeriesOption } from 'echarts';
-import styles from './LineChart.module.css';
-
-echarts.use([ELineChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkAreaComponent, CanvasRenderer]);
+  CanvasRenderer,
+]);
 
 export interface SeriesConfig {
   name: string;
@@ -43,7 +51,15 @@ interface LineChartProps {
   height?: number;
 }
 
-export const LineChart = memo(function LineChart({ data, series, yAxes, showArea = true, colorAxis = true, thresholds = [], height }: LineChartProps) {
+export const LineChart = memo(function LineChart({
+  data,
+  series,
+  yAxes,
+  showArea = true,
+  colorAxis = true,
+  thresholds = [],
+  height,
+}: LineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
 
@@ -80,7 +96,7 @@ export const LineChart = memo(function LineChart({ data, series, yAxes, showArea
       max: axis.max,
       axisLine: {
         show: true,
-        lineStyle: { color: colorAxis ? (series[idx]?.color || '#666') : '#4b5563' },
+        lineStyle: { color: colorAxis ? series[idx]?.color || '#666' : '#4b5563' },
       },
       axisLabel: {
         color: '#9ca3af',
@@ -90,18 +106,23 @@ export const LineChart = memo(function LineChart({ data, series, yAxes, showArea
       splitLine: {
         lineStyle: { color: 'rgba(75, 85, 99, 0.3)' },
       },
-    })) || [{
-      type: 'value' as const,
-      axisLine: { show: false },
-      axisLabel: { color: '#9ca3af', fontSize: 11 },
-      splitLine: { lineStyle: { color: 'rgba(75, 85, 99, 0.3)' } },
-    }];
+    })) || [
+      {
+        type: 'value' as const,
+        axisLine: { show: false },
+        axisLabel: { color: '#9ca3af', fontSize: 11 },
+        splitLine: { lineStyle: { color: 'rgba(75, 85, 99, 0.3)' } },
+      },
+    ];
 
     const seriesData: LineSeriesOption[] = series.map((s, idx) => {
-      const seriesThresholds = thresholds.filter(t => (t.yAxisIndex ?? 0) === (s.yAxisIndex ?? 0));
-      const markLineData = idx === 0 || (s.yAxisIndex !== series[0].yAxisIndex)
-        ? seriesThresholds.filter(t => (t.yAxisIndex ?? 0) === (s.yAxisIndex ?? 0))
-        : [];
+      const seriesThresholds = thresholds.filter(
+        (t) => (t.yAxisIndex ?? 0) === (s.yAxisIndex ?? 0),
+      );
+      const markLineData =
+        idx === 0 || s.yAxisIndex !== series[0].yAxisIndex
+          ? seriesThresholds.filter((t) => (t.yAxisIndex ?? 0) === (s.yAxisIndex ?? 0))
+          : [];
 
       return {
         name: s.name,
@@ -138,7 +159,7 @@ export const LineChart = memo(function LineChart({ data, series, yAxes, showArea
               padding: [2, 4],
               borderRadius: 2,
             },
-            data: markLineData.map(t => ({
+            data: markLineData.map((t) => ({
               yAxis: t.value,
               lineStyle: { color: t.color },
               label: {
@@ -152,9 +173,11 @@ export const LineChart = memo(function LineChart({ data, series, yAxes, showArea
           markArea: {
             silent: true,
             data: (() => {
-              const areas: Array<[{ yAxis: number; itemStyle: { color: string } }, { yAxis: number }]> = [];
-              const minThreshold = markLineData.find(t => t.type === 'min');
-              const maxThreshold = markLineData.find(t => t.type === 'max');
+              const areas: Array<
+                [{ yAxis: number; itemStyle: { color: string } }, { yAxis: number }]
+              > = [];
+              const minThreshold = markLineData.find((t) => t.type === 'min');
+              const maxThreshold = markLineData.find((t) => t.type === 'max');
 
               // Danger zone below min
               if (minThreshold) {
@@ -187,7 +210,7 @@ export const LineChart = memo(function LineChart({ data, series, yAxes, showArea
             })(),
           },
         }),
-        data: data.map(d => [d.epoch, d[s.dataKey]]),
+        data: data.map((d) => [d.epoch, d[s.dataKey]]),
       };
     });
 
@@ -218,8 +241,9 @@ export const LineChart = memo(function LineChart({ data, series, yAxes, showArea
           const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
           const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
           let html = `<div style="font-weight:600;margin-bottom:8px;color:#9ca3af">${dateStr} ${timeStr} UTC</div>`;
-          items.forEach(item => {
-            const value = typeof item.value[1] === 'number' ? item.value[1].toFixed(1) : item.value[1];
+          items.forEach((item) => {
+            const value =
+              typeof item.value[1] === 'number' ? item.value[1].toFixed(1) : item.value[1];
             html += `<div style="display:flex;align-items:center;gap:8px;margin:4px 0">
               <span style="width:10px;height:10px;border-radius:50%;background:${item.color}"></span>
               <span style="flex:1">${item.seriesName}</span>
@@ -249,5 +273,11 @@ export const LineChart = memo(function LineChart({ data, series, yAxes, showArea
     chart.setOption(option, { notMerge: false, lazyUpdate: true });
   }, [data, series, yAxes, showArea, colorAxis, thresholds]);
 
-  return <div ref={containerRef} class={styles.container} style={height ? { height: `${height}px` } : undefined} />;
+  return (
+    <div
+      ref={containerRef}
+      class={styles.container}
+      style={height ? { height: `${height}px` } : undefined}
+    />
+  );
 });

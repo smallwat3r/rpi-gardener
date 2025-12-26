@@ -1,4 +1,5 @@
 """Health check endpoint for monitoring service status."""
+
 from datetime import UTC, datetime
 
 from starlette.requests import Request

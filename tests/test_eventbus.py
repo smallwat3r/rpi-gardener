@@ -1,4 +1,5 @@
 """Tests for the Redis event bus."""
+
 import json
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -141,8 +142,12 @@ class TestEventPublisher:
         publisher.connect()
 
         events = [
-            PicoReadingEvent(1, 40.0, datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)),
-            PicoReadingEvent(2, 55.0, datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)),
+            PicoReadingEvent(
+                1, 40.0, datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
+            ),
+            PicoReadingEvent(
+                2, 55.0, datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
+            ),
         ]
         publisher.publish(Topic.PICO_READING, events)
 
@@ -199,7 +204,9 @@ class TestEventSubscriber:
 
     @pytest.mark.asyncio
     @patch("rpi.lib.eventbus.aioredis")
-    async def test_connect_subscribes_to_all_topics_by_default(self, mock_aioredis):
+    async def test_connect_subscribes_to_all_topics_by_default(
+        self, mock_aioredis
+    ):
         """Connect subscribes to all topics when none specified."""
         mock_pubsub = MagicMock()
         mock_pubsub.subscribe = AsyncMock()

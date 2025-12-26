@@ -3,6 +3,7 @@
 Subscribes to the event bus ALERT topic and dispatches notifications
 via configured backends (Gmail, Slack, etc.).
 """
+
 import asyncio
 import signal
 from datetime import datetime
@@ -23,7 +24,9 @@ def _parse_alert_event(data: dict) -> AlertEvent:
         value=data["value"],
         unit=data["unit"],
         threshold=data["threshold"],
-        recording_time=datetime.strptime(data["recording_time"], "%Y-%m-%d %H:%M:%S"),
+        recording_time=datetime.strptime(
+            data["recording_time"], "%Y-%m-%d %H:%M:%S"
+        ),
         is_resolved=data["is_resolved"],
     )
 
@@ -37,7 +40,7 @@ async def run() -> None:
     logger.info("Notification service started")
 
     try:
-        async for topic, data in subscriber.receive():
+        async for _topic, data in subscriber.receive():
             try:
                 event = _parse_alert_event(data)
                 label = get_sensor_label(event.sensor_name)

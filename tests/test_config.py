@@ -1,13 +1,24 @@
 """Tests for the configuration module."""
+
 from unittest.mock import patch
 
 import pytest
 
-from rpi.lib.config import (ConfigurationError, GmailSettings,
-                            NotificationBackend, NotificationSettings,
-                            PicoSettings, PlantId, Settings, SlackSettings,
-                            ThresholdSettings, get_settings,
-                            parse_pico_plant_id, set_settings, validate_config)
+from rpi.lib.config import (
+    ConfigurationError,
+    GmailSettings,
+    NotificationBackend,
+    NotificationSettings,
+    PicoSettings,
+    PlantId,
+    Settings,
+    SlackSettings,
+    ThresholdSettings,
+    get_settings,
+    parse_pico_plant_id,
+    set_settings,
+    validate_config,
+)
 
 
 class TestParsePicoPlantId:
@@ -43,23 +54,28 @@ class TestThresholdSettings:
 
     def test_get_moisture_threshold_with_override(self):
         settings = ThresholdSettings(
-            min_moisture=30,
-            plant_moisture_thresholds={1: 25, 2: 35}
+            min_moisture=30, plant_moisture_thresholds={1: 25, 2: 35}
         )
 
         assert settings.get_moisture_threshold(1) == 25
         assert settings.get_moisture_threshold(2) == 35
-        assert settings.get_moisture_threshold(3) == 30  # Falls back to default
+        assert (
+            settings.get_moisture_threshold(3) == 30
+        )  # Falls back to default
 
-    @patch.dict("os.environ", {
-        "MAX_TEMPERATURE": "30",
-        "MIN_TEMPERATURE": "15",
-        "MAX_HUMIDITY": "70",
-        "MIN_HUMIDITY": "35",
-        "MIN_MOISTURE": "25",
-        "MIN_MOISTURE_PLANT_1": "20",
-        "MIN_MOISTURE_PLANT_2": "30",
-    }, clear=True)
+    @patch.dict(
+        "os.environ",
+        {
+            "MAX_TEMPERATURE": "30",
+            "MIN_TEMPERATURE": "15",
+            "MAX_HUMIDITY": "70",
+            "MIN_HUMIDITY": "35",
+            "MIN_MOISTURE": "25",
+            "MIN_MOISTURE_PLANT_1": "20",
+            "MIN_MOISTURE_PLANT_2": "30",
+        },
+        clear=True,
+    )
     def test_from_env(self):
         settings = ThresholdSettings.from_env()
 
@@ -84,13 +100,17 @@ class TestGmailSettings:
         assert settings.password == ""
         assert settings.subject == "Sensor alert!"
 
-    @patch.dict("os.environ", {
-        "GMAIL_SENDER": "sender@example.com",
-        "GMAIL_RECIPIENTS": "recipient@example.com",
-        "GMAIL_USERNAME": "user",
-        "GMAIL_PASSWORD": "pass",
-        "GMAIL_SUBJECT": "Custom Subject",
-    }, clear=True)
+    @patch.dict(
+        "os.environ",
+        {
+            "GMAIL_SENDER": "sender@example.com",
+            "GMAIL_RECIPIENTS": "recipient@example.com",
+            "GMAIL_USERNAME": "user",
+            "GMAIL_PASSWORD": "pass",
+            "GMAIL_SUBJECT": "Custom Subject",
+        },
+        clear=True,
+    )
     def test_from_env(self):
         settings = GmailSettings.from_env()
 
@@ -109,9 +129,11 @@ class TestSlackSettings:
 
         assert settings.webhook_url == ""
 
-    @patch.dict("os.environ", {
-        "SLACK_WEBHOOK_URL": "https://hooks.slack.com/xxx"
-    }, clear=True)
+    @patch.dict(
+        "os.environ",
+        {"SLACK_WEBHOOK_URL": "https://hooks.slack.com/xxx"},
+        clear=True,
+    )
     def test_from_env(self):
         settings = SlackSettings.from_env()
 
@@ -128,11 +150,15 @@ class TestNotificationSettings:
         assert settings.backends == []
         assert settings.max_retries == 3
 
-    @patch.dict("os.environ", {
-        "ENABLE_NOTIFICATION_SERVICE": "1",
-        "NOTIFICATION_BACKENDS": "gmail,slack",
-        "EMAIL_MAX_RETRIES": "5",
-    }, clear=True)
+    @patch.dict(
+        "os.environ",
+        {
+            "ENABLE_NOTIFICATION_SERVICE": "1",
+            "NOTIFICATION_BACKENDS": "gmail,slack",
+            "EMAIL_MAX_RETRIES": "5",
+        },
+        clear=True,
+    )
     def test_from_env(self):
         settings = NotificationSettings.from_env()
 
@@ -140,9 +166,13 @@ class TestNotificationSettings:
         assert settings.backends == ["gmail", "slack"]
         assert settings.max_retries == 5
 
-    @patch.dict("os.environ", {
-        "NOTIFICATION_BACKENDS": " gmail , slack , ",
-    }, clear=True)
+    @patch.dict(
+        "os.environ",
+        {
+            "NOTIFICATION_BACKENDS": " gmail , slack , ",
+        },
+        clear=True,
+    )
     def test_backends_trimmed(self):
         settings = NotificationSettings.from_env()
 
@@ -161,11 +191,15 @@ class TestPicoSettings:
         assert settings.moisture_min == 0.0
         assert settings.moisture_max == 100.0
 
-    @patch.dict("os.environ", {
-        "PICO_SERIAL_PORT": "/dev/ttyUSB0",
-        "PICO_SERIAL_BAUD": "9600",
-        "PICO_SERIAL_TIMEOUT_SEC": "10.0",
-    }, clear=True)
+    @patch.dict(
+        "os.environ",
+        {
+            "PICO_SERIAL_PORT": "/dev/ttyUSB0",
+            "PICO_SERIAL_BAUD": "9600",
+            "PICO_SERIAL_TIMEOUT_SEC": "10.0",
+        },
+        clear=True,
+    )
     def test_from_env(self):
         settings = PicoSettings.from_env()
 
@@ -184,11 +218,15 @@ class TestSettings:
         assert settings.db_timeout_sec == 30.0
         assert settings.mock_sensors is False
 
-    @patch.dict("os.environ", {
-        "DB_PATH": "/custom/path.db",
-        "DB_TIMEOUT_SEC": "60.0",
-        "MOCK_SENSORS": "1",
-    }, clear=True)
+    @patch.dict(
+        "os.environ",
+        {
+            "DB_PATH": "/custom/path.db",
+            "DB_TIMEOUT_SEC": "60.0",
+            "MOCK_SENSORS": "1",
+        },
+        clear=True,
+    )
     def test_from_env(self):
         settings = Settings.from_env()
 
@@ -241,7 +279,9 @@ class TestValidateConfig:
         )
         set_settings(settings)
 
-        with pytest.raises(ConfigurationError, match="MIN_TEMPERATURE.*must be less than"):
+        with pytest.raises(
+            ConfigurationError, match="MIN_TEMPERATURE.*must be less than"
+        ):
             validate_config()
 
     def test_min_humidity_greater_than_max_fails(self):
@@ -253,7 +293,9 @@ class TestValidateConfig:
         )
         set_settings(settings)
 
-        with pytest.raises(ConfigurationError, match="MIN_HUMIDITY.*must be less than"):
+        with pytest.raises(
+            ConfigurationError, match="MIN_HUMIDITY.*must be less than"
+        ):
             validate_config()
 
     def test_temperature_outside_sensor_bounds_fails(self):
@@ -265,7 +307,9 @@ class TestValidateConfig:
         )
         set_settings(settings)
 
-        with pytest.raises(ConfigurationError, match="Temperature thresholds must be within"):
+        with pytest.raises(
+            ConfigurationError, match="Temperature thresholds must be within"
+        ):
             validate_config()
 
     def test_humidity_outside_sensor_bounds_fails(self):
@@ -277,7 +321,9 @@ class TestValidateConfig:
         )
         set_settings(settings)
 
-        with pytest.raises(ConfigurationError, match="Humidity thresholds must be within"):
+        with pytest.raises(
+            ConfigurationError, match="Humidity thresholds must be within"
+        ):
             validate_config()
 
     def test_moisture_threshold_outside_bounds_fails(self):
@@ -288,7 +334,9 @@ class TestValidateConfig:
         )
         set_settings(settings)
 
-        with pytest.raises(ConfigurationError, match="Moisture threshold.*must be between"):
+        with pytest.raises(
+            ConfigurationError, match="Moisture threshold.*must be between"
+        ):
             validate_config()
 
     def test_gmail_enabled_without_credentials_fails(self):
@@ -296,12 +344,16 @@ class TestValidateConfig:
             notifications=NotificationSettings(
                 enabled=True,
                 backends=[NotificationBackend.GMAIL],
-                gmail=GmailSettings(sender="", recipients="", username="", password=""),
+                gmail=GmailSettings(
+                    sender="", recipients="", username="", password=""
+                ),
             )
         )
         set_settings(settings)
 
-        with pytest.raises(ConfigurationError, match="Gmail enabled but missing"):
+        with pytest.raises(
+            ConfigurationError, match="Gmail enabled but missing"
+        ):
             validate_config()
 
     def test_slack_enabled_without_webhook_fails(self):
@@ -314,7 +366,9 @@ class TestValidateConfig:
         )
         set_settings(settings)
 
-        with pytest.raises(ConfigurationError, match="SLACK_WEBHOOK_URL is not set"):
+        with pytest.raises(
+            ConfigurationError, match="SLACK_WEBHOOK_URL is not set"
+        ):
             validate_config()
 
     def test_notifications_disabled_skips_credential_check(self):

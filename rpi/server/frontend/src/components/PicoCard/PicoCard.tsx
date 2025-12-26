@@ -1,8 +1,8 @@
-import { useMemo, useState, useCallback } from 'preact/hooks';
-import type { PicoReading, PicoChartDataPoint, Thresholds } from '@/types';
+import { useCallback, useMemo, useState } from 'preact/hooks';
 import { LineChart, type SeriesConfig, type ThresholdLine } from '@/components/LineChart';
-import { WarningBadge } from '@/components/WarningBadge';
 import { Modal } from '@/components/Modal';
+import { WarningBadge } from '@/components/WarningBadge';
+import type { PicoChartDataPoint, PicoReading, Thresholds } from '@/types';
 import styles from './PicoCard.module.css';
 
 const PLANT_COLOR = '#a78bfa';
@@ -24,10 +24,7 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
 
   const closeModal = useCallback(() => setOpenPlantId(null), []);
 
-  const data = useMemo(
-    () => chartData as unknown as Record<string, number>[],
-    [chartData]
-  );
+  const data = useMemo(() => chartData as unknown as Record<string, number>[], [chartData]);
 
   const getMoistureStatus = (plantId: number | string, moisture: number): 'ok' | 'alert' => {
     if (!thresholds) return 'ok';
@@ -39,7 +36,13 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
     if (!thresholds) return [];
     const minThreshold = thresholds.moisture[plantId] ?? 30;
     return [
-      { value: minThreshold, label: `Min ${minThreshold}%`, color: ALERT_COLOR, yAxisIndex: 0, type: 'min' },
+      {
+        value: minThreshold,
+        label: `Min ${minThreshold}%`,
+        color: ALERT_COLOR,
+        yAxisIndex: 0,
+        type: 'min',
+      },
     ];
   };
 
@@ -55,7 +58,9 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
   if (!latest.length) {
     return (
       <article class={styles.card} aria-labelledby="pico-card-header">
-        <h2 id="pico-card-header" class={styles.header}>Soil Moisture</h2>
+        <h2 id="pico-card-header" class={styles.header}>
+          Soil Moisture
+        </h2>
         <div class={styles.body}>
           <p class={styles.noData}>No data available</p>
         </div>
@@ -63,26 +68,41 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
     );
   }
 
-  const openPlant = latest.find(p => p.plant_id === openPlantId);
+  const openPlant = latest.find((p) => p.plant_id === openPlantId);
 
   return (
     <article class={styles.card} aria-labelledby="pico-card-header">
-      <h2 id="pico-card-header" class={styles.header}>Soil Moisture</h2>
+      <h2 id="pico-card-header" class={styles.header}>
+        Soil Moisture
+      </h2>
       <div class={styles.body}>
-        <p class={styles.lastUpdate}>Last update: <time>{latest[0]?.recording_time}</time> UTC</p>
+        <p class={styles.lastUpdate}>
+          Last update: <time>{latest[0]?.recording_time}</time> UTC
+        </p>
         <div class={styles.charts}>
           {latest.map((plant) => {
             const status = getMoistureStatus(plant.plant_id, plant.moisture);
             const label = formatPlantLabel(plant.plant_id);
             return (
-              <section key={plant.plant_id} class={styles.chartSection} aria-label={`${label} moisture`}>
+              <section
+                key={plant.plant_id}
+                class={styles.chartSection}
+                aria-label={`${label} moisture`}
+              >
                 <div class={styles.chartHeader}>
                   <h3 style={{ color: PLANT_COLOR }}>{label}</h3>
                   <p class={styles.display} style={{ color: PLANT_COLOR }} aria-live="polite">
                     {plant.moisture}%
                   </p>
                   {status === 'alert' && <WarningBadge>Needs water</WarningBadge>}
-                  <button class={styles.expandBtn} onClick={() => setOpenPlantId(plant.plant_id)} aria-label={`Expand ${label} chart`}>⛶</button>
+                  <button
+                    type="button"
+                    class={styles.expandBtn}
+                    onClick={() => setOpenPlantId(plant.plant_id)}
+                    aria-label={`Expand ${label} chart`}
+                  >
+                    ⛶
+                  </button>
                 </div>
                 <LineChart
                   data={data}

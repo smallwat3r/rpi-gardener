@@ -1,4 +1,5 @@
 """Domain models for Pico moisture sensor readings."""
+
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -23,7 +24,7 @@ class MoistureReading:
         raw_id: str,
         raw_moisture: float,
         recording_time: datetime,
-    ) -> "MoistureReading":
+    ) -> MoistureReading:
         """Create a validated reading from raw Pico data.
 
         Args:

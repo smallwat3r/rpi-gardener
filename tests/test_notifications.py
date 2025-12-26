@@ -1,13 +1,20 @@
 """Tests for the notification system."""
+
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from rpi.lib.alerts import AlertEvent, Namespace
-from rpi.lib.notifications import (CompositeNotifier, GmailNotifier,
-                                   NoOpNotifier, SlackNotifier,
-                                   format_alert_message, get_notifier,
-                                   get_sensor_label)
+from rpi.lib.notifications import (
+    CompositeNotifier,
+    GmailNotifier,
+    NoOpNotifier,
+    SlackNotifier,
+    format_alert_message,
+    get_notifier,
+    get_sensor_label,
+)
 
 
 def make_alert_event(
@@ -20,9 +27,10 @@ def make_alert_event(
     is_resolved=False,
 ):
     """Create an AlertEvent for testing."""
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     if recording_time is None:
-        recording_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+        recording_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
     return AlertEvent(
         namespace=namespace,
         sensor_name=sensor_name,
@@ -150,7 +158,9 @@ class TestGmailNotifier:
     @patch("asyncio.sleep", new_callable=AsyncMock)
     @patch("rpi.lib.notifications.SMTP")
     @patch("rpi.lib.notifications.ssl.create_default_context")
-    async def test_retry_on_network_error(self, mock_ssl, mock_smtp, mock_sleep, frozen_time):
+    async def test_retry_on_network_error(
+        self, mock_ssl, mock_smtp, mock_sleep, frozen_time
+    ):
         mock_server = MagicMock()
         mock_server.send_message.side_effect = [OSError("Network error"), None]
         mock_smtp.return_value.__enter__.return_value = mock_server
@@ -171,7 +181,9 @@ class TestGmailNotifier:
     @pytest.mark.asyncio
     @patch("rpi.lib.notifications.SMTP")
     @patch("rpi.lib.notifications.ssl.create_default_context")
-    async def test_no_retry_on_non_network_error(self, mock_ssl, mock_smtp, frozen_time):
+    async def test_no_retry_on_non_network_error(
+        self, mock_ssl, mock_smtp, frozen_time
+    ):
         mock_server = MagicMock()
         mock_server.send_message.side_effect = ValueError("Bad data")
         mock_smtp.return_value.__enter__.return_value = mock_server
@@ -199,7 +211,9 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        message = notifier._build_email("Test Subject", format_alert_message(event))
+        message = notifier._build_email(
+            "Test Subject", format_alert_message(event)
+        )
 
         assert message["Subject"] == "Test Subject"
         assert format_alert_message(event) in message.get_content()
@@ -231,7 +245,9 @@ class TestSlackNotifier:
     @pytest.mark.asyncio
     @patch("rpi.lib.notifications.urllib.request.urlopen")
     @patch("rpi.lib.notifications.urllib.request.Request")
-    async def test_successful_send(self, mock_request, mock_urlopen, frozen_time):
+    async def test_successful_send(
+        self, mock_request, mock_urlopen, frozen_time
+    ):
         mock_response = MagicMock()
         mock_response.status = 200
         mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -254,12 +270,14 @@ class TestSlackNotifier:
     @patch("asyncio.sleep", new_callable=AsyncMock)
     @patch("rpi.lib.notifications.urllib.request.urlopen")
     @patch("rpi.lib.notifications.urllib.request.Request")
-    async def test_retry_on_network_error(self, mock_request, mock_urlopen, mock_sleep, frozen_time):
+    async def test_retry_on_network_error(
+        self, mock_request, mock_urlopen, mock_sleep, frozen_time
+    ):
         mock_success = MagicMock()
         mock_success.status = 200
         mock_urlopen.side_effect = [
             OSError("Network error"),
-            MagicMock(__enter__=MagicMock(return_value=mock_success))
+            MagicMock(__enter__=MagicMock(return_value=mock_success)),
         ]
 
         event = make_alert_event(
@@ -278,7 +296,9 @@ class TestSlackNotifier:
     @pytest.mark.asyncio
     @patch("rpi.lib.notifications.urllib.request.urlopen")
     @patch("rpi.lib.notifications.urllib.request.Request")
-    async def test_no_retry_on_non_network_error(self, mock_request, mock_urlopen, frozen_time):
+    async def test_no_retry_on_non_network_error(
+        self, mock_request, mock_urlopen, frozen_time
+    ):
         mock_urlopen.side_effect = ValueError("Bad data")
 
         event = make_alert_event(
@@ -313,7 +333,9 @@ class TestSlackNotifier:
     @pytest.mark.asyncio
     @patch("rpi.lib.notifications.urllib.request.urlopen")
     @patch("rpi.lib.notifications.urllib.request.Request")
-    async def test_send_resolved(self, mock_request, mock_urlopen, frozen_time):
+    async def test_send_resolved(
+        self, mock_request, mock_urlopen, frozen_time
+    ):
         mock_response = MagicMock()
         mock_response.status = 200
         mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -411,7 +433,10 @@ class TestGetNotifier:
     def test_returns_composite_when_multiple_backends(self):
         with patch("rpi.lib.notifications.get_settings") as mock_get_settings:
             mock_get_settings.return_value.notifications.enabled = True
-            mock_get_settings.return_value.notifications.backends = ["gmail", "slack"]
+            mock_get_settings.return_value.notifications.backends = [
+                "gmail",
+                "slack",
+            ]
             notifier = get_notifier()
             assert isinstance(notifier, CompositeNotifier)
 

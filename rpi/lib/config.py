@@ -1,4 +1,5 @@
 """Centralized configuration for the RPi Gardener application."""
+
 import operator
 import re
 from collections.abc import Callable
@@ -37,13 +38,14 @@ PICO_PLANT_ID_PATTERN = re.compile(r"^plant-(\d+)$")
 # DHT22 sensor physical bounds
 DHT22_BOUNDS = {
     MeasureName.TEMPERATURE: (-40, 80),
-    MeasureName.HUMIDITY: (0, 100)
+    MeasureName.HUMIDITY: (0, 100),
 }
 
 
 @dataclass(frozen=True, slots=True)
 class GmailSettings:
     """Gmail notification settings."""
+
     sender: str = ""
     recipients: str = ""
     username: str = ""
@@ -64,6 +66,7 @@ class GmailSettings:
 @dataclass(frozen=True, slots=True)
 class SlackSettings:
     """Slack notification settings."""
+
     webhook_url: str = ""
 
     @classmethod
@@ -74,6 +77,7 @@ class SlackSettings:
 @dataclass(frozen=True, slots=True)
 class ThresholdSettings:
     """Sensor threshold settings."""
+
     max_temperature: int = 25
     min_temperature: int = 18
     max_humidity: int = 65
@@ -85,7 +89,11 @@ class ThresholdSettings:
     def from_env(cls) -> ThresholdSettings:
         min_moisture = int(environ.get("MIN_MOISTURE", 30))
         plant_thresholds = {
-            plant_id: int(environ.get(f"MIN_MOISTURE_PLANT_{plant_id.value}", min_moisture))
+            plant_id: int(
+                environ.get(
+                    f"MIN_MOISTURE_PLANT_{plant_id.value}", min_moisture
+                )
+            )
             for plant_id in PlantId
         }
         return cls(
@@ -105,6 +113,7 @@ class ThresholdSettings:
 @dataclass(frozen=True, slots=True)
 class NotificationSettings:
     """Notification service settings."""
+
     enabled: bool = False
     backends: list[str] = field(default_factory=list)
     gmail: GmailSettings = field(default_factory=GmailSettings)
@@ -123,7 +132,9 @@ class NotificationSettings:
             gmail=GmailSettings.from_env(),
             slack=SlackSettings.from_env(),
             max_retries=int(environ.get("EMAIL_MAX_RETRIES", 3)),
-            initial_backoff_sec=int(environ.get("EMAIL_INITIAL_BACKOFF_SEC", 2)),
+            initial_backoff_sec=int(
+                environ.get("EMAIL_INITIAL_BACKOFF_SEC", 2)
+            ),
             timeout_sec=int(environ.get("EMAIL_TIMEOUT_SEC", 30)),
         )
 
@@ -131,6 +142,7 @@ class NotificationSettings:
 @dataclass(frozen=True, slots=True)
 class PicoSettings:
     """Pico serial connection settings."""
+
     serial_port: str = "/dev/ttyACM0"
     serial_baud: int = 115200
     serial_timeout_sec: float = 30.0
@@ -143,13 +155,16 @@ class PicoSettings:
         return cls(
             serial_port=environ.get("PICO_SERIAL_PORT", "/dev/ttyACM0"),
             serial_baud=int(environ.get("PICO_SERIAL_BAUD", "115200")),
-            serial_timeout_sec=float(environ.get("PICO_SERIAL_TIMEOUT_SEC", "30.0")),
+            serial_timeout_sec=float(
+                environ.get("PICO_SERIAL_TIMEOUT_SEC", "30.0")
+            ),
         )
 
 
 @dataclass(frozen=True, slots=True)
 class DisplaySettings:
     """OLED display settings."""
+
     width: int = 128
     height: int = 64
     font_size: int = 17
@@ -162,18 +177,21 @@ class DisplaySettings:
 @dataclass(frozen=True, slots=True)
 class PollingSettings:
     """Polling service settings."""
+
     frequency_sec: int = 2
 
 
 @dataclass(frozen=True, slots=True)
 class CleanupSettings:
     """Database cleanup settings (used by cron job)."""
+
     retention_days: int = 3
 
 
 @dataclass(frozen=True, slots=True)
 class EventBusSettings:
     """Redis event bus settings."""
+
     redis_url: str = "redis://localhost:6379/0"
 
     @classmethod
@@ -186,11 +204,14 @@ class EventBusSettings:
 @dataclass(frozen=True, slots=True)
 class Settings:
     """Application settings container."""
+
     db_path: str = "dht.sqlite3"
     db_timeout_sec: float = 30.0
     mock_sensors: bool = False
     thresholds: ThresholdSettings = field(default_factory=ThresholdSettings)
-    notifications: NotificationSettings = field(default_factory=NotificationSettings)
+    notifications: NotificationSettings = field(
+        default_factory=NotificationSettings
+    )
     pico: PicoSettings = field(default_factory=PicoSettings)
     display: DisplaySettings = field(default_factory=DisplaySettings)
     polling: PollingSettings = field(default_factory=PollingSettings)
@@ -294,13 +315,23 @@ def validate_config() -> None:
 
     # DHT22 bounds validation
     temp_min, temp_max = DHT22_BOUNDS[MeasureName.TEMPERATURE]
-    if not (temp_min <= s.thresholds.min_temperature < s.thresholds.max_temperature <= temp_max):
+    if not (
+        temp_min
+        <= s.thresholds.min_temperature
+        < s.thresholds.max_temperature
+        <= temp_max
+    ):
         errors.append(
             f"Temperature thresholds must be within sensor bounds [{temp_min}, {temp_max}]"
         )
 
     hum_min, hum_max = DHT22_BOUNDS[MeasureName.HUMIDITY]
-    if not (hum_min <= s.thresholds.min_humidity < s.thresholds.max_humidity <= hum_max):
+    if not (
+        hum_min
+        <= s.thresholds.min_humidity
+        < s.thresholds.max_humidity
+        <= hum_max
+    ):
         errors.append(
             f"Humidity thresholds must be within sensor bounds [{hum_min}, {hum_max}]"
         )
@@ -326,7 +357,9 @@ def validate_config() -> None:
             if not s.notifications.gmail.password:
                 missing.append("GMAIL_PASSWORD")
             if missing:
-                errors.append(f"Gmail enabled but missing: {', '.join(missing)}")
+                errors.append(
+                    f"Gmail enabled but missing: {', '.join(missing)}"
+                )
 
         if NotificationBackend.SLACK in s.notifications.backends:
             if not s.notifications.slack.webhook_url:

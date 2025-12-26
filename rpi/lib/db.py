@@ -11,11 +11,13 @@ Two connection patterns are supported:
   a temporary connection for each use. Used by the web server for
   concurrent request handling.
 """
+
 from collections import defaultdict
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncIterator, TypedDict
+from typing import Any, TypedDict
 
 type SQLParams = tuple | dict[str, Any]
 
@@ -52,6 +54,7 @@ _db: Database | None = None
 
 class DHTReading(TypedDict):
     """DHT22 sensor reading from the database."""
+
     temperature: float
     humidity: float
     recording_time: str
@@ -60,6 +63,7 @@ class DHTReading(TypedDict):
 
 class DHTStats(TypedDict):
     """DHT22 sensor statistics."""
+
     avg_temperature: float
     min_temperature: float
     max_temperature: float
@@ -70,6 +74,7 @@ class DHTStats(TypedDict):
 
 class PicoReading(TypedDict):
     """Pico moisture reading from the database."""
+
     plant_id: int
     moisture: float
     recording_time: str
@@ -78,6 +83,7 @@ class PicoReading(TypedDict):
 
 class PicoChartDataPoint(TypedDict, total=False):
     """Pico chart data point with dynamic plant columns."""
+
     epoch: int
 
 
@@ -171,14 +177,18 @@ class Database:
             raise RuntimeError("Database not connected")
         await self._connection.executescript(sql)
 
-    async def fetchone(self, sql: str, params: SQLParams = ()) -> dict[str, Any] | None:
+    async def fetchone(
+        self, sql: str, params: SQLParams = ()
+    ) -> dict[str, Any] | None:
         """Fetch a single row."""
         if self._connection is None:
             raise RuntimeError("Database not connected")
         async with self._connection.execute(sql, params) as cursor:
             return await cursor.fetchone()
 
-    async def fetchall(self, sql: str, params: SQLParams = ()) -> list[dict[str, Any]]:
+    async def fetchall(
+        self, sql: str, params: SQLParams = ()
+    ) -> list[dict[str, Any]]:
         """Fetch all rows."""
         if self._connection is None:
             raise RuntimeError("Database not connected")
@@ -221,7 +231,9 @@ async def init_db() -> None:
     if _db is None:
         _db = Database()
         await _db.connect()
-        _logger.info("Opened persistent database connection: %s", get_settings().db_path)
+        _logger.info(
+            "Opened persistent database connection: %s", get_settings().db_path
+        )
 
     await _db._connection.execute("PRAGMA journal_mode=WAL")
     await _db._connection.execute("PRAGMA auto_vacuum=INCREMENTAL")
@@ -261,7 +273,9 @@ async def get_stats_dht_data(from_time: datetime) -> DHTStats | None:
         return await db.fetchone(_DHT_STATS_SQL, (from_time,))
 
 
-async def get_initial_pico_data(from_time: datetime) -> list[PicoChartDataPoint]:
+async def get_initial_pico_data(
+    from_time: datetime,
+) -> list[PicoChartDataPoint]:
     """Return all Pico sensor data from a given time, pivoted by plant_id."""
     async with get_db() as db:
         rows = await db.fetchall(_PICO_CHART_SQL, (from_time,))

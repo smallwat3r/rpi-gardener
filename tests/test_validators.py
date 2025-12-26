@@ -1,11 +1,17 @@
 """Tests for server request validators."""
+
 from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 
-from rpi.server.validators import (DEFAULT_HOURS, MAX_HOURS, MIN_HOURS,
-                                   InvalidParameter, parse_hours)
+from rpi.server.validators import (
+    DEFAULT_HOURS,
+    MAX_HOURS,
+    MIN_HOURS,
+    InvalidParameter,
+    parse_hours,
+)
 
 
 class MockParams:
@@ -62,13 +68,17 @@ class TestParseHoursStrict:
     def test_below_min_raises(self):
         params = MockParams({"hours": "0"})
 
-        with pytest.raises(InvalidParameter, match=f"between {MIN_HOURS} and {MAX_HOURS}"):
+        with pytest.raises(
+            InvalidParameter, match=f"between {MIN_HOURS} and {MAX_HOURS}"
+        ):
             parse_hours(params)
 
     def test_above_max_raises(self):
         params = MockParams({"hours": "25"})
 
-        with pytest.raises(InvalidParameter, match=f"between {MIN_HOURS} and {MAX_HOURS}"):
+        with pytest.raises(
+            InvalidParameter, match=f"between {MIN_HOURS} and {MAX_HOURS}"
+        ):
             parse_hours(params)
 
     def test_non_integer_raises(self):

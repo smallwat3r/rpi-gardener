@@ -3,6 +3,7 @@
 Provides pub/sub messaging between polling services (publishers) and
 the web server/notification service (subscribers) for real-time updates.
 """
+
 import json
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
@@ -22,6 +23,7 @@ logger = get_logger("lib.eventbus")
 
 class Topic(StrEnum):
     """Event bus topics."""
+
     DHT_READING = "dht.reading"
     PICO_READING = "pico.reading"
     ALERT = "alert"
@@ -39,6 +41,7 @@ class Event(ABC):
 @dataclass(frozen=True, slots=True)
 class DHTReadingEvent(Event):
     """DHT sensor reading event."""
+
     temperature: float
     humidity: float
     recording_time: datetime
@@ -47,7 +50,9 @@ class DHTReadingEvent(Event):
         return {
             "temperature": self.temperature,
             "humidity": self.humidity,
-            "recording_time": self.recording_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "recording_time": self.recording_time.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
             "epoch": int(self.recording_time.timestamp() * 1000),
         }
 
@@ -55,6 +60,7 @@ class DHTReadingEvent(Event):
 @dataclass(frozen=True, slots=True)
 class PicoReadingEvent(Event):
     """Single plant moisture reading."""
+
     plant_id: int
     moisture: float
     recording_time: datetime
@@ -63,7 +69,9 @@ class PicoReadingEvent(Event):
         return {
             "plant_id": self.plant_id,
             "moisture": self.moisture,
-            "recording_time": self.recording_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "recording_time": self.recording_time.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
             "epoch": int(self.recording_time.timestamp() * 1000),
         }
 
@@ -71,6 +79,7 @@ class PicoReadingEvent(Event):
 @dataclass(frozen=True, slots=True)
 class AlertEventPayload(Event):
     """Alert event for threshold violations and resolutions."""
+
     namespace: str
     sensor_name: str | int
     value: float
@@ -86,7 +95,9 @@ class AlertEventPayload(Event):
             "value": self.value,
             "unit": self.unit,
             "threshold": self.threshold,
-            "recording_time": self.recording_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "recording_time": self.recording_time.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
             "is_resolved": self.is_resolved,
         }
 
@@ -155,7 +166,9 @@ class EventSubscriber:
         self._client = aioredis.from_url(self._redis_url)
         self._pubsub = self._client.pubsub()
         await self._pubsub.subscribe(*self._topics)
-        logger.info("Event subscriber connected to Redis, topics: %s", self._topics)
+        logger.info(
+            "Event subscriber connected to Redis, topics: %s", self._topics
+        )
 
     async def receive(self) -> AsyncIterator[tuple[Topic, dict[str, Any]]]:
         """Async iterator that yields (topic, data) tuples as they arrive."""

@@ -25,9 +25,26 @@ devdeps:  ## Install development dependencies (includes pytest)
 test:  ## Run pytest test suite
 	uv run python -m pytest tests/ -v
 
-.PHONY: isort
-isort:  ## Sort Python imports
-	uv run isort $(RPI) tests
+.PHONY: format
+format:  ## Format Python and TypeScript code
+	uv run ruff check --fix --select I $(RPI) tests scripts
+	uv run ruff format $(RPI) tests scripts
+	cd $(RPI)/server/frontend && npm run format
+
+.PHONY: lint
+lint:  ## Run all linters (Python + TypeScript)
+	uv run ruff check $(RPI) tests scripts
+	uv run mypy $(RPI) tests scripts
+	cd $(RPI)/server/frontend && npm run check
+
+.PHONY: lint-py
+lint-py:  ## Run Python linters only (ruff + mypy)
+	uv run ruff check $(RPI) tests scripts
+	uv run mypy $(RPI) tests scripts
+
+.PHONY: lint-fe
+lint-fe:  ## Run frontend linter only (biome)
+	cd $(RPI)/server/frontend && npm run check
 
 .PHONY: serve
 serve:  ## Start the server (for development)

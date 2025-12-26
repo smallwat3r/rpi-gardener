@@ -3,6 +3,7 @@
 WebSocket connections receive real-time updates via Redis pub/sub.
 The event subscriber (in entrypoint.py) broadcasts new readings to clients.
 """
+
 import asyncio
 from contextlib import suppress
 from typing import Any
@@ -37,7 +38,9 @@ class ConnectionManager:
         client_id = id(websocket)
         _logger.info(
             "Client %s connected to %s (total: %d)",
-            client_id, endpoint, len(self._connections[endpoint])
+            client_id,
+            endpoint,
+            len(self._connections[endpoint]),
         )
         return client_id
 
@@ -49,8 +52,9 @@ class ConnectionManager:
                 del self._connections[endpoint]
         _logger.info(
             "Client %s disconnected from %s (remaining: %d)",
-            id(websocket), endpoint,
-            len(self._connections.get(endpoint, set()))
+            id(websocket),
+            endpoint,
+            len(self._connections.get(endpoint, set())),
         )
 
     def get_connection_count(self, endpoint: str | None = None) -> int:
@@ -126,7 +130,9 @@ async def _maintain_connection(
             await websocket.send_json(initial_data)
 
         # Start heartbeat task and wait for disconnect
-        heartbeat_task = asyncio.create_task(_send_heartbeat(websocket, client_id))
+        heartbeat_task = asyncio.create_task(
+            _send_heartbeat(websocket, client_id)
+        )
         await heartbeat_task
     except WebSocketDisconnect:
         pass

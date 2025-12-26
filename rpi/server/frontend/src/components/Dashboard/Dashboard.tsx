@@ -1,7 +1,7 @@
-import { useDashboard } from '@/hooks/useDashboard';
 import { DHTCard } from '@/components/DHTCard';
-import { PicoCard } from '@/components/PicoCard';
 import { HoursFilter } from '@/components/HoursFilter';
+import { PicoCard } from '@/components/PicoCard';
+import { useDashboard } from '@/hooks/useDashboard';
 import styles from './Dashboard.module.css';
 
 export function Dashboard() {
@@ -34,11 +34,7 @@ export function Dashboard() {
           chartData={data.data}
           thresholds={thresholds}
         />
-        <PicoCard
-          latest={data.pico_latest}
-          chartData={data.pico_data}
-          thresholds={thresholds}
-        />
+        <PicoCard latest={data.pico_latest} chartData={data.pico_data} thresholds={thresholds} />
       </div>
     </div>
   );

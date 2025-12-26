@@ -44,7 +44,8 @@ type SQLParams = tuple[Any, ...] | dict[str, Any]
 
 import aiosqlite
 
-from rpi.lib.config import get_settings
+from rpi.lib.config import SettingsKey, get_settings
+from rpi.lib.exceptions import DatabaseNotConnectedError
 from rpi.logging import get_logger
 
 _logger = get_logger("lib.db")
@@ -166,7 +167,7 @@ class Database:
                 await db.execute("INSERT INTO ...")
         """
         if self._connection is None:
-            raise RuntimeError("Database not connected")
+            raise DatabaseNotConnectedError()
         self._in_transaction = True
         await self._connection.execute("BEGIN")
         try:
@@ -185,7 +186,7 @@ class Database:
         Supports both positional (tuple) and named (dict) parameters.
         """
         if self._connection is None:
-            raise RuntimeError("Database not connected")
+            raise DatabaseNotConnectedError()
         await self._connection.execute(sql, params)
         if not self._in_transaction:
             await self._connection.commit()
@@ -199,7 +200,7 @@ class Database:
         Supports both positional (tuple) and named (dict) parameters.
         """
         if self._connection is None:
-            raise RuntimeError("Database not connected")
+            raise DatabaseNotConnectedError()
         await self._connection.executemany(sql, params_seq)
         if not self._in_transaction:
             await self._connection.commit()
@@ -207,7 +208,7 @@ class Database:
     async def executescript(self, sql: str) -> None:
         """Execute multiple SQL statements."""
         if self._connection is None:
-            raise RuntimeError("Database not connected")
+            raise DatabaseNotConnectedError()
         await self._connection.executescript(sql)
 
     async def fetchone(
@@ -215,7 +216,7 @@ class Database:
     ) -> dict[str, Any] | None:
         """Fetch a single row."""
         if self._connection is None:
-            raise RuntimeError("Database not connected")
+            raise DatabaseNotConnectedError()
         async with self._connection.execute(sql, params) as cursor:
             row = await cursor.fetchone()
             return cast(dict[str, Any] | None, row)
@@ -225,7 +226,7 @@ class Database:
     ) -> list[dict[str, Any]]:
         """Fetch all rows."""
         if self._connection is None:
-            raise RuntimeError("Database not connected")
+            raise DatabaseNotConnectedError()
         async with self._connection.execute(sql, params) as cursor:
             rows = await cursor.fetchall()
             return cast(list[dict[str, Any]], rows)
@@ -281,7 +282,8 @@ async def init_db() -> None:
         )
 
     conn = _db._connection
-    assert conn is not None
+    if conn is None:
+        raise DatabaseNotConnectedError()
     await conn.execute("PRAGMA journal_mode=WAL")
     await conn.execute("PRAGMA auto_vacuum=INCREMENTAL")
     await conn.execute(_INIT_READING_SQL)
@@ -373,14 +375,14 @@ async def get_latest_pico_data() -> list[PicoReading]:
         return cast(list[PicoReading], rows)
 
 
-async def get_all_settings() -> dict[str, str]:
+async def get_all_settings() -> dict[SettingsKey, str]:
     """Get all settings as a dictionary."""
     async with get_db() as db:
         rows = await db.fetchall("SELECT key, value FROM settings")
         return {row["key"]: row["value"] for row in rows}
 
 
-async def set_settings_batch(settings: dict[str, str]) -> None:
+async def set_settings_batch(settings: dict[SettingsKey, str]) -> None:
     """Set multiple settings in a single transaction."""
     async with get_db() as db, db.transaction():
         for key, value in settings.items():

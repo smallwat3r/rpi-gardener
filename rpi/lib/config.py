@@ -5,7 +5,7 @@ import re
 from collections.abc import Callable
 from enum import IntEnum, StrEnum
 from functools import cached_property, lru_cache
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
     AfterValidator,
@@ -48,6 +48,21 @@ DHT22_BOUNDS = {
     MeasureName.TEMPERATURE: (-40, 80),
     MeasureName.HUMIDITY: (0, 100),
 }
+
+# Valid DB settings keys for type safety
+type SettingsKey = Literal[
+    "threshold.temperature.min",
+    "threshold.temperature.max",
+    "threshold.humidity.min",
+    "threshold.humidity.max",
+    "threshold.moisture.default",
+    "threshold.moisture.1",
+    "threshold.moisture.2",
+    "threshold.moisture.3",
+    "notification.enabled",
+    "notification.backends",
+    "cleanup.retention_days",
+]
 
 
 def _parse_bool(v: Any) -> bool:
@@ -427,16 +442,21 @@ async def get_effective_thresholds() -> ThresholdSettings:
     db_settings = await get_all_settings()
     env_settings = get_settings()
 
-    def get_int(key: str, default: int) -> int:
+    def get_int(key: SettingsKey, default: int) -> int:
         val = db_settings.get(key)
         return int(val) if val is not None else default
 
     min_moisture = get_int(
         "threshold.moisture.default", env_settings.thresholds.min_moisture
     )
+    moisture_keys: dict[int, SettingsKey] = {
+        1: "threshold.moisture.1",
+        2: "threshold.moisture.2",
+        3: "threshold.moisture.3",
+    }
     plant_thresholds = {
         i: get_int(
-            f"threshold.moisture.{i}",
+            moisture_keys[i],
             env_settings.thresholds.get_moisture_threshold(i),
         )
         for i in (1, 2, 3)

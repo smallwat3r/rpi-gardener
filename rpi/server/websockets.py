@@ -84,7 +84,12 @@ class ConnectionManager:
             try:
                 await websocket.send_json(data)
                 sent_count += 1
-            except Exception:
+            except (
+                WebSocketDisconnect,
+                RuntimeError,
+                ConnectionResetError,
+                OSError,
+            ):
                 disconnected.append(websocket)
 
         # Clean up disconnected clients
@@ -106,7 +111,7 @@ async def _send_heartbeat(websocket: WebSocket, client_id: int) -> None:
             await websocket.send_json({"type": "ping"})
         except WebSocketDisconnect:
             raise
-        except Exception:
+        except (RuntimeError, ConnectionResetError, OSError):
             _logger.debug("Heartbeat failed for client %s", client_id)
             raise WebSocketDisconnect() from None
 

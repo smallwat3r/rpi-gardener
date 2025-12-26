@@ -10,8 +10,11 @@ import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import aiosqlite
+
 from rpi.lib.config import get_settings
 from rpi.lib.db import Database
+from rpi.lib.exceptions import RpiGardenerError
 from rpi.logging import configure, get_logger
 
 logger = get_logger("db_cleanup")
@@ -73,7 +76,7 @@ def main() -> int:
     try:
         asyncio.run(cleanup())
         return 0
-    except Exception as e:
+    except (RpiGardenerError, aiosqlite.Error, OSError) as e:
         logger.error("Cleanup failed: %s", e)
         return 1
 

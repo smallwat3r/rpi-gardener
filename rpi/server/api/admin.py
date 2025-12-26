@@ -1,5 +1,6 @@
 """Admin settings API endpoints."""
 
+import json
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
@@ -10,6 +11,7 @@ from rpi.lib.config import (
     DHT22_BOUNDS,
     MeasureName,
     NotificationBackend,
+    SettingsKey,
     get_settings,
 )
 from rpi.lib.db import get_all_settings, set_settings_batch
@@ -104,19 +106,21 @@ class AdminSettingsRequest(BaseModel):
     cleanup: Cleanup = Cleanup()
 
 
-def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
+def _db_settings_to_response(
+    db_settings: dict[SettingsKey, str],
+) -> dict[str, Any]:
     """Convert flat DB settings to structured response format."""
     s = get_settings()
 
-    def get_int(key: str, default: int) -> int:
+    def get_int(key: SettingsKey, default: int) -> int:
         val = db_settings.get(key)
         return int(val) if val is not None else default
 
-    def get_bool(key: str, default: bool) -> bool:
+    def get_bool(key: SettingsKey, default: bool) -> bool:
         val = db_settings.get(key)
         return val == "1" if val is not None else default
 
-    def get_list(key: str, default: list[str]) -> list[str]:
+    def get_list(key: SettingsKey, default: list[str]) -> list[str]:
         val = db_settings.get(key)
         return (
             [x.strip() for x in val.split(",") if x.strip()]
@@ -146,15 +150,24 @@ def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
                 "default": get_int(
                     "threshold.moisture.default", s.thresholds.min_moisture
                 ),
-                **{
-                    str(i): get_int(
-                        f"threshold.moisture.{i}",
-                        s.thresholds.plant_moisture_thresholds.get(
-                            i, s.thresholds.min_moisture
-                        ),
-                    )
-                    for i in (1, 2, 3)
-                },
+                "1": get_int(
+                    "threshold.moisture.1",
+                    s.thresholds.plant_moisture_thresholds.get(
+                        1, s.thresholds.min_moisture
+                    ),
+                ),
+                "2": get_int(
+                    "threshold.moisture.2",
+                    s.thresholds.plant_moisture_thresholds.get(
+                        2, s.thresholds.min_moisture
+                    ),
+                ),
+                "3": get_int(
+                    "threshold.moisture.3",
+                    s.thresholds.plant_moisture_thresholds.get(
+                        3, s.thresholds.min_moisture
+                    ),
+                ),
             },
         },
         "notifications": {
@@ -174,23 +187,26 @@ def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
     }
 
 
-def _request_to_db_settings(data: AdminSettingsRequest) -> dict[str, str]:
+def _request_to_db_settings(
+    data: AdminSettingsRequest,
+) -> dict[SettingsKey, str]:
     """Convert validated request data to flat DB settings."""
-    result: dict[str, str] = {}
+    result: dict[SettingsKey, str] = {}
 
     # Thresholds
-    for name, field in [
-        ("temperature.min", data.thresholds.temperature.min),
-        ("temperature.max", data.thresholds.temperature.max),
-        ("humidity.min", data.thresholds.humidity.min),
-        ("humidity.max", data.thresholds.humidity.max),
-        ("moisture.default", data.thresholds.moisture.default),
-        ("moisture.1", data.thresholds.moisture.plant_1),
-        ("moisture.2", data.thresholds.moisture.plant_2),
-        ("moisture.3", data.thresholds.moisture.plant_3),
-    ]:
+    threshold_fields: list[tuple[SettingsKey, int | None]] = [
+        ("threshold.temperature.min", data.thresholds.temperature.min),
+        ("threshold.temperature.max", data.thresholds.temperature.max),
+        ("threshold.humidity.min", data.thresholds.humidity.min),
+        ("threshold.humidity.max", data.thresholds.humidity.max),
+        ("threshold.moisture.default", data.thresholds.moisture.default),
+        ("threshold.moisture.1", data.thresholds.moisture.plant_1),
+        ("threshold.moisture.2", data.thresholds.moisture.plant_2),
+        ("threshold.moisture.3", data.thresholds.moisture.plant_3),
+    ]
+    for key, field in threshold_fields:
         if field is not None:
-            result[f"threshold.{name}"] = str(field)
+            result[key] = str(field)
 
     # Notifications
     if data.notifications.enabled is not None:
@@ -219,7 +235,7 @@ async def update_admin_settings(request: Request) -> JSONResponse:
     """Update admin settings."""
     try:
         raw_data = await request.json()
-    except Exception:
+    except json.JSONDecodeError:
         return JSONResponse({"error": "Invalid JSON"}, status_code=400)
 
     try:

@@ -10,7 +10,7 @@ from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 import redis
 import redis.asyncio as aioredis
@@ -33,6 +33,11 @@ class Topic(StrEnum):
 class Event(ABC):
     """Base class for all event bus payloads."""
 
+    @property
+    @abstractmethod
+    def event_type(self) -> str:
+        """Discriminator field for event type identification."""
+
     @abstractmethod
     def to_dict(self) -> dict[str, Any]:
         """Convert event to dictionary for JSON serialization."""
@@ -46,8 +51,13 @@ class DHTReadingEvent(Event):
     humidity: float
     recording_time: datetime
 
+    @property
+    def event_type(self) -> Literal["dht_reading"]:
+        return "dht_reading"
+
     def to_dict(self) -> dict[str, Any]:
         return {
+            "type": self.event_type,
             "temperature": self.temperature,
             "humidity": self.humidity,
             "recording_time": self.recording_time.strftime(
@@ -65,8 +75,13 @@ class PicoReadingEvent(Event):
     moisture: float
     recording_time: datetime
 
+    @property
+    def event_type(self) -> Literal["pico_reading"]:
+        return "pico_reading"
+
     def to_dict(self) -> dict[str, Any]:
         return {
+            "type": self.event_type,
             "plant_id": self.plant_id,
             "moisture": self.moisture,
             "recording_time": self.recording_time.strftime(
@@ -88,8 +103,13 @@ class AlertEventPayload(Event):
     recording_time: datetime
     is_resolved: bool = False
 
+    @property
+    def event_type(self) -> Literal["alert"]:
+        return "alert"
+
     def to_dict(self) -> dict[str, Any]:
         return {
+            "type": self.event_type,
             "namespace": self.namespace,
             "sensor_name": self.sensor_name,
             "value": self.value,
@@ -100,6 +120,10 @@ class AlertEventPayload(Event):
             ),
             "is_resolved": self.is_resolved,
         }
+
+
+# Type alias for any concrete event type
+type AnyEvent = DHTReadingEvent | PicoReadingEvent | AlertEventPayload
 
 
 class EventPublisher:

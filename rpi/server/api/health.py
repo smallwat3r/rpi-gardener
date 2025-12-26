@@ -2,10 +2,12 @@
 
 from datetime import UTC, datetime
 
+import aiosqlite
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from rpi.lib.db import get_db, get_latest_dht_data, get_latest_pico_data
+from rpi.lib.exceptions import DatabaseError
 from rpi.logging import get_logger
 
 logger = get_logger("server.api.health")
@@ -17,7 +19,7 @@ async def _check_database() -> tuple[bool, str]:
         async with get_db() as db:
             await db.fetchone("SELECT 1")
         return True, "ok"
-    except Exception as e:
+    except (DatabaseError, aiosqlite.Error, OSError) as e:
         logger.error("Database health check failed: %s", e)
         return False, str(e)
 
@@ -29,7 +31,7 @@ async def _check_dht_sensor() -> tuple[bool, str | None]:
         if latest is None:
             return False, "no data"
         return True, latest.get("recording_time")
-    except Exception as e:
+    except (DatabaseError, aiosqlite.Error, OSError) as e:
         logger.error("DHT sensor health check failed: %s", e)
         return False, str(e)
 
@@ -41,7 +43,7 @@ async def _check_pico_sensor() -> tuple[bool, str | None]:
         if not latest:
             return False, "no data"
         return True, latest[0].get("recording_time") if latest else None
-    except Exception as e:
+    except (DatabaseError, aiosqlite.Error, OSError) as e:
         logger.error("Pico sensor health check failed: %s", e)
         return False, str(e)
 

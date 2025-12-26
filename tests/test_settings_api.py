@@ -3,6 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
+from rpi.lib.config import SettingsKey
 from rpi.server.api.admin import (
     AdminSettingsRequest,
     _db_settings_to_response,
@@ -175,7 +176,7 @@ class TestSettingsConversion:
 
     def test_db_settings_to_response_with_defaults(self):
         """Should use env defaults when DB settings are empty."""
-        db_settings: dict[str, str] = {}
+        db_settings: dict[SettingsKey, str] = {}
 
         result = _db_settings_to_response(db_settings)
 
@@ -189,7 +190,7 @@ class TestSettingsConversion:
 
     def test_db_settings_to_response_with_overrides(self):
         """Should use DB values when present."""
-        db_settings = {
+        db_settings: dict[SettingsKey, str] = {
             "threshold.temperature.min": "20",
             "threshold.temperature.max": "30",
             "notification.enabled": "1",

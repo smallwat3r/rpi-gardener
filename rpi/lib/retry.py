@@ -52,8 +52,8 @@ async def with_retry(
                 backoff,
             )
             await asyncio.sleep(backoff)
-        except Exception as e:
-            logger.error("%s failed (non-retryable): %s", name, e)
+        except Exception:
+            logger.exception("%s failed (non-retryable)", name)
             return False
 
     logger.error(

@@ -48,10 +48,10 @@ async def run() -> None:
                 event_type = "resolution" if event.is_resolved else "alert"
                 logger.info("Processing %s for %s", event_type, label)
                 await notifier.send(event)
-            except (KeyError, ValueError, TypeError) as e:
-                logger.error("Failed to parse alert event: %s", e)
-            except OSError as e:
-                logger.error("Failed to send notification: %s", e)
+            except (KeyError, ValueError, TypeError):
+                logger.exception("Failed to parse alert event")
+            except OSError:
+                logger.exception("Failed to send notification")
     finally:
         await subscriber.close()
         logger.info("Notification service stopped")

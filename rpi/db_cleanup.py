@@ -76,8 +76,8 @@ def main() -> int:
     try:
         asyncio.run(cleanup())
         return 0
-    except (RpiGardenerError, aiosqlite.Error, OSError) as e:
-        logger.error("Cleanup failed: %s", e)
+    except (RpiGardenerError, aiosqlite.Error, OSError):
+        logger.exception("Cleanup failed")
         return 1
 
 

@@ -51,7 +51,6 @@ Runs independently of the web server.
 | `/api/dashboard` | GET | Dashboard data (JSON) |
 | `/api/thresholds` | GET | Configured alert thresholds (JSON) |
 | `/dht/latest` | WS | Real-time DHT22 readings |
-| `/dht/stats` | WS | Real-time DHT22 statistics |
 | `/pico/latest` | WS | Real-time Pico readings |
 | `/alerts` | WS | Real-time threshold alerts |
 

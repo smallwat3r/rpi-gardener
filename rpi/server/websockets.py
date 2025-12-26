@@ -2,26 +2,17 @@
 
 WebSocket connections receive real-time updates via Redis pub/sub.
 The event subscriber (in entrypoint.py) broadcasts new readings to clients.
-
-Exception: Stats endpoint uses polling since stats depend on user-selected
-time window (1-24 hours) which varies per client.
 """
 import asyncio
-from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from typing import Any
 
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from rpi.lib.config import get_settings
-from rpi.lib.db import (get_latest_dht_data, get_latest_pico_data,
-                        get_stats_dht_data)
+from rpi.lib.db import get_latest_dht_data, get_latest_pico_data
 from rpi.logging import get_logger
-from rpi.server.validators import parse_hours
 
 _logger = get_logger("server.websockets")
-
-type DataFetcher = Callable[[], Awaitable[Any]]
 
 # Heartbeat interval in seconds (30s is typical for WebSocket keepalive)
 _HEARTBEAT_INTERVAL_SEC = 30
@@ -152,46 +143,6 @@ async def _maintain_connection(
             await websocket.close()
 
 
-async def _poll_data(
-    websocket: WebSocket,
-    fetch_fn: DataFetcher,
-    endpoint: str,
-) -> None:
-    """Poll database and stream data to a WebSocket client.
-
-    Used for endpoints where data depends on per-client parameters
-    (e.g., stats with user-selected time window).
-    """
-    client_id = await connection_manager.connect(websocket, endpoint)
-    heartbeat_task: asyncio.Task | None = None
-
-    try:
-        heartbeat_task = asyncio.create_task(_send_heartbeat(websocket, client_id))
-
-        while True:
-            await asyncio.sleep(get_settings().polling.frequency_sec)
-            try:
-                data = await fetch_fn()
-                await websocket.send_json(data)
-            except WebSocketDisconnect:
-                raise
-            except Exception as e:
-                _logger.error("Error streaming to client %s: %s", client_id, e)
-    except WebSocketDisconnect:
-        pass
-    except asyncio.CancelledError:
-        _logger.info("Connection to client %s cancelled (shutdown)", client_id)
-        raise
-    finally:
-        if heartbeat_task is not None:
-            heartbeat_task.cancel()
-            with suppress(asyncio.CancelledError, WebSocketDisconnect):
-                await heartbeat_task
-        connection_manager.disconnect(websocket, endpoint)
-        with suppress(Exception):
-            await websocket.close()
-
-
 async def ws_dht_latest(websocket: WebSocket) -> None:
     """Stream latest DHT sensor readings.
 
@@ -199,20 +150,6 @@ async def ws_dht_latest(websocket: WebSocket) -> None:
     """
     initial_data = await get_latest_dht_data()
     await _maintain_connection(websocket, "/dht/latest", initial_data)
-
-
-async def ws_dht_stats(websocket: WebSocket) -> None:
-    """Stream DHT sensor statistics.
-
-    Uses polling because stats depend on user-selected time window (hours param).
-    Each client may have a different window, so we can't use the event bus.
-    """
-    _, from_time = parse_hours(websocket.query_params, strict=False)
-
-    async def fetch_stats() -> dict | None:
-        return await get_stats_dht_data(from_time)
-
-    await _poll_data(websocket, fetch_stats, "/dht/stats")
 
 
 async def ws_pico_latest(websocket: WebSocket) -> None:

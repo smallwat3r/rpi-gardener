@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'preact/hooks';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'preact/hooks';
 import { fetchDashboardData, fetchThresholds } from '@/api/dashboard';
 import { useWebSocket } from './useWebSocket';
 import type { DashboardData, DHTReading, DHTStats, PicoChartDataPoint, PicoReading, Thresholds } from '@/types';
@@ -53,15 +53,11 @@ export function useDashboard(initialHours: number = 3) {
     lastDhtEpoch.current = reading.epoch;
     setData((prev) => {
       if (!prev) return prev;
-      const newChartData = [reading, ...prev.data.slice(0, -1)];
+      const cutoff = Date.now() - hours * 60 * 60 * 1000;
+      const newChartData = [...prev.data.filter((r) => r.epoch >= cutoff), reading];
       return { ...prev, latest: reading, data: newChartData };
     });
-  }, []);
-
-  const handleDhtStats = useCallback((stats: DHTStats | null) => {
-    if (!stats) return;
-    setData((prev) => (prev ? { ...prev, stats } : prev));
-  }, []);
+  }, [hours]);
 
   const handlePicoLatest = useCallback((picoReadings: PicoReading[] | null) => {
     if (!picoReadings?.length || picoReadings[0].epoch === lastPicoEpoch.current) return;
@@ -79,14 +75,30 @@ export function useDashboard(initialHours: number = 3) {
     });
   }, []);
 
+  const stats = useMemo<DHTStats | null>(() => {
+    if (!data?.data.length) return null;
+    const cutoff = Date.now() - hours * 60 * 60 * 1000;
+    const readings = data.data.filter((r) => r.epoch >= cutoff);
+    if (!readings.length) return null;
+
+    const temps = readings.map((r) => r.temperature);
+    const hums = readings.map((r) => r.humidity);
+    const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
+    const round = (n: number, d: number) => Math.round(n * 10 ** d) / 10 ** d;
+
+    return {
+      avg_temperature: round(sum(temps) / temps.length, 2),
+      min_temperature: Math.min(...temps),
+      max_temperature: Math.max(...temps),
+      avg_humidity: round(sum(hums) / hums.length, 2),
+      min_humidity: Math.min(...hums),
+      max_humidity: Math.max(...hums),
+    };
+  }, [data?.data, hours]);
+
   useWebSocket<DHTReading>({
     url: '/dht/latest',
     onMessage: handleDhtLatest,
-  });
-
-  useWebSocket<DHTStats>({
-    url: `/dht/stats?hours=${hours}`,
-    onMessage: handleDhtStats,
   });
 
   useWebSocket<PicoReading[]>({
@@ -94,5 +106,10 @@ export function useDashboard(initialHours: number = 3) {
     onMessage: handlePicoLatest,
   });
 
-  return { data, thresholds, loading, error, hours, setHours, refresh: loadData };
+  const dashboardData = useMemo<DashboardData | null>(() => {
+    if (!data) return null;
+    return { ...data, stats };
+  }, [data, stats]);
+
+  return { data: dashboardData, thresholds, loading, error, hours, setHours, refresh: loadData };
 }

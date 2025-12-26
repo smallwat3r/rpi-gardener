@@ -50,6 +50,8 @@ Runs independently of the web server.
 | `/health` | GET | Service health check |
 | `/api/dashboard` | GET | Dashboard data (JSON) |
 | `/api/thresholds` | GET | Configured alert thresholds (JSON) |
+| `/api/admin/settings` | GET | Admin settings (requires auth) |
+| `/api/admin/settings` | PUT | Update admin settings (requires auth) |
 | `/dht/latest` | WS | Real-time DHT22 readings |
 | `/pico/latest` | WS | Real-time Pico readings |
 | `/alerts` | WS | Real-time threshold alerts |

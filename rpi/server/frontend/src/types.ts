@@ -40,3 +40,18 @@ export interface Thresholds {
   humidity: { min: number; max: number };
   moisture: Record<string, number>;
 }
+
+export interface AdminSettings {
+  thresholds: {
+    temperature: { min: number; max: number };
+    humidity: { min: number; max: number };
+    moisture: { default: number; 1: number; 2: number; 3: number };
+  };
+  notifications: {
+    enabled: boolean;
+    backends: string[];
+  };
+  cleanup: {
+    retentionDays: number;
+  };
+}

@@ -3,12 +3,12 @@
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from rpi.lib.config import get_settings
+from rpi.lib.config import get_effective_thresholds
 
 
 async def get_thresholds(request: Request) -> JSONResponse:
-    """Return current threshold configuration."""
-    thresholds = get_settings().thresholds
+    """Return current threshold configuration (with DB overrides applied)."""
+    thresholds = await get_effective_thresholds()
     return JSONResponse(
         {
             "temperature": {

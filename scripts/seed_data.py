@@ -26,9 +26,7 @@ def generate_dht_data(
         temperature = random_walk(
             temperature, drift=0.15, min_val=15.0, max_val=30.0
         )
-        humidity = random_walk(
-            humidity, drift=0.3, min_val=30.0, max_val=70.0
-        )
+        humidity = random_walk(humidity, drift=0.3, min_val=30.0, max_val=70.0)
         data.append(
             (round(temperature, 1), round(humidity, 1), recording_time)
         )

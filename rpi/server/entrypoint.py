@@ -10,6 +10,7 @@ from starlette.routing import Route, WebSocketRoute
 from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.logging import configure, get_logger
 
+from .api.admin import get_admin_settings, update_admin_settings
 from .api.dashboard import get_dashboard
 from .api.health import health_check
 from .api.thresholds import get_thresholds
@@ -75,6 +76,8 @@ def create_app() -> Starlette:
         Route("/health", health_check),
         Route("/api/dashboard", get_dashboard),
         Route("/api/thresholds", get_thresholds),
+        Route("/api/admin/settings", get_admin_settings),
+        Route("/api/admin/settings", update_admin_settings, methods=["PUT"]),
         WebSocketRoute("/dht/latest", ws_dht_latest),
         WebSocketRoute("/pico/latest", ws_pico_latest),
         WebSocketRoute("/alerts", ws_alerts),

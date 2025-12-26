@@ -27,13 +27,17 @@ export function useDashboard(initialHours: number = 3) {
     };
   }, []);
 
-  useEffect(() => {
+  const refreshThresholds = useCallback(() => {
     fetchThresholds()
       .then((t) => {
         if (mountedRef.current) setThresholds(t);
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    refreshThresholds();
+  }, [refreshThresholds]);
 
   const loadData = useCallback(async () => {
     if (!mountedRef.current) return;
@@ -125,5 +129,14 @@ export function useDashboard(initialHours: number = 3) {
     return { ...data, stats };
   }, [data, stats]);
 
-  return { data: dashboardData, thresholds, loading, error, hours, setHours, refresh: loadData };
+  return {
+    data: dashboardData,
+    thresholds,
+    loading,
+    error,
+    hours,
+    setHours,
+    refresh: loadData,
+    refreshThresholds,
+  };
 }

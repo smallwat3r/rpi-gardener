@@ -14,6 +14,7 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - Soil moisture tracking for up to 3 plants (Pico + capacitive sensors)
 - Modern web dashboard with live charts and threshold visualization
 - Visual alerts when sensor values exceed configured thresholds
+- Password-protected admin interface to manage settings
 - 128x64 OLED displays on both RPi and Pico
 - Notifications when thresholds are crossed and when alerts resolve
 - Docker deployment
@@ -47,6 +48,11 @@ Create a `.env` file:
 ```sh
 # SSL certificate (use your RPi's local IP)
 CERT_IP=192.168.1.100
+
+# Admin password for the settings UI (optional)
+# If set, enables the admin interface accessible via the gear icon
+# Login with username "admin" and this password
+ADMIN_PASSWORD=your_secure_password
 
 # DHT22 thresholds (optional, these are defaults)
 MAX_TEMPERATURE=25
@@ -142,7 +148,8 @@ The RPi reads from `/dev/ttyACM0` and persists readings directly to the database
 
 ## Data Management
 
-- Historical data older than 3 days is automatically deleted
+- Historical data is automatically deleted after the configured retention period (default: 3 days)
+- Retention period can be changed via the admin interface
 - Database persisted in Docker volume `rpi-gardener-db`
 - Regenerate SSL certs by removing volume: `docker volume rm rpi-gardener-certs`
 
@@ -164,7 +171,8 @@ Gmail App Password (not your account password).
 
 This project is designed for local home networks:
 - HTTPS with self-signed certificates
-- No authentication on dashboard or API
+- Dashboard is publicly accessible (read-only)
+- Admin interface protected by HTTP Basic Auth (set `ADMIN_PASSWORD` to enable)
 - Do not expose to the internet without additional security
 
 ## Wiring

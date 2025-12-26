@@ -52,7 +52,8 @@ async def cleanup() -> None:
                     "DELETE FROM reading WHERE recording_time < ?", (cutoff,)
                 )
                 await db.execute(
-                    "DELETE FROM pico_reading WHERE recording_time < ?", (cutoff,)
+                    "DELETE FROM pico_reading WHERE recording_time < ?",
+                    (cutoff,),
                 )
             await db.execute("PRAGMA incremental_vacuum(500)")
             logger.info(

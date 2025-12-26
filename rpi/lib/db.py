@@ -68,6 +68,8 @@ _DHT_LATEST_SQL = _load_template("dht_latest_recording.sql")
 _DHT_STATS_SQL = _load_template("dht_stats.sql")
 _PICO_CHART_SQL = _load_template("pico_chart.sql")
 _PICO_LATEST_SQL = _load_template("pico_latest_recording.sql")
+_INIT_SETTINGS_SQL = _load_template("init_settings_table.sql")
+_INIT_ADMIN_SQL = _load_template("init_admin_table.sql")
 
 # Global persistent database connection
 _db: Database | None = None
@@ -286,6 +288,31 @@ async def init_db() -> None:
     await _db.executescript(_IDX_READING_SQL)
     await conn.execute(_INIT_PICO_SQL)
     await _db.executescript(_IDX_PICO_SQL)
+    await conn.execute(_INIT_SETTINGS_SQL)
+    await conn.execute(_INIT_ADMIN_SQL)
+    await _init_admin_password()
+
+
+async def _init_admin_password() -> None:
+    """Initialize admin password from ADMIN_PASSWORD env var if not already set."""
+    from os import environ
+
+    from rpi.server.auth import hash_password
+
+    existing = await get_admin_password_hash()
+    if existing is not None:
+        return
+
+    admin_password = environ.get("ADMIN_PASSWORD", "")
+    if not admin_password:
+        _logger.warning(
+            "No admin password configured. Set ADMIN_PASSWORD in .env to enable admin UI."
+        )
+        return
+
+    password_hash = hash_password(admin_password)
+    await set_admin_password_hash(password_hash)
+    _logger.info("Admin password initialized from environment")
 
 
 async def close_db() -> None:
@@ -344,3 +371,66 @@ async def get_latest_pico_data() -> list[PicoReading]:
     async with get_db() as db:
         rows = await db.fetchall(_PICO_LATEST_SQL)
         return cast(list[PicoReading], rows)
+
+
+async def get_setting(key: str) -> str | None:
+    """Get a single setting value by key."""
+    async with get_db() as db:
+        row = await db.fetchone(
+            "SELECT value FROM settings WHERE key = ?", (key,)
+        )
+        return row["value"] if row else None
+
+
+async def get_all_settings() -> dict[str, str]:
+    """Get all settings as a dictionary."""
+    async with get_db() as db:
+        rows = await db.fetchall("SELECT key, value FROM settings")
+        return {row["key"]: row["value"] for row in rows}
+
+
+async def set_setting(key: str, value: str) -> None:
+    """Set a single setting value (upsert)."""
+    async with get_db() as db:
+        await db.execute(
+            """INSERT INTO settings (key, value, updated_at)
+               VALUES (?, ?, datetime('now'))
+               ON CONFLICT(key) DO UPDATE SET
+                   value = excluded.value,
+                   updated_at = excluded.updated_at""",
+            (key, value),
+        )
+
+
+async def set_settings_batch(settings: dict[str, str]) -> None:
+    """Set multiple settings in a single transaction."""
+    async with get_db() as db, db.transaction():
+        for key, value in settings.items():
+            await db.execute(
+                """INSERT INTO settings (key, value, updated_at)
+                   VALUES (?, ?, datetime('now'))
+                   ON CONFLICT(key) DO UPDATE SET
+                       value = excluded.value,
+                       updated_at = excluded.updated_at""",
+                (key, value),
+            )
+
+
+async def get_admin_password_hash() -> str | None:
+    """Get the admin password hash."""
+    async with get_db() as db:
+        row = await db.fetchone("SELECT password_hash FROM admin WHERE id = 1")
+        return row["password_hash"] if row else None
+
+
+async def set_admin_password_hash(password_hash: str) -> None:
+    """Set or update the admin password hash."""
+    async with get_db() as db:
+        await db.execute(
+            """INSERT INTO admin (id, password_hash, updated_at)
+               VALUES (1, ?, datetime('now'))
+               ON CONFLICT(id) DO UPDATE SET
+                   password_hash = excluded.password_hash,
+                   updated_at = excluded.updated_at""",
+            (password_hash,),
+        )

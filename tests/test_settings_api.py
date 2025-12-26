@@ -1,0 +1,186 @@
+"""Tests for admin settings API."""
+
+from rpi.server.api.admin import (
+    _db_settings_to_response,
+    _request_to_db_settings,
+    _validate_settings,
+)
+
+
+class TestSettingsValidation:
+    """Tests for settings validation."""
+
+    def test_validate_valid_settings(self):
+        """Valid settings should return no errors."""
+        settings = {
+            "thresholds": {
+                "temperature": {"min": 18, "max": 25},
+                "humidity": {"min": 40, "max": 65},
+                "moisture": {"default": 30, "1": 55, "2": 30, "3": 35},
+            },
+            "notifications": {
+                "enabled": True,
+                "backends": ["gmail", "slack"],
+            },
+            "cleanup": {
+                "retentionDays": 7,
+            },
+        }
+
+        errors = _validate_settings(settings)
+        assert errors == []
+
+    def test_validate_temperature_min_gt_max(self):
+        """Should error when temperature min >= max."""
+        settings = {
+            "thresholds": {
+                "temperature": {"min": 30, "max": 25},
+            },
+        }
+
+        errors = _validate_settings(settings)
+        assert any("min must be less than max" in e for e in errors)
+
+    def test_validate_temperature_out_of_bounds(self):
+        """Should error when temperature outside [-40, 80]."""
+        settings = {
+            "thresholds": {
+                "temperature": {"min": -50, "max": 90},
+            },
+        }
+
+        errors = _validate_settings(settings)
+        assert any("[-40, 80]" in e for e in errors)
+
+    def test_validate_humidity_min_gt_max(self):
+        """Should error when humidity min >= max."""
+        settings = {
+            "thresholds": {
+                "humidity": {"min": 70, "max": 50},
+            },
+        }
+
+        errors = _validate_settings(settings)
+        assert any("min must be less than max" in e for e in errors)
+
+    def test_validate_humidity_out_of_bounds(self):
+        """Should error when humidity outside [0, 100]."""
+        settings = {
+            "thresholds": {
+                "humidity": {"min": -10, "max": 110},
+            },
+        }
+
+        errors = _validate_settings(settings)
+        assert any("[0, 100]" in e for e in errors)
+
+    def test_validate_moisture_out_of_bounds(self):
+        """Should error when moisture outside [0, 100]."""
+        settings = {
+            "thresholds": {
+                "moisture": {"1": 150},
+            },
+        }
+
+        errors = _validate_settings(settings)
+        assert any("moisture" in e.lower() for e in errors)
+
+    def test_validate_invalid_backend(self):
+        """Should error for invalid notification backend."""
+        settings = {
+            "notifications": {
+                "backends": ["invalid_backend"],
+            },
+        }
+
+        errors = _validate_settings(settings)
+        assert any("Invalid notification backend" in e for e in errors)
+
+    def test_validate_retention_days_out_of_bounds(self):
+        """Should error when retention days outside [1, 365]."""
+        settings = {
+            "cleanup": {
+                "retentionDays": 500,
+            },
+        }
+
+        errors = _validate_settings(settings)
+        assert any("between 1 and 365" in e for e in errors)
+
+
+class TestSettingsConversion:
+    """Tests for settings format conversion."""
+
+    def test_request_to_db_settings(self):
+        """Should convert structured request to flat DB keys."""
+        request = {
+            "thresholds": {
+                "temperature": {"min": 18, "max": 25},
+                "humidity": {"min": 40, "max": 65},
+                "moisture": {"default": 30, "1": 55},
+            },
+            "notifications": {
+                "enabled": True,
+                "backends": ["gmail", "slack"],
+            },
+            "cleanup": {
+                "retentionDays": 7,
+            },
+        }
+
+        result = _request_to_db_settings(request)
+
+        assert result["threshold.temperature.min"] == "18"
+        assert result["threshold.temperature.max"] == "25"
+        assert result["threshold.humidity.min"] == "40"
+        assert result["threshold.humidity.max"] == "65"
+        assert result["threshold.moisture.default"] == "30"
+        assert result["threshold.moisture.1"] == "55"
+        assert result["notification.enabled"] == "1"
+        assert result["notification.backends"] == "gmail,slack"
+        assert result["cleanup.retention_days"] == "7"
+
+    def test_request_to_db_settings_partial(self):
+        """Should handle partial settings update."""
+        request = {
+            "thresholds": {
+                "temperature": {"min": 20},
+            },
+        }
+
+        result = _request_to_db_settings(request)
+
+        assert result["threshold.temperature.min"] == "20"
+        assert "threshold.temperature.max" not in result
+
+    def test_db_settings_to_response_with_defaults(self):
+        """Should use env defaults when DB settings are empty."""
+        db_settings: dict[str, str] = {}
+
+        result = _db_settings_to_response(db_settings)
+
+        # Should return structured format with defaults from env
+        assert "thresholds" in result
+        assert "notifications" in result
+        assert "cleanup" in result
+        assert "temperature" in result["thresholds"]
+        assert "humidity" in result["thresholds"]
+        assert "moisture" in result["thresholds"]
+
+    def test_db_settings_to_response_with_overrides(self):
+        """Should use DB values when present."""
+        db_settings = {
+            "threshold.temperature.min": "20",
+            "threshold.temperature.max": "30",
+            "notification.enabled": "1",
+            "notification.backends": "slack",
+            "cleanup.retention_days": "14",
+        }
+
+        result = _db_settings_to_response(db_settings)
+
+        assert result["thresholds"]["temperature"]["min"] == 20
+        assert result["thresholds"]["temperature"]["max"] == 30
+        assert result["notifications"]["enabled"] is True
+        assert result["notifications"]["backends"] == ["slack"]
+        assert result["cleanup"]["retentionDays"] == 14

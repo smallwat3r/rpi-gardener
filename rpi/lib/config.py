@@ -298,6 +298,108 @@ class ConfigurationError(Exception):
     """Raised when configuration validation fails."""
 
 
+async def get_effective_thresholds() -> ThresholdSettings:
+    """Get threshold settings with DB overrides applied.
+
+    Reads from database first, falls back to environment variables.
+    Use this for runtime threshold checks that should respect admin UI changes.
+    """
+    from rpi.lib.db import get_all_settings
+
+    db_settings = await get_all_settings()
+    env_settings = get_settings()
+
+    def get_int(key: str, default: int) -> int:
+        val = db_settings.get(key)
+        return int(val) if val is not None else default
+
+    min_moisture = get_int(
+        "threshold.moisture.default", env_settings.thresholds.min_moisture
+    )
+    plant_thresholds = {
+        1: get_int(
+            "threshold.moisture.1",
+            env_settings.thresholds.get_moisture_threshold(1),
+        ),
+        2: get_int(
+            "threshold.moisture.2",
+            env_settings.thresholds.get_moisture_threshold(2),
+        ),
+        3: get_int(
+            "threshold.moisture.3",
+            env_settings.thresholds.get_moisture_threshold(3),
+        ),
+    }
+
+    return ThresholdSettings(
+        max_temperature=get_int(
+            "threshold.temperature.max",
+            env_settings.thresholds.max_temperature,
+        ),
+        min_temperature=get_int(
+            "threshold.temperature.min",
+            env_settings.thresholds.min_temperature,
+        ),
+        max_humidity=get_int(
+            "threshold.humidity.max", env_settings.thresholds.max_humidity
+        ),
+        min_humidity=get_int(
+            "threshold.humidity.min", env_settings.thresholds.min_humidity
+        ),
+        min_moisture=min_moisture,
+        plant_moisture_thresholds=plant_thresholds,
+    )
+
+
+async def get_effective_notifications() -> NotificationSettings:
+    """Get notification settings with DB overrides applied."""
+    from rpi.lib.db import get_all_settings
+
+    db_settings = await get_all_settings()
+    env_settings = get_settings()
+
+    enabled_val = db_settings.get("notification.enabled")
+    enabled = (
+        enabled_val == "1"
+        if enabled_val is not None
+        else env_settings.notifications.enabled
+    )
+
+    backends_val = db_settings.get("notification.backends")
+    backends = (
+        [b.strip() for b in backends_val.split(",") if b.strip()]
+        if backends_val is not None
+        else env_settings.notifications.backends
+    )
+
+    return NotificationSettings(
+        enabled=enabled,
+        backends=backends,
+        gmail=env_settings.notifications.gmail,
+        slack=env_settings.notifications.slack,
+        max_retries=env_settings.notifications.max_retries,
+        initial_backoff_sec=env_settings.notifications.initial_backoff_sec,
+        timeout_sec=env_settings.notifications.timeout_sec,
+    )
+
+
+async def get_effective_cleanup() -> CleanupSettings:
+    """Get cleanup settings with DB overrides applied."""
+    from rpi.lib.db import get_all_settings
+
+    db_settings = await get_all_settings()
+    env_settings = get_settings()
+
+    retention_val = db_settings.get("cleanup.retention_days")
+    retention_days = (
+        int(retention_val)
+        if retention_val is not None
+        else env_settings.cleanup.retention_days
+    )
+
+    return CleanupSettings(retention_days=retention_days)
+
+
 def validate_config() -> None:
     """Validate configuration values at startup.
 

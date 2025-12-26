@@ -1,11 +1,18 @@
 """Tests for the database cleanup module."""
 
+from contextlib import asynccontextmanager
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from rpi.db_cleanup import cleanup
+
+
+@asynccontextmanager
+async def mock_transaction():
+    """Mock transaction context manager."""
+    yield
 
 
 class TestDatabaseCleanup:
@@ -30,10 +37,13 @@ class TestDatabaseCleanup:
 
         mock_db = AsyncMock()
         mock_db.execute = AsyncMock()
-        mock_db.fetchone = AsyncMock(side_effect=[
-            {"count": 10},  # DHT count
-            {"count": 30},  # Pico count
-        ])
+        mock_db.fetchone = AsyncMock(
+            side_effect=[
+                {"count": 10},  # DHT count
+                {"count": 30},  # Pico count
+            ]
+        )
+        mock_db.transaction = mock_transaction
         mock_db.__aenter__ = AsyncMock(return_value=mock_db)
         mock_db.__aexit__ = AsyncMock(return_value=None)
 
@@ -63,17 +73,21 @@ class TestDatabaseCleanup:
         assert "incremental_vacuum" in vacuum_call[0][0]
 
     @pytest.mark.asyncio
-    async def test_cleanup_skips_delete_when_no_records(self, frozen_time, tmp_path):
+    async def test_cleanup_skips_delete_when_no_records(
+        self, frozen_time, tmp_path
+    ):
         """Cleanup should skip deletion when no old records exist."""
         db_file = tmp_path / "test.sqlite3"
         db_file.write_bytes(b"x" * 1000)
 
         mock_db = AsyncMock()
         mock_db.execute = AsyncMock()
-        mock_db.fetchone = AsyncMock(side_effect=[
-            {"count": 0},  # DHT count
-            {"count": 0},  # Pico count
-        ])
+        mock_db.fetchone = AsyncMock(
+            side_effect=[
+                {"count": 0},  # DHT count
+                {"count": 0},  # Pico count
+            ]
+        )
         mock_db.__aenter__ = AsyncMock(return_value=mock_db)
         mock_db.__aexit__ = AsyncMock(return_value=None)
 

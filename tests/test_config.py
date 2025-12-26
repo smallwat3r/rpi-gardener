@@ -3,7 +3,7 @@
 from unittest.mock import patch
 
 import pytest
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from rpi.lib.config import (
     GmailSettings,
@@ -273,9 +273,7 @@ class TestValidateConfig:
             )
 
     def test_moisture_threshold_outside_bounds_fails(self):
-        with pytest.raises(
-            ValidationError, match="less than or equal to 100"
-        ):
+        with pytest.raises(ValidationError, match="less than or equal to 100"):
             Settings(
                 min_moisture_plant_1=150,  # Above 100
             )
@@ -288,7 +286,7 @@ class TestValidateConfig:
                 gmail_sender="",
                 gmail_recipients="",
                 gmail_username="",
-                gmail_password="",
+                gmail_password=SecretStr(""),
             )
 
     def test_slack_enabled_without_webhook_fails(self):

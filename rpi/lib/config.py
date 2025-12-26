@@ -8,10 +8,12 @@ from functools import cached_property, lru_cache
 from typing import Annotated, Any, Self
 
 from pydantic import (
+    AfterValidator,
     BaseModel,
     BeforeValidator,
     ConfigDict,
     Field,
+    HttpUrl,
     SecretStr,
     model_validator,
 )
@@ -60,13 +62,35 @@ def _parse_bool(v: Any) -> bool:
 BoolFromStr = Annotated[bool, BeforeValidator(_parse_bool)]
 
 
+def _validate_email_or_empty(v: str) -> str:
+    """Validate email format, allowing empty string."""
+    if not v:
+        return v
+    from pydantic import validate_email
+
+    validate_email(v)
+    return v
+
+
+def _validate_http_url_or_empty(v: str) -> str:
+    """Validate HTTP URL format, allowing empty string."""
+    if not v:
+        return v
+    HttpUrl(v)
+    return v
+
+
+EmailOrEmpty = Annotated[str, AfterValidator(_validate_email_or_empty)]
+HttpUrlOrEmpty = Annotated[str, AfterValidator(_validate_http_url_or_empty)]
+
+
 class GmailSettings(BaseModel):
     """Gmail notification settings."""
 
     model_config = ConfigDict(frozen=True)
 
-    sender: str = ""
-    recipients: str = ""
+    sender: EmailOrEmpty = ""
+    recipients: str = ""  # Comma-separated list, validated separately
     username: str = ""
     password: SecretStr = SecretStr("")
     subject: str = "Sensor alert!"
@@ -77,7 +101,7 @@ class SlackSettings(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    webhook_url: str = ""
+    webhook_url: HttpUrlOrEmpty = ""
 
 
 class ThresholdSettings(BaseModel):
@@ -191,12 +215,12 @@ class Settings(BaseSettings):
     # Notifications
     enable_notification_service: BoolFromStr = False
     notification_backends: str = "gmail"
-    gmail_sender: str = ""
-    gmail_recipients: str = ""
+    gmail_sender: EmailOrEmpty = ""
+    gmail_recipients: str = ""  # Comma-separated list
     gmail_username: str = ""
     gmail_password: SecretStr = SecretStr("")
     gmail_subject: str = "Sensor alert!"
-    slack_webhook_url: str = ""
+    slack_webhook_url: HttpUrlOrEmpty = ""
     email_max_retries: int = Field(default=3, ge=0)
     email_initial_backoff_sec: int = Field(default=2, ge=0)
     email_timeout_sec: int = Field(default=30, ge=1)
@@ -329,11 +353,14 @@ class Settings(BaseSettings):
 
             if NotificationBackend.SLACK in backends:
                 if not self.slack_webhook_url:
-                    errors.append("Slack enabled but SLACK_WEBHOOK_URL is not set")
+                    errors.append(
+                        "Slack enabled but SLACK_WEBHOOK_URL is not set"
+                    )
 
         if errors:
             raise ValueError(
-                "Configuration validation failed:\n  - " + "\n  - ".join(errors)
+                "Configuration validation failed:\n  - "
+                + "\n  - ".join(errors)
             )
 
         return self
@@ -450,10 +477,10 @@ async def get_effective_notifications() -> NotificationSettings:
     )
 
     backends_val = db_settings.get("notification.backends")
-    backends = (
-        [b.strip() for b in backends_val.split(",") if b.strip()]
+    backends: list[NotificationBackend] = (
+        [NotificationBackend(b.strip()) for b in backends_val.split(",") if b.strip()]
         if backends_val is not None
-        else env_settings.notifications.backends
+        else list(env_settings.notifications.backends)
     )
 
     return NotificationSettings(

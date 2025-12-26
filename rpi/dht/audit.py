@@ -6,32 +6,22 @@ The service is responsible for:
 """
 
 from rpi.dht.models import Measure, Reading, State
-from rpi.lib.alerts import AlertEvent, AlertState, Namespace, get_alert_tracker
+from rpi.lib.alerts import (
+    AlertState,
+    Namespace,
+    get_alert_tracker,
+    publish_alert,
+)
 from rpi.lib.config import get_threshold_rules
-from rpi.lib.eventbus import AlertEventPayload, Topic, get_publisher
 from rpi.logging import get_logger
 
 logger = get_logger("dht.audit")
 
 
-def _publish_alert(event: AlertEvent) -> None:
-    """Publish an alert event to the event bus."""
-    payload = AlertEventPayload(
-        namespace=event.namespace.value,
-        sensor_name=event.sensor_name,
-        value=event.value,
-        unit=event.unit,
-        threshold=event.threshold,
-        recording_time=event.recording_time,
-        is_resolved=event.is_resolved,
-    )
-    get_publisher().publish(Topic.ALERT, payload)
-
-
 def init() -> None:
     """Initialize the audit service by registering the alert callback."""
     tracker = get_alert_tracker()
-    tracker.register_callback(Namespace.DHT, _publish_alert)
+    tracker.register_callback(Namespace.DHT, publish_alert)
 
 
 def audit_reading(reading: Reading) -> None:

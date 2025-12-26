@@ -11,6 +11,7 @@ from datetime import datetime
 from enum import Enum, auto
 
 from rpi.lib.config import PlantIdValue
+from rpi.lib.eventbus import AlertEventPayload, Topic, get_publisher
 from rpi.logging import get_logger
 
 logger = get_logger("lib.alerts")
@@ -214,3 +215,17 @@ def reset_alert_tracker() -> None:
     if _alert_tracker is not None:
         _alert_tracker.reset()
     _alert_tracker = None
+
+
+def publish_alert(event: AlertEvent) -> None:
+    """Publish an alert event to the event bus."""
+    payload = AlertEventPayload(
+        namespace=event.namespace.value,
+        sensor_name=event.sensor_name,
+        value=event.value,
+        unit=event.unit,
+        threshold=event.threshold,
+        recording_time=event.recording_time,
+        is_resolved=event.is_resolved,
+    )
+    get_publisher().publish(Topic.ALERT, payload)

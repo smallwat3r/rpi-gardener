@@ -8,15 +8,10 @@ import json
 from datetime import UTC, datetime
 from typing import Protocol, override
 
-from rpi.lib.alerts import AlertEvent, Namespace, get_alert_tracker
+from rpi.lib.alerts import Namespace, get_alert_tracker, publish_alert
 from rpi.lib.config import get_moisture_threshold, get_settings
 from rpi.lib.db import close_db, get_db, init_db
-from rpi.lib.eventbus import (
-    AlertEventPayload,
-    PicoReadingEvent,
-    Topic,
-    get_publisher,
-)
+from rpi.lib.eventbus import PicoReadingEvent, Topic, get_publisher
 from rpi.lib.polling import PollingService
 from rpi.logging import configure, get_logger
 from rpi.pico.models import MoistureReading, ValidationError
@@ -59,20 +54,6 @@ class SerialDataSource:
         logger.info("Serial port %s closed", self._port)
 
 
-def _publish_alert(event: AlertEvent) -> None:
-    """Publish an alert event to the event bus."""
-    payload = AlertEventPayload(
-        namespace=event.namespace.value,
-        sensor_name=event.sensor_name,
-        value=event.value,
-        unit=event.unit,
-        threshold=event.threshold,
-        recording_time=event.recording_time,
-        is_resolved=event.is_resolved,
-    )
-    get_publisher().publish(Topic.ALERT, payload)
-
-
 class PicoPollingService(PollingService[list[MoistureReading]]):
     """Polling service for Pico moisture sensors via USB serial."""
 
@@ -87,7 +68,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         self._publisher = get_publisher()
         self._publisher.connect()
         tracker = get_alert_tracker()
-        tracker.register_callback(Namespace.PICO, _publish_alert)
+        tracker.register_callback(Namespace.PICO, publish_alert)
 
     @override
     async def cleanup(self) -> None:

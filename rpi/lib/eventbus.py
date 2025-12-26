@@ -10,7 +10,7 @@ from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 import redis
 import redis.asyncio as aioredis
@@ -221,6 +221,15 @@ class EventSubscriber:
             await self._client.close()
             self._client = None
         logger.info("Event subscriber closed")
+
+    async def __aenter__(self) -> Self:
+        """Async context manager entry."""
+        await self.connect()
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        """Async context manager exit."""
+        await self.close()
 
 
 # Global publisher instance (initialized by polling services)

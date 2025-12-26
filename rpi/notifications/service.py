@@ -35,13 +35,10 @@ def _parse_alert_event(data: dict[str, Any]) -> AlertEvent:
 
 async def run() -> None:
     """Run the notification service."""
-    subscriber = EventSubscriber(topics=[Topic.ALERT])
-    await subscriber.connect()
     notifier = get_notifier()
 
-    logger.info("Notification service started")
-
-    try:
+    async with EventSubscriber(topics=[Topic.ALERT]) as subscriber:
+        logger.info("Notification service started")
         async for _topic, data in subscriber.receive():
             try:
                 event = _parse_alert_event(data)
@@ -53,9 +50,8 @@ async def run() -> None:
                 logger.exception("Failed to parse alert event")
             except OSError:
                 logger.exception("Failed to send notification")
-    finally:
-        await subscriber.close()
-        logger.info("Notification service stopped")
+
+    logger.info("Notification service stopped")
 
 
 def main() -> None:

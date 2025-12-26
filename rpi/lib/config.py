@@ -197,7 +197,7 @@ class CleanupSettings(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    retention_days: int = 3
+    retention_days: int = 7
 
 
 class EventBusSettings(BaseModel):
@@ -253,7 +253,7 @@ class Settings(BaseSettings):
     pico_serial_timeout_sec: float = Field(default=30.0, gt=0)
 
     # Cleanup
-    retention_days: int = Field(default=3, ge=1)
+    retention_days: int = Field(default=7, ge=1)
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"

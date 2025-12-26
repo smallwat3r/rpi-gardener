@@ -79,4 +79,4 @@ class TestHoursQueryFromParams:
 
     def test_out_of_range_raises(self):
         with pytest.raises(ValidationError):
-            HoursQuery.from_params({"hours": "100"})
+            HoursQuery.from_params({"hours": str(MAX_HOURS + 1)})

@@ -99,8 +99,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-hours",
         type=int,
-        default=6,
-        help="Hours of data to generate (default: 6)",
+        default=24,
+        help="Hours of data to generate (default: 24, max: 168 for 7 days)",
     )
     parser.add_argument(
         "-clear",

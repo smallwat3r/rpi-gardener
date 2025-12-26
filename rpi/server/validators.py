@@ -7,8 +7,8 @@ from datetime import UTC, datetime, timedelta
 from pydantic import BaseModel, Field
 
 MIN_HOURS = 1
-MAX_HOURS = 72  # 3 days max (matches retention)
-DEFAULT_HOURS = 3
+MAX_HOURS = 168  # 7 days max (matches retention)
+DEFAULT_HOURS = 24
 
 
 class HoursQuery(BaseModel):

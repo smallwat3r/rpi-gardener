@@ -7,11 +7,11 @@ interface HoursFilterProps {
 
 const TIMEFRAMES = [
   { hours: 1, label: '1h' },
-  { hours: 3, label: '3h' },
   { hours: 6, label: '6h' },
   { hours: 12, label: '12h' },
   { hours: 24, label: '24h' },
   { hours: 72, label: '3d' },
+  { hours: 168, label: '7d' },
 ];
 
 export function HoursFilter({ value, onChange }: HoursFilterProps) {

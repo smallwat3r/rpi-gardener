@@ -38,7 +38,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
@@ -335,10 +335,26 @@ async def close_db() -> None:
         _db = None
 
 
+def _calculate_bucket_size(
+    from_time: datetime, target_points: int = 500
+) -> int:
+    """Calculate time bucket size in seconds to achieve target data points.
+
+    Returns bucket size that will aggregate readings into ~target_points.
+    Minimum bucket is 1 second (no aggregation for short ranges).
+    """
+    total_seconds = int((datetime.now(UTC) - from_time).total_seconds())
+    bucket = max(1, total_seconds // target_points)
+    return bucket
+
+
 async def get_initial_dht_data(from_time: datetime) -> list[DHTReading]:
-    """Return all DHT22 sensor data from a given time."""
+    """Return DHT22 sensor data from a given time, downsampled for charts."""
+    bucket = _calculate_bucket_size(from_time)
     async with get_db() as db:
-        rows = await db.fetchall(_DHT_CHART_SQL, (from_time,))
+        rows = await db.fetchall(
+            _DHT_CHART_SQL, {"from_time": from_time, "bucket": bucket}
+        )
         return cast(list[DHTReading], rows)
 
 
@@ -359,9 +375,12 @@ async def get_stats_dht_data(from_time: datetime) -> DHTStats | None:
 async def get_initial_pico_data(
     from_time: datetime,
 ) -> list[PicoChartDataPoint]:
-    """Return all Pico sensor data from a given time, pivoted by plant_id."""
+    """Return Pico sensor data from a given time, downsampled and pivoted."""
+    bucket = _calculate_bucket_size(from_time)
     async with get_db() as db:
-        rows = await db.fetchall(_PICO_CHART_SQL, (from_time,))
+        rows = await db.fetchall(
+            _PICO_CHART_SQL, {"from_time": from_time, "bucket": bucket}
+        )
 
     # Pivot: group by epoch, with plant_id as columns
     pivoted: dict[int, dict[str, Any]] = {}

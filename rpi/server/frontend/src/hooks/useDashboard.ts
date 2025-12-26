@@ -10,7 +10,7 @@ import type {
 } from '@/types';
 import { useWebSocket } from './useWebSocket';
 
-export function useDashboard(initialHours: number = 3) {
+export function useDashboard(initialHours: number = 24) {
   const [hours, setHours] = useState(initialHours);
   const [data, setData] = useState<DashboardData | null>(null);
   const [thresholds, setThresholds] = useState<Thresholds | null>(null);
@@ -63,21 +63,16 @@ export function useDashboard(initialHours: number = 3) {
     loadData();
   }, [loadData]);
 
-  const handleDhtLatest = useCallback(
-    (reading: DHTReading | null) => {
-      if (!reading || reading.epoch === lastDhtEpoch.current) return;
-      lastDhtEpoch.current = reading.epoch;
-      setData((prev) => {
-        if (!prev) return prev;
-        const cutoff = Date.now() - hours * 60 * 60 * 1000;
-        const filtered = prev.data.filter((r) => r.epoch >= cutoff);
-        // Insert at beginning to maintain DESC order (newest first)
-        const newChartData = [reading, ...filtered];
-        return { ...prev, latest: reading, data: newChartData };
-      });
-    },
-    [hours],
-  );
+  const handleDhtLatest = useCallback((reading: DHTReading | null) => {
+    if (!reading || reading.epoch === lastDhtEpoch.current) return;
+    lastDhtEpoch.current = reading.epoch;
+    setData((prev) => {
+      if (!prev) return prev;
+      // Maintain fixed array size to prevent memory growth
+      const newChartData = [reading, ...prev.data.slice(0, -1)];
+      return { ...prev, latest: reading, data: newChartData };
+    });
+  }, []);
 
   const handlePicoLatest = useCallback((picoReadings: PicoReading[] | null) => {
     if (!picoReadings?.length || picoReadings[0].epoch === lastPicoEpoch.current) return;

@@ -96,7 +96,7 @@ dev-logs:  ## View dev Docker logs
 
 .PHONY: dev-seed
 dev-seed:  ## Seed dev database with dummy data (clears existing)
-	docker compose -f docker-compose.dev.yml exec app python scripts/seed_data.py -clear
+	docker compose -f docker-compose.dev.yml exec app python scripts/seed_data.py -clear -hours 168
 
 .PHONY: dev-reset-db
 dev-reset-db:  ## Reset dev database (removes volume and reseeds)

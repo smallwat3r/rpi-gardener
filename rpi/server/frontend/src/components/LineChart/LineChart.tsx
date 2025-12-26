@@ -259,6 +259,24 @@ export const LineChart = memo(function LineChart({
           fontSize: 11,
           formatter: (value: number) => {
             const date = new Date(value);
+            // Calculate time range from data
+            const firstEpoch = data[data.length - 1]?.epoch ?? value;
+            const lastEpoch = data[0]?.epoch ?? value;
+            const rangeHours = (lastEpoch - firstEpoch) / (1000 * 60 * 60);
+
+            if (rangeHours > 48) {
+              // Long range: show date
+              return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+            }
+            if (rangeHours > 12) {
+              // Medium range: show day + time
+              return (
+                date.toLocaleDateString('en-GB', { weekday: 'short' }) +
+                ' ' +
+                date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+              );
+            }
+            // Short range: show time only
             return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
           },
         },

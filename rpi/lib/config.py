@@ -4,9 +4,17 @@ import operator
 import re
 from collections.abc import Callable
 from enum import IntEnum, StrEnum
-from typing import Annotated, Any
+from functools import cached_property, lru_cache
+from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, model_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    SecretStr,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -60,7 +68,7 @@ class GmailSettings(BaseModel):
     sender: str = ""
     recipients: str = ""
     username: str = ""
-    password: str = ""
+    password: SecretStr = SecretStr("")
     subject: str = "Sensor alert!"
 
 
@@ -95,7 +103,7 @@ class NotificationSettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     enabled: bool = False
-    backends: list[str] = []
+    backends: list[NotificationBackend] = []
     gmail: GmailSettings = GmailSettings()
     slack: SlackSettings = SlackSettings()
     max_retries: int = 3
@@ -170,15 +178,15 @@ class Settings(BaseSettings):
     # Sensors
     mock_sensors: BoolFromStr = False
 
-    # Thresholds
-    max_temperature: int = 25
-    min_temperature: int = 18
-    max_humidity: int = 65
-    min_humidity: int = 40
-    min_moisture: int = 30
-    min_moisture_plant_1: int | None = None
-    min_moisture_plant_2: int | None = None
-    min_moisture_plant_3: int | None = None
+    # Thresholds (DHT22 bounds: temp -40 to 80, humidity 0 to 100)
+    max_temperature: int = Field(default=25, ge=-40, le=80)
+    min_temperature: int = Field(default=18, ge=-40, le=80)
+    max_humidity: int = Field(default=65, ge=0, le=100)
+    min_humidity: int = Field(default=40, ge=0, le=100)
+    min_moisture: int = Field(default=30, ge=0, le=100)
+    min_moisture_plant_1: int | None = Field(default=None, ge=0, le=100)
+    min_moisture_plant_2: int | None = Field(default=None, ge=0, le=100)
+    min_moisture_plant_3: int | None = Field(default=None, ge=0, le=100)
 
     # Notifications
     enable_notification_service: BoolFromStr = False
@@ -186,25 +194,25 @@ class Settings(BaseSettings):
     gmail_sender: str = ""
     gmail_recipients: str = ""
     gmail_username: str = ""
-    gmail_password: str = ""
+    gmail_password: SecretStr = SecretStr("")
     gmail_subject: str = "Sensor alert!"
     slack_webhook_url: str = ""
-    email_max_retries: int = 3
-    email_initial_backoff_sec: int = 2
-    email_timeout_sec: int = 30
+    email_max_retries: int = Field(default=3, ge=0)
+    email_initial_backoff_sec: int = Field(default=2, ge=0)
+    email_timeout_sec: int = Field(default=30, ge=1)
 
     # Pico
     pico_serial_port: str = "/dev/ttyACM0"
-    pico_serial_baud: int = 115200
-    pico_serial_timeout_sec: float = 30.0
+    pico_serial_baud: int = Field(default=115200, gt=0)
+    pico_serial_timeout_sec: float = Field(default=30.0, gt=0)
 
     # Cleanup
-    retention_days: int = 3
+    retention_days: int = Field(default=3, ge=1)
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
-    @property
+    @cached_property
     def thresholds(self) -> ThresholdSettings:
         """Get threshold settings as nested object."""
         plant_thresholds = {}
@@ -225,11 +233,11 @@ class Settings(BaseSettings):
             plant_moisture_thresholds=plant_thresholds,
         )
 
-    @property
+    @cached_property
     def notifications(self) -> NotificationSettings:
         """Get notification settings as nested object."""
         backends = [
-            b.strip()
+            NotificationBackend(b.strip())
             for b in self.notification_backends.split(",")
             if b.strip()
         ]
@@ -249,7 +257,7 @@ class Settings(BaseSettings):
             timeout_sec=self.email_timeout_sec,
         )
 
-    @property
+    @cached_property
     def pico(self) -> PicoSettings:
         """Get Pico settings as nested object."""
         return PicoSettings(
@@ -258,90 +266,69 @@ class Settings(BaseSettings):
             serial_timeout_sec=self.pico_serial_timeout_sec,
         )
 
-    @property
+    @cached_property
     def display(self) -> DisplaySettings:
         """Get display settings."""
         return DisplaySettings()
 
-    @property
+    @cached_property
     def polling(self) -> PollingSettings:
         """Get polling settings."""
         return PollingSettings()
 
-    @property
+    @cached_property
     def cleanup(self) -> CleanupSettings:
         """Get cleanup settings."""
         return CleanupSettings(retention_days=self.retention_days)
 
-    @property
+    @cached_property
     def eventbus(self) -> EventBusSettings:
         """Get event bus settings."""
         return EventBusSettings(redis_url=self.redis_url)
 
     @model_validator(mode="after")
-    def validate_settings(self) -> "Settings":
-        """Validate configuration values."""
+    def validate_settings(self) -> Self:
+        """Validate cross-field configuration constraints."""
         errors: list[str] = []
 
-        if self.thresholds.min_temperature >= self.thresholds.max_temperature:
+        # Cross-field comparisons (individual bounds handled by Field constraints)
+        if self.min_temperature >= self.max_temperature:
             errors.append(
-                f"MIN_TEMPERATURE ({self.thresholds.min_temperature}) must be less than "
-                f"MAX_TEMPERATURE ({self.thresholds.max_temperature})"
+                f"MIN_TEMPERATURE ({self.min_temperature}) must be less than "
+                f"MAX_TEMPERATURE ({self.max_temperature})"
             )
 
-        if self.thresholds.min_humidity >= self.thresholds.max_humidity:
+        if self.min_humidity >= self.max_humidity:
             errors.append(
-                f"MIN_HUMIDITY ({self.thresholds.min_humidity}) must be less than "
-                f"MAX_HUMIDITY ({self.thresholds.max_humidity})"
+                f"MIN_HUMIDITY ({self.min_humidity}) must be less than "
+                f"MAX_HUMIDITY ({self.max_humidity})"
             )
 
-        temp_min, temp_max = DHT22_BOUNDS[MeasureName.TEMPERATURE]
-        if not (
-            temp_min
-            <= self.thresholds.min_temperature
-            < self.thresholds.max_temperature
-            <= temp_max
-        ):
-            errors.append(
-                f"Temperature thresholds must be within sensor bounds [{temp_min}, {temp_max}]"
-            )
+        # Notification credential checks
+        if self.enable_notification_service:
+            backends = [
+                b.strip()
+                for b in self.notification_backends.split(",")
+                if b.strip()
+            ]
 
-        hum_min, hum_max = DHT22_BOUNDS[MeasureName.HUMIDITY]
-        if not (
-            hum_min
-            <= self.thresholds.min_humidity
-            < self.thresholds.max_humidity
-            <= hum_max
-        ):
-            errors.append(
-                f"Humidity thresholds must be within sensor bounds [{hum_min}, {hum_max}]"
-            )
-
-        for plant_id, threshold in self.thresholds.plant_moisture_thresholds.items():
-            if not (self.pico.moisture_min <= threshold <= self.pico.moisture_max):
-                errors.append(
-                    f"Moisture threshold for {plant_id} ({threshold}) must be "
-                    f"between {self.pico.moisture_min} and {self.pico.moisture_max}"
-                )
-
-        if self.notifications.enabled:
-            if NotificationBackend.GMAIL in self.notifications.backends:
+            if NotificationBackend.GMAIL in backends:
                 missing = []
-                if not self.notifications.gmail.sender:
+                if not self.gmail_sender:
                     missing.append("GMAIL_SENDER")
-                if not self.notifications.gmail.recipients:
+                if not self.gmail_recipients:
                     missing.append("GMAIL_RECIPIENTS")
-                if not self.notifications.gmail.username:
+                if not self.gmail_username:
                     missing.append("GMAIL_USERNAME")
-                if not self.notifications.gmail.password:
+                if not self.gmail_password.get_secret_value():
                     missing.append("GMAIL_PASSWORD")
                 if missing:
                     errors.append(
                         f"Gmail enabled but missing: {', '.join(missing)}"
                     )
 
-            if NotificationBackend.SLACK in self.notifications.backends:
-                if not self.notifications.slack.webhook_url:
+            if NotificationBackend.SLACK in backends:
+                if not self.slack_webhook_url:
                     errors.append("Slack enabled but SLACK_WEBHOOK_URL is not set")
 
         if errors:
@@ -352,22 +339,27 @@ class Settings(BaseSettings):
         return self
 
 
-# Lazy-initialized settings (created on first access, not at import)
-_settings: Settings | None = None
+_settings_override: Settings | None = None
+
+
+@lru_cache(maxsize=1)
+def _load_settings() -> Settings:
+    """Load settings from environment (cached)."""
+    return Settings()
 
 
 def get_settings() -> Settings:
-    """Get the global settings instance, initializing on first call."""
-    global _settings
-    if _settings is None:
-        _settings = Settings()
-    return _settings
+    """Get the global settings instance."""
+    if _settings_override is not None:
+        return _settings_override
+    return _load_settings()
 
 
 def set_settings(settings: Settings | None) -> None:
-    """Override the global settings (primarily for testing)."""
-    global _settings
-    _settings = settings
+    """Override global settings (primarily for testing)."""
+    global _settings_override
+    _settings_override = settings
+    _load_settings.cache_clear()
 
 
 def get_moisture_threshold(plant_id: int) -> int:

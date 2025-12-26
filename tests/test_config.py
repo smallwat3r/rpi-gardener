@@ -70,7 +70,7 @@ class TestGmailSettings:
         assert settings.sender == ""
         assert settings.recipients == ""
         assert settings.username == ""
-        assert settings.password == ""
+        assert settings.password.get_secret_value() == ""
         assert settings.subject == "Sensor alert!"
 
 
@@ -256,7 +256,7 @@ class TestValidateConfig:
 
     def test_temperature_outside_sensor_bounds_fails(self):
         with pytest.raises(
-            ValidationError, match="Temperature thresholds must be within"
+            ValidationError, match="greater than or equal to -40"
         ):
             Settings(
                 min_temperature=-50,  # Below DHT22 min of -40
@@ -265,7 +265,7 @@ class TestValidateConfig:
 
     def test_humidity_outside_sensor_bounds_fails(self):
         with pytest.raises(
-            ValidationError, match="Humidity thresholds must be within"
+            ValidationError, match="greater than or equal to 0"
         ):
             Settings(
                 min_humidity=-10,  # Below 0
@@ -274,7 +274,7 @@ class TestValidateConfig:
 
     def test_moisture_threshold_outside_bounds_fails(self):
         with pytest.raises(
-            ValidationError, match="Moisture threshold.*must be between"
+            ValidationError, match="less than or equal to 100"
         ):
             Settings(
                 min_moisture_plant_1=150,  # Above 100

@@ -91,7 +91,7 @@ class GmailNotifier(AbstractNotifier):
             context = ssl.create_default_context()
             with SMTP("smtp.gmail.com", 587, timeout=timeout) as server:
                 server.starttls(context=context)
-                server.login(gmail.username, gmail.password)
+                server.login(gmail.username, gmail.password.get_secret_value())
                 server.send_message(message)
             logger.info("Sent email notification for %s", sensor_name)
 

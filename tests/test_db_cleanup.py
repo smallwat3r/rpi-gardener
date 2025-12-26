@@ -36,11 +36,11 @@ class TestDatabaseCleanup:
         db_file.write_bytes(b"x" * 1000)
 
         mock_db = AsyncMock()
-        mock_db.execute = AsyncMock()
-        mock_db.fetchone = AsyncMock(
+        mock_db.execute = AsyncMock(
             side_effect=[
-                {"count": 10},  # DHT count
-                {"count": 30},  # Pico count
+                10,  # DHT deleted count
+                30,  # Pico deleted count
+                0,  # vacuum
             ]
         )
         mock_db.transaction = mock_transaction
@@ -58,8 +58,7 @@ class TestDatabaseCleanup:
 
             await cleanup()
 
-        # Should count (2 fetchone) + delete from both tables + vacuum (3 execute)
-        assert mock_db.fetchone.call_count == 2
+        # Should delete from both tables + vacuum (3 execute)
         assert mock_db.execute.call_count == 3
 
         # Check cutoff date (3 days retention) in first delete call
@@ -73,21 +72,21 @@ class TestDatabaseCleanup:
         assert "incremental_vacuum" in vacuum_call[0][0]
 
     @pytest.mark.asyncio
-    async def test_cleanup_skips_delete_when_no_records(
+    async def test_cleanup_skips_vacuum_when_no_records(
         self, frozen_time, tmp_path
     ):
-        """Cleanup should skip deletion when no old records exist."""
+        """Cleanup should skip vacuum when no old records exist."""
         db_file = tmp_path / "test.sqlite3"
         db_file.write_bytes(b"x" * 1000)
 
         mock_db = AsyncMock()
-        mock_db.execute = AsyncMock()
-        mock_db.fetchone = AsyncMock(
+        mock_db.execute = AsyncMock(
             side_effect=[
-                {"count": 0},  # DHT count
-                {"count": 0},  # Pico count
+                0,  # DHT deleted count
+                0,  # Pico deleted count
             ]
         )
+        mock_db.transaction = mock_transaction
         mock_db.__aenter__ = AsyncMock(return_value=mock_db)
         mock_db.__aexit__ = AsyncMock(return_value=None)
 
@@ -102,6 +101,5 @@ class TestDatabaseCleanup:
 
             await cleanup()
 
-        # Should only count, no delete or vacuum
-        assert mock_db.fetchone.call_count == 2
-        assert mock_db.execute.call_count == 0
+        # Should delete from both tables, but no vacuum
+        assert mock_db.execute.call_count == 2

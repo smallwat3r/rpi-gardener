@@ -181,17 +181,21 @@ class Database:
         finally:
             self._in_transaction = False
 
-    async def execute(self, sql: str, params: SQLParams = ()) -> None:
+    async def execute(self, sql: str, params: SQLParams = ()) -> int:
         """Execute a SQL statement.
 
         Auto-commits unless inside a transaction() context.
         Supports both positional (tuple) and named (dict) parameters.
+
+        Returns:
+            Number of rows affected by the statement.
         """
         if self._connection is None:
             raise DatabaseNotConnectedError()
-        await self._connection.execute(sql, params)
+        cursor = await self._connection.execute(sql, params)
         if not self._in_transaction:
             await self._connection.commit()
+        return cursor.rowcount
 
     async def executemany(
         self, sql: str, params_seq: Sequence[SQLParams]

@@ -36,28 +36,15 @@ async def cleanup() -> None:
     )
 
     async with Database() as db:
-        # Count records before deletion
-        dht_count = await db.fetchone(
-            "SELECT COUNT(*) as count FROM reading WHERE recording_time < ?",
-            (cutoff,),
-        )
-        pico_count = await db.fetchone(
-            "SELECT COUNT(*) as count FROM pico_reading WHERE recording_time < ?",
-            (cutoff,),
-        )
-
-        dht_deleted = dht_count["count"] if dht_count else 0
-        pico_deleted = pico_count["count"] if pico_count else 0
+        async with db.transaction():
+            dht_deleted = await db.execute(
+                "DELETE FROM reading WHERE recording_time < ?", (cutoff,)
+            )
+            pico_deleted = await db.execute(
+                "DELETE FROM pico_reading WHERE recording_time < ?", (cutoff,)
+            )
 
         if dht_deleted > 0 or pico_deleted > 0:
-            async with db.transaction():
-                await db.execute(
-                    "DELETE FROM reading WHERE recording_time < ?", (cutoff,)
-                )
-                await db.execute(
-                    "DELETE FROM pico_reading WHERE recording_time < ?",
-                    (cutoff,),
-                )
             await db.execute("PRAGMA incremental_vacuum(500)")
             logger.info(
                 "Cleanup complete: deleted %d DHT records and %d Pico records "

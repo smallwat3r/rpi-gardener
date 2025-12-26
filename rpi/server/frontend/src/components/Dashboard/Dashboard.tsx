@@ -37,7 +37,7 @@ export function Dashboard({ onSettingsClick, thresholdVersion }: DashboardProps)
   return (
     <div class={styles.container}>
       <header class={styles.header}>
-        <h1>Dashboard</h1>
+        <HoursFilter value={hours} onChange={setHours} />
         {onSettingsClick && (
           <button
             type="button"
@@ -64,8 +64,6 @@ export function Dashboard({ onSettingsClick, thresholdVersion }: DashboardProps)
           </button>
         )}
       </header>
-
-      <HoursFilter value={hours} onChange={setHours} />
 
       <div class={styles.grid}>
         <DHTCard

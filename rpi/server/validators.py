@@ -1,5 +1,7 @@
 """Shared validation utilities."""
 
+from __future__ import annotations
+
 from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel, Field

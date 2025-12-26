@@ -1,10 +1,10 @@
 # This module uses Micropython and needs to be set-up on the Raspberry Pico
 # board, to read values from capacitive soil moisture sensors (v1.2).
 import gc
+
 import ujson
 import utime
-from machine import ADC, Pin, I2C, WDT
-
+from machine import ADC, I2C, WDT, Pin
 from ssd1306 import SSD1306_I2C
 
 # Configuration

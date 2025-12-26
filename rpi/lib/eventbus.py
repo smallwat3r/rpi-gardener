@@ -134,11 +134,11 @@ class EventPublisher:
 
     def __init__(self) -> None:
         self._redis_url = get_settings().eventbus.redis_url
-        self._client: redis.Redis | None = None
+        self._client: redis.Redis[bytes] | None = None
 
     def connect(self) -> None:
         """Connect to Redis."""
-        self._client = redis.from_url(self._redis_url)  # type: ignore[no-untyped-call]
+        self._client = redis.from_url(self._redis_url)
         logger.info("Event publisher connected to Redis")
 
     def publish(self, topic: Topic, data: Event | Sequence[Event]) -> None:
@@ -183,12 +183,12 @@ class EventSubscriber:
         """
         self._redis_url = get_settings().eventbus.redis_url
         self._topics = topics or list(Topic)
-        self._client: aioredis.Redis | None = None
+        self._client: aioredis.Redis[bytes] | None = None
         self._pubsub: aioredis.client.PubSub | None = None
 
     async def connect(self) -> None:
         """Connect to Redis and subscribe to topics."""
-        self._client = aioredis.from_url(self._redis_url)  # type: ignore[no-untyped-call]
+        self._client = aioredis.from_url(self._redis_url)
         self._pubsub = self._client.pubsub()
         await self._pubsub.subscribe(*self._topics)
         logger.info(

@@ -34,6 +34,8 @@ The pattern is transparent to calling code - just use get_db() and the
 appropriate connection type is selected based on whether init_db() was called.
 """
 
+from __future__ import annotations
+
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from datetime import datetime

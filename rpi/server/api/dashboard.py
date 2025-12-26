@@ -1,5 +1,6 @@
 from sqlite3 import DatabaseError
 
+from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -11,7 +12,7 @@ from rpi.lib.db import (
     get_stats_dht_data,
 )
 from rpi.logging import get_logger
-from rpi.server.validators import InvalidParameter, parse_hours
+from rpi.server.validators import HoursQuery
 
 logger = get_logger("server.api.dashboard")
 
@@ -19,18 +20,18 @@ logger = get_logger("server.api.dashboard")
 async def get_dashboard(request: Request) -> JSONResponse:
     """Return dashboard data as JSON for SPA consumption."""
     try:
-        hours, from_time = parse_hours(request.query_params)
-    except InvalidParameter as err:
+        query = HoursQuery.from_params(dict(request.query_params))
+    except (ValueError, ValidationError) as err:
         return JSONResponse({"error": str(err)}, status_code=400)
 
     try:
         return JSONResponse(
             {
-                "hours": hours,
-                "data": await get_initial_dht_data(from_time),
-                "stats": await get_stats_dht_data(from_time),
+                "hours": query.hours,
+                "data": await get_initial_dht_data(query.from_time),
+                "stats": await get_stats_dht_data(query.from_time),
                 "latest": await get_latest_dht_data(),
-                "pico_data": await get_initial_pico_data(from_time),
+                "pico_data": await get_initial_pico_data(query.from_time),
                 "pico_latest": await get_latest_pico_data(),
             }
         )

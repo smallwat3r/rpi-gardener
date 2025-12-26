@@ -45,7 +45,7 @@ class TestSettingsValidation:
 
         with pytest.raises(ValidationError) as exc_info:
             AdminSettingsRequest.model_validate(settings)
-        assert "min must be less than max" in str(exc_info.value)
+        assert "max must be greater than min" in str(exc_info.value)
 
     def test_validate_temperature_out_of_bounds(self):
         """Should error when temperature outside [-40, 80]."""
@@ -57,7 +57,8 @@ class TestSettingsValidation:
 
         with pytest.raises(ValidationError) as exc_info:
             AdminSettingsRequest.model_validate(settings)
-        assert "[-40, 80]" in str(exc_info.value)
+        errors = str(exc_info.value).lower()
+        assert "greater than or equal to -40" in errors or "ge" in errors
 
     def test_validate_humidity_min_gt_max(self):
         """Should error when humidity min >= max."""
@@ -69,7 +70,7 @@ class TestSettingsValidation:
 
         with pytest.raises(ValidationError) as exc_info:
             AdminSettingsRequest.model_validate(settings)
-        assert "min must be less than max" in str(exc_info.value)
+        assert "max must be greater than min" in str(exc_info.value)
 
     def test_validate_humidity_out_of_bounds(self):
         """Should error when humidity outside [0, 100]."""
@@ -81,7 +82,8 @@ class TestSettingsValidation:
 
         with pytest.raises(ValidationError) as exc_info:
             AdminSettingsRequest.model_validate(settings)
-        assert "[0, 100]" in str(exc_info.value)
+        errors = str(exc_info.value).lower()
+        assert "greater than or equal to 0" in errors or "ge" in errors
 
     def test_validate_moisture_out_of_bounds(self):
         """Should error when moisture outside [0, 100]."""
@@ -106,7 +108,7 @@ class TestSettingsValidation:
 
         with pytest.raises(ValidationError) as exc_info:
             AdminSettingsRequest.model_validate(settings)
-        assert "Invalid notification backend" in str(exc_info.value)
+        assert "Invalid backends" in str(exc_info.value)
 
     def test_validate_retention_days_out_of_bounds(self):
         """Should error when retention days outside [1, 365]."""

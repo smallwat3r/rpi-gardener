@@ -21,7 +21,7 @@ sys.modules["PIL.ImageFont"] = MagicMock()
 
 from rpi.dht.models import Measure, Reading, State
 from rpi.lib.alerts import Namespace, get_alert_tracker, reset_alert_tracker
-from rpi.lib.config import Unit, set_settings
+from rpi.lib.config import Settings, Unit, set_settings
 
 
 @pytest.fixture(autouse=True)
@@ -43,6 +43,37 @@ def reset_settings():
     """Reset global settings after each test to avoid cross-test pollution."""
     yield
     set_settings(None)
+
+
+@pytest.fixture(autouse=True)
+def test_db(tmp_path):
+    """Use a temporary SQLite database for tests.
+
+    This creates a fresh database with the full schema for each test,
+    providing isolation while allowing real database operations.
+    The database file is automatically cleaned up after each test.
+    """
+    import sqlite3
+    from pathlib import Path
+
+    # Create a unique database file for this test
+    db_file = tmp_path / "test.sqlite3"
+
+    # Override settings to use the temp database
+    test_settings = Settings(db_path=str(db_file))
+    set_settings(test_settings)
+
+    # Initialize the schema using sync sqlite3 (simpler for setup)
+    sql_dir = Path(__file__).parent.parent / "rpi" / "lib" / "sql"
+    conn = sqlite3.connect(str(db_file))
+    conn.executescript((sql_dir / "init_reading_table.sql").read_text())
+    conn.executescript((sql_dir / "init_pico_reading_table.sql").read_text())
+    conn.executescript((sql_dir / "init_settings_table.sql").read_text())
+    conn.executescript((sql_dir / "init_admin_table.sql").read_text())
+    conn.close()
+
+    yield
+    # tmp_path cleanup is automatic
 
 
 @pytest.fixture

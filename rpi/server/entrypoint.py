@@ -44,7 +44,9 @@ async def _event_subscriber_task(subscriber: EventSubscriber) -> None:
 async def lifespan(app: Starlette) -> AsyncIterator[None]:
     """Application lifespan manager for startup/shutdown tasks."""
     async with EventSubscriber() as subscriber:
-        subscriber_task = asyncio.create_task(_event_subscriber_task(subscriber))
+        subscriber_task = asyncio.create_task(
+            _event_subscriber_task(subscriber)
+        )
         _logger.info("Event bus subscriber started")
 
         try:

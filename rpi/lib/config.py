@@ -229,7 +229,9 @@ class Settings(BaseSettings):
     def notifications(self) -> NotificationSettings:
         """Get notification settings as nested object."""
         backends = [
-            b.strip() for b in self.notification_backends.split(",") if b.strip()
+            b.strip()
+            for b in self.notification_backends.split(",")
+            if b.strip()
         ]
         return NotificationSettings(
             enabled=self.enable_notification_service,

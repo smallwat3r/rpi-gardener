@@ -48,7 +48,9 @@ class TestPasswordHashing:
 
     def test_verify_password_invalid_hash_format(self):
         """verify_password should return False for invalid hash format."""
-        assert verify_password("password", "invalid_hash_no_separator") is False
+        assert (
+            verify_password("password", "invalid_hash_no_separator") is False
+        )
 
 
 class TestBasicAuthParsing:

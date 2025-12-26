@@ -7,10 +7,8 @@ import pytest
 from rpi.lib.config import (
     ConfigurationError,
     GmailSettings,
-    NotificationBackend,
     NotificationSettings,
     PicoSettings,
-    PlantId,
     Settings,
     SlackSettings,
     ThresholdSettings,
@@ -59,7 +57,9 @@ class TestThresholdSettings:
 
         assert settings.get_moisture_threshold(1) == 25
         assert settings.get_moisture_threshold(2) == 35
-        assert settings.get_moisture_threshold(3) == 30  # Falls back to default
+        assert (
+            settings.get_moisture_threshold(3) == 30
+        )  # Falls back to default
 
 
 class TestGmailSettings:

@@ -77,7 +77,9 @@ def require_auth[R: Response](
 
         stored_hash = await get_admin_password_hash()
         if stored_hash is None:
-            return JSONResponse({"error": "Admin not configured"}, status_code=503)
+            return JSONResponse(
+                {"error": "Admin not configured"}, status_code=503
+            )
 
         password = _parse_basic_auth(request)
         if password is None or not verify_password(password, stored_hash):

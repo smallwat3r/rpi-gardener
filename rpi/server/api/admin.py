@@ -113,7 +113,9 @@ def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
     def get_list(key: str, default: list[str]) -> list[str]:
         val = db_settings.get(key)
         return (
-            [x.strip() for x in val.split(",") if x.strip()] if val else default
+            [x.strip() for x in val.split(",") if x.strip()]
+            if val
+            else default
         )
 
     return {

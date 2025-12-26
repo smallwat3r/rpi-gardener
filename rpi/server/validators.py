@@ -45,15 +45,21 @@ def parse_hours(params: Any, *, strict: bool = True) -> tuple[int, datetime]:
     if raw_hours is None:
         if strict:
             raise InvalidParameter("Parameter needs to be an integer")
-        return DEFAULT_HOURS, datetime.now(UTC) - timedelta(hours=DEFAULT_HOURS)
+        return DEFAULT_HOURS, datetime.now(UTC) - timedelta(
+            hours=DEFAULT_HOURS
+        )
 
     # Try to parse as integer
     try:
         hours_int = int(raw_hours)
     except (ValueError, TypeError):
         if strict:
-            raise InvalidParameter("Parameter needs to be an integer") from None
-        return DEFAULT_HOURS, datetime.now(UTC) - timedelta(hours=DEFAULT_HOURS)
+            raise InvalidParameter(
+                "Parameter needs to be an integer"
+            ) from None
+        return DEFAULT_HOURS, datetime.now(UTC) - timedelta(
+            hours=DEFAULT_HOURS
+        )
 
     # Validate with Pydantic
     try:

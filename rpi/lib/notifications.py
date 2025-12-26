@@ -11,7 +11,7 @@ import urllib.request
 from abc import ABC, abstractmethod
 from email.message import EmailMessage
 from smtplib import SMTP
-from typing import override
+from typing import Any, override
 
 from rpi.lib.alerts import AlertEvent
 from rpi.lib.config import (
@@ -119,8 +119,11 @@ class SlackNotifier(AbstractNotifier):
     """Slack webhook notification backend."""
 
     def _build_payload(
-        self, title: str, fields: list[dict], time_str: str
-    ) -> dict:
+        self,
+        title: str,
+        fields: list[dict[str, str]],
+        time_str: str,
+    ) -> dict[str, Any]:
         """Build a Slack message payload."""
         return {
             "text": title,
@@ -139,7 +142,9 @@ class SlackNotifier(AbstractNotifier):
             ],
         }
 
-    async def _send_slack(self, payload: dict, sensor_name: str | int) -> None:
+    async def _send_slack(
+        self, payload: dict[str, Any], sensor_name: str | int
+    ) -> None:
         """Send a Slack message with retry logic."""
         data = json.dumps(payload).encode("utf-8")
         cfg = get_settings().notifications
@@ -238,12 +243,13 @@ def get_notifier() -> AbstractNotifier:
     if not cfg.enabled:
         return NoOpNotifier()
 
-    notifiers = []
-    for backend in cfg.backends:
-        if backend in _BACKEND_MAP:
+    notifiers: list[AbstractNotifier] = []
+    for backend_str in cfg.backends:
+        try:
+            backend = NotificationBackend(backend_str)
             notifiers.append(_BACKEND_MAP[backend]())
-        else:
-            logger.warning("Unknown notification backend: %s", backend)
+        except (ValueError, KeyError):
+            logger.warning("Unknown notification backend: %s", backend_str)
 
     if not notifiers:
         return NoOpNotifier()

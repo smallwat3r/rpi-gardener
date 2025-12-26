@@ -184,7 +184,7 @@ class TestAuditReading:
 
         assert reading.temperature.state == State.OK
         audit_reading(reading)
-        assert reading.temperature.state == State.IN_ALERT
+        assert reading.temperature.state == State.IN_ALERT  # type: ignore[comparison-overlap]
 
     def test_alert_tracker_uses_dht_namespace(
         self, dht_audit_events, frozen_time

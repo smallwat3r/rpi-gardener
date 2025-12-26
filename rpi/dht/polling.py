@@ -147,7 +147,7 @@ def _create_sensor() -> DHTSensor:
     from adafruit_dht import DHT22
     from board import D17
 
-    return DHT22(D17)
+    return DHT22(D17)  # type: ignore[no-any-return]
 
 
 def _create_display() -> DisplayProtocol:

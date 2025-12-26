@@ -6,7 +6,7 @@ the web server/notification service (subscribers) for real-time updates.
 
 import json
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -114,10 +114,10 @@ class EventPublisher:
 
     def connect(self) -> None:
         """Connect to Redis."""
-        self._client = redis.from_url(self._redis_url)
+        self._client = redis.from_url(self._redis_url)  # type: ignore[no-untyped-call]
         logger.info("Event publisher connected to Redis")
 
-    def publish(self, topic: Topic, data: Event | list[Event]) -> None:
+    def publish(self, topic: Topic, data: Event | Sequence[Event]) -> None:
         """Publish a message to the event bus.
 
         Args:
@@ -127,10 +127,11 @@ class EventPublisher:
         if self._client is None:
             return
 
-        if isinstance(data, list):
-            payload = [event.to_dict() for event in data]
-        else:
+        payload: list[dict[str, Any]] | dict[str, Any]
+        if isinstance(data, Event):
             payload = data.to_dict()
+        else:
+            payload = [event.to_dict() for event in data]
 
         message = json.dumps(payload)
         self._client.publish(topic, message)
@@ -163,7 +164,7 @@ class EventSubscriber:
 
     async def connect(self) -> None:
         """Connect to Redis and subscribe to topics."""
-        self._client = aioredis.from_url(self._redis_url)
+        self._client = aioredis.from_url(self._redis_url)  # type: ignore[no-untyped-call]
         self._pubsub = self._client.pubsub()
         await self._pubsub.subscribe(*self._topics)
         logger.info(

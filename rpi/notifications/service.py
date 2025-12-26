@@ -7,6 +7,7 @@ via configured backends (Gmail, Slack, etc.).
 import asyncio
 import signal
 from datetime import datetime
+from typing import Any
 
 from rpi.lib.alerts import AlertEvent, Namespace
 from rpi.lib.eventbus import EventSubscriber, Topic
@@ -16,7 +17,7 @@ from rpi.logging import configure, get_logger
 logger = get_logger("notifications.service")
 
 
-def _parse_alert_event(data: dict) -> AlertEvent:
+def _parse_alert_event(data: dict[str, Any]) -> AlertEvent:
     """Parse alert event data from the event bus."""
     return AlertEvent(
         namespace=Namespace(data["namespace"]),

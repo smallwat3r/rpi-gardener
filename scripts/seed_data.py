@@ -19,7 +19,9 @@ def _random_walk(
     return max(min_val, min(max_val, new_val))
 
 
-def generate_dht_data(num_records: int, interval: timedelta) -> list[tuple]:
+def generate_dht_data(
+    num_records: int, interval: timedelta
+) -> list[tuple[float, float, datetime]]:
     """Generate realistic DHT sensor readings using random walk."""
     now = datetime.now(UTC)
     data = []
@@ -42,10 +44,12 @@ def generate_dht_data(num_records: int, interval: timedelta) -> list[tuple]:
     return data
 
 
-def generate_pico_data(num_records: int, interval: timedelta) -> list[tuple]:
+def generate_pico_data(
+    num_records: int, interval: timedelta
+) -> list[tuple[int, float, datetime]]:
     """Generate realistic Pico moisture readings using random walk."""
     now = datetime.now(UTC)
-    data = []
+    data: list[tuple[int, float, datetime]] = []
     plant_ids = list(PlantId)
 
     moisture = {plant_id: random.uniform(40.0, 70.0) for plant_id in plant_ids}
@@ -57,7 +61,7 @@ def generate_pico_data(num_records: int, interval: timedelta) -> list[tuple]:
                 moisture[plant_id], drift=0.5, min_val=10.0, max_val=90.0
             )
             data.append(
-                (plant_id, round(moisture[plant_id], 1), recording_time)
+                (int(plant_id), round(moisture[plant_id], 1), recording_time)
             )
 
     return data

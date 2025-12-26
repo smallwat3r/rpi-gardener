@@ -37,7 +37,7 @@ class TestMoistureReadingValidation:
 
     def test_non_string_plant_id_raises(self, frozen_time):
         with pytest.raises(ValidationError, match="must be a string"):
-            MoistureReading.from_raw(123, 50.0, frozen_time)
+            MoistureReading.from_raw(123, 50.0, frozen_time)  # type: ignore[arg-type]
 
     def test_valid_moisture_values(self, frozen_time):
         assert (
@@ -68,7 +68,7 @@ class TestMoistureReadingValidation:
 
     def test_non_number_moisture_raises(self, frozen_time):
         with pytest.raises(ValidationError, match="must be a number"):
-            MoistureReading.from_raw("plant-1", "50", frozen_time)
+            MoistureReading.from_raw("plant-1", "50", frozen_time)  # type: ignore[arg-type]
 
 
 class TestPicoPollingServicePoll:

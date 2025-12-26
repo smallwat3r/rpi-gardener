@@ -17,8 +17,8 @@ from rpi.server.validators import (
 class MockParams:
     """Mock object simulating request.query_params."""
 
-    def __init__(self, data: dict | None = None):
-        self._data = data or {}
+    def __init__(self, data: dict[str, object] | None = None):
+        self._data: dict[str, object] = data or {}
 
     def get(self, key: str, default=None):
         return self._data.get(key, default)

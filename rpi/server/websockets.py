@@ -122,7 +122,7 @@ async def _maintain_connection(
     heartbeats. Real-time updates arrive via broadcast from the event bus.
     """
     client_id = await connection_manager.connect(websocket, endpoint)
-    heartbeat_task: asyncio.Task | None = None
+    heartbeat_task: asyncio.Task[None] | None = None
 
     try:
         # Send initial data if available

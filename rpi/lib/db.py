@@ -12,14 +12,13 @@ Two connection patterns are supported:
   concurrent request handling.
 """
 
-from collections import defaultdict
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
-type SQLParams = tuple | dict[str, Any]
+type SQLParams = tuple[Any, ...] | dict[str, Any]
 
 import aiosqlite
 
@@ -87,9 +86,12 @@ class PicoChartDataPoint(TypedDict, total=False):
     epoch: int
 
 
-def _dict_factory(cursor: aiosqlite.Cursor, row: tuple) -> dict[str, Any]:
+def _dict_factory(
+    cursor: aiosqlite.Cursor, row: tuple[Any, ...]
+) -> dict[str, Any]:
     """Convert a row to a dictionary using column names."""
-    return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
+    desc: tuple[Any, ...] = cursor.description or ()
+    return {col[0]: row[idx] for idx, col in enumerate(desc)}
 
 
 class Database:
@@ -107,7 +109,7 @@ class Database:
                 self._db_path,
                 timeout=get_settings().db_timeout_sec,
             )
-            self._connection.row_factory = _dict_factory
+            self._connection.row_factory = _dict_factory  # type: ignore[assignment]
 
     async def close(self) -> None:
         """Close the database connection."""
@@ -119,7 +121,12 @@ class Database:
         await self.connect()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> None:
         await self.close()
 
     @asynccontextmanager
@@ -159,7 +166,9 @@ class Database:
         if not self._in_transaction:
             await self._connection.commit()
 
-    async def executemany(self, sql: str, params_seq: list[SQLParams]) -> None:
+    async def executemany(
+        self, sql: str, params_seq: Sequence[SQLParams]
+    ) -> None:
         """Execute a SQL statement with multiple parameter sets.
 
         Auto-commits unless inside a transaction() context.
@@ -184,7 +193,8 @@ class Database:
         if self._connection is None:
             raise RuntimeError("Database not connected")
         async with self._connection.execute(sql, params) as cursor:
-            return await cursor.fetchone()
+            row = await cursor.fetchone()
+            return cast(dict[str, Any] | None, row)
 
     async def fetchall(
         self, sql: str, params: SQLParams = ()
@@ -193,7 +203,8 @@ class Database:
         if self._connection is None:
             raise RuntimeError("Database not connected")
         async with self._connection.execute(sql, params) as cursor:
-            return await cursor.fetchall()
+            rows = await cursor.fetchall()
+            return cast(list[dict[str, Any]], rows)
 
 
 @asynccontextmanager
@@ -235,11 +246,13 @@ async def init_db() -> None:
             "Opened persistent database connection: %s", get_settings().db_path
         )
 
-    await _db._connection.execute("PRAGMA journal_mode=WAL")
-    await _db._connection.execute("PRAGMA auto_vacuum=INCREMENTAL")
-    await _db._connection.execute(_INIT_READING_SQL)
+    conn = _db._connection
+    assert conn is not None
+    await conn.execute("PRAGMA journal_mode=WAL")
+    await conn.execute("PRAGMA auto_vacuum=INCREMENTAL")
+    await conn.execute(_INIT_READING_SQL)
     await _db.executescript(_IDX_READING_SQL)
-    await _db._connection.execute(_INIT_PICO_SQL)
+    await conn.execute(_INIT_PICO_SQL)
     await _db.executescript(_IDX_PICO_SQL)
 
 
@@ -258,19 +271,22 @@ async def close_db() -> None:
 async def get_initial_dht_data(from_time: datetime) -> list[DHTReading]:
     """Return all DHT22 sensor data from a given time."""
     async with get_db() as db:
-        return await db.fetchall(_DHT_CHART_SQL, (from_time,))
+        rows = await db.fetchall(_DHT_CHART_SQL, (from_time,))
+        return cast(list[DHTReading], rows)
 
 
 async def get_latest_dht_data() -> DHTReading | None:
     """Return the latest DHT22 sensor data."""
     async with get_db() as db:
-        return await db.fetchone(_DHT_LATEST_SQL)
+        row = await db.fetchone(_DHT_LATEST_SQL)
+        return cast(DHTReading | None, row)
 
 
 async def get_stats_dht_data(from_time: datetime) -> DHTStats | None:
     """Return statistics for the DHT22 sensor data from a given time."""
     async with get_db() as db:
-        return await db.fetchone(_DHT_STATS_SQL, (from_time,))
+        row = await db.fetchone(_DHT_STATS_SQL, (from_time,))
+        return cast(DHTStats | None, row)
 
 
 async def get_initial_pico_data(
@@ -281,16 +297,18 @@ async def get_initial_pico_data(
         rows = await db.fetchall(_PICO_CHART_SQL, (from_time,))
 
     # Pivot: group by epoch, with plant_id as columns
-    pivoted: dict[int, PicoChartDataPoint] = defaultdict(dict)
+    pivoted: dict[int, dict[str, Any]] = {}
     for row in rows:
-        epoch = row["epoch"]
-        pivoted[epoch]["epoch"] = epoch
-        pivoted[epoch][row["plant_id"]] = row["moisture"]
+        epoch: int = row["epoch"]
+        if epoch not in pivoted:
+            pivoted[epoch] = {"epoch": epoch}
+        pivoted[epoch][str(row["plant_id"])] = row["moisture"]
 
-    return list(pivoted.values())
+    return cast(list[PicoChartDataPoint], list(pivoted.values()))
 
 
 async def get_latest_pico_data() -> list[PicoReading]:
     """Return the latest Pico sensor data for each plant."""
     async with get_db() as db:
-        return await db.fetchall(_PICO_LATEST_SQL)
+        rows = await db.fetchall(_PICO_LATEST_SQL)
+        return cast(list[PicoReading], rows)

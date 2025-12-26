@@ -38,22 +38,12 @@ packages = ["rpi"]
 
 [tool.mypy]
 python_version = "3.14"
+strict = true
 ignore_missing_imports = true
-check_untyped_defs = true
-warn_unused_ignores = true
-disable_error_code = [
-    "arg-type",
-    "return-value",
-    "assignment",
-    "union-attr",
-    "no-any-return",
-    "literal-required",
-    "index",
-]
 
 [[tool.mypy.overrides]]
 module = "tests.*"
-disable_error_code = ["no-untyped-def", "no-untyped-call", "arg-type"]
+disable_error_code = ["no-untyped-def", "no-untyped-call"]
 
 [tool.ruff]
 line-length = 79

@@ -99,5 +99,5 @@ class MockDisplay:
     def clear(self) -> None:
         """No-op."""
 
-    def render_reading(self, reading) -> None:
+    def render_reading(self, reading: object) -> None:
         """No-op."""

@@ -51,7 +51,7 @@ class SerialDataSource:
         data = await self._serial.readline_async()
         if not data:
             return ""
-        return data.decode("utf-8")
+        return str(data.decode("utf-8"))
 
     def close(self) -> None:
         """Close the serial connection."""

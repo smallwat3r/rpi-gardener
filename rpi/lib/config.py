@@ -89,7 +89,7 @@ class ThresholdSettings:
     def from_env(cls) -> ThresholdSettings:
         min_moisture = int(environ.get("MIN_MOISTURE", 30))
         plant_thresholds = {
-            plant_id: int(
+            int(plant_id): int(
                 environ.get(
                     f"MIN_MOISTURE_PLANT_{plant_id.value}", min_moisture
                 )

@@ -118,7 +118,11 @@ def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
 
     def get_list(key: str, default: list[str]) -> list[str]:
         val = db_settings.get(key)
-        return [x.strip() for x in val.split(",") if x.strip()] if val else default
+        return (
+            [x.strip() for x in val.split(",") if x.strip()]
+            if val
+            else default
+        )
 
     return {
         "thresholds": {
@@ -131,8 +135,12 @@ def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
                 ),
             },
             "humidity": {
-                "min": get_int("threshold.humidity.min", s.thresholds.min_humidity),
-                "max": get_int("threshold.humidity.max", s.thresholds.max_humidity),
+                "min": get_int(
+                    "threshold.humidity.min", s.thresholds.min_humidity
+                ),
+                "max": get_int(
+                    "threshold.humidity.max", s.thresholds.max_humidity
+                ),
             },
             "moisture": {
                 "default": get_int(
@@ -150,8 +158,12 @@ def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
             },
         },
         "notifications": {
-            "enabled": get_bool("notification.enabled", s.notifications.enabled),
-            "backends": get_list("notification.backends", s.notifications.backends),
+            "enabled": get_bool(
+                "notification.enabled", s.notifications.enabled
+            ),
+            "backends": get_list(
+                "notification.backends", s.notifications.backends
+            ),
         },
         "cleanup": {
             "retentionDays": get_int(
@@ -181,7 +193,9 @@ def _request_to_db_settings(data: AdminSettingsRequest) -> dict[str, str]:
 
     # Notifications
     if data.notifications.enabled is not None:
-        result["notification.enabled"] = "1" if data.notifications.enabled else "0"
+        result["notification.enabled"] = (
+            "1" if data.notifications.enabled else "0"
+        )
     if data.notifications.backends is not None:
         result["notification.backends"] = ",".join(data.notifications.backends)
 
@@ -210,8 +224,10 @@ async def update_admin_settings(request: Request) -> JSONResponse:
     try:
         data = AdminSettingsRequest.model_validate(raw_data)
     except ValidationError as e:
-        errors = [f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}"
-                  for err in e.errors()]
+        errors = [
+            f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}"
+            for err in e.errors()
+        ]
         return JSONResponse({"errors": errors}, status_code=400)
 
     db_settings = _request_to_db_settings(data)

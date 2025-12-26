@@ -3,9 +3,9 @@
 from unittest.mock import patch
 
 import pytest
+from pydantic import ValidationError
 
 from rpi.lib.config import (
-    ConfigurationError,
     GmailSettings,
     NotificationSettings,
     PicoSettings,
@@ -15,7 +15,6 @@ from rpi.lib.config import (
     get_settings,
     parse_pico_plant_id,
     set_settings,
-    validate_config,
 )
 
 
@@ -164,6 +163,11 @@ class TestSettings:
             "ENABLE_NOTIFICATION_SERVICE": "1",
             "NOTIFICATION_BACKENDS": "gmail,slack",
             "EMAIL_MAX_RETRIES": "5",
+            "GMAIL_SENDER": "test@example.com",
+            "GMAIL_RECIPIENTS": "recv@example.com",
+            "GMAIL_USERNAME": "testuser",
+            "GMAIL_PASSWORD": "testpass",
+            "SLACK_WEBHOOK_URL": "https://hooks.slack.com/test",
         },
         clear=True,
     )
@@ -221,127 +225,97 @@ class TestGetSetSettings:
 
 
 class TestValidateConfig:
-    """Tests for configuration validation."""
+    """Tests for configuration validation (via model_validator)."""
 
     def test_valid_config_passes(self):
-        settings = Settings(
+        # Should not raise - validation happens at construction
+        Settings(
             min_temperature=10,
             max_temperature=30,
             min_humidity=30,
             max_humidity=70,
         )
-        set_settings(settings)
-
-        validate_config()  # Should not raise
 
     def test_min_temp_greater_than_max_fails(self):
-        settings = Settings(
-            min_temperature=30,
-            max_temperature=20,
-        )
-        set_settings(settings)
-
         with pytest.raises(
-            ConfigurationError, match="MIN_TEMPERATURE.*must be less than"
+            ValidationError, match="MIN_TEMPERATURE.*must be less than"
         ):
-            validate_config()
+            Settings(
+                min_temperature=30,
+                max_temperature=20,
+            )
 
     def test_min_humidity_greater_than_max_fails(self):
-        settings = Settings(
-            min_humidity=70,
-            max_humidity=50,
-        )
-        set_settings(settings)
-
         with pytest.raises(
-            ConfigurationError, match="MIN_HUMIDITY.*must be less than"
+            ValidationError, match="MIN_HUMIDITY.*must be less than"
         ):
-            validate_config()
+            Settings(
+                min_humidity=70,
+                max_humidity=50,
+            )
 
     def test_temperature_outside_sensor_bounds_fails(self):
-        settings = Settings(
-            min_temperature=-50,  # Below DHT22 min of -40
-            max_temperature=30,
-        )
-        set_settings(settings)
-
         with pytest.raises(
-            ConfigurationError, match="Temperature thresholds must be within"
+            ValidationError, match="Temperature thresholds must be within"
         ):
-            validate_config()
+            Settings(
+                min_temperature=-50,  # Below DHT22 min of -40
+                max_temperature=30,
+            )
 
     def test_humidity_outside_sensor_bounds_fails(self):
-        settings = Settings(
-            min_humidity=-10,  # Below 0
-            max_humidity=70,
-        )
-        set_settings(settings)
-
         with pytest.raises(
-            ConfigurationError, match="Humidity thresholds must be within"
+            ValidationError, match="Humidity thresholds must be within"
         ):
-            validate_config()
+            Settings(
+                min_humidity=-10,  # Below 0
+                max_humidity=70,
+            )
 
     def test_moisture_threshold_outside_bounds_fails(self):
-        settings = Settings(
-            min_moisture_plant_1=150,  # Above 100
-        )
-        set_settings(settings)
-
         with pytest.raises(
-            ConfigurationError, match="Moisture threshold.*must be between"
+            ValidationError, match="Moisture threshold.*must be between"
         ):
-            validate_config()
+            Settings(
+                min_moisture_plant_1=150,  # Above 100
+            )
 
     def test_gmail_enabled_without_credentials_fails(self):
-        settings = Settings(
-            enable_notification_service=True,
-            notification_backends="gmail",
-            gmail_sender="",
-            gmail_recipients="",
-            gmail_username="",
-            gmail_password="",
-        )
-        set_settings(settings)
-
-        with pytest.raises(
-            ConfigurationError, match="Gmail enabled but missing"
-        ):
-            validate_config()
+        with pytest.raises(ValidationError, match="Gmail enabled but missing"):
+            Settings(
+                enable_notification_service=True,
+                notification_backends="gmail",
+                gmail_sender="",
+                gmail_recipients="",
+                gmail_username="",
+                gmail_password="",
+            )
 
     def test_slack_enabled_without_webhook_fails(self):
-        settings = Settings(
-            enable_notification_service=True,
-            notification_backends="slack",
-            slack_webhook_url="",
-        )
-        set_settings(settings)
-
         with pytest.raises(
-            ConfigurationError, match="SLACK_WEBHOOK_URL is not set"
+            ValidationError, match="SLACK_WEBHOOK_URL is not set"
         ):
-            validate_config()
+            Settings(
+                enable_notification_service=True,
+                notification_backends="slack",
+                slack_webhook_url="",
+            )
 
     def test_notifications_disabled_skips_credential_check(self):
-        settings = Settings(
+        # Should not raise since notifications disabled
+        Settings(
             enable_notification_service=False,
             notification_backends="gmail",
         )
-        set_settings(settings)
-
-        validate_config()  # Should not raise since notifications disabled
 
     def test_multiple_errors_collected(self):
-        settings = Settings(
-            min_temperature=30,
-            max_temperature=20,  # Error 1
-            min_humidity=70,
-            max_humidity=50,  # Error 2
-        )
-        set_settings(settings)
-
-        with pytest.raises(ConfigurationError) as exc_info:
-            validate_config()
+        with pytest.raises(ValidationError) as exc_info:
+            Settings(
+                min_temperature=30,
+                max_temperature=20,  # Error 1
+                min_humidity=70,
+                max_humidity=50,  # Error 2
+            )
 
         error_message = str(exc_info.value)
         assert "MIN_TEMPERATURE" in error_message

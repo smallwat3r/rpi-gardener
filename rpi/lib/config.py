@@ -6,7 +6,7 @@ from collections.abc import Callable
 from enum import IntEnum, StrEnum
 from typing import Annotated, Any
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict
+from pydantic import BaseModel, BeforeValidator, ConfigDict, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -278,6 +278,79 @@ class Settings(BaseSettings):
         """Get event bus settings."""
         return EventBusSettings(redis_url=self.redis_url)
 
+    @model_validator(mode="after")
+    def validate_settings(self) -> "Settings":
+        """Validate configuration values."""
+        errors: list[str] = []
+
+        if self.thresholds.min_temperature >= self.thresholds.max_temperature:
+            errors.append(
+                f"MIN_TEMPERATURE ({self.thresholds.min_temperature}) must be less than "
+                f"MAX_TEMPERATURE ({self.thresholds.max_temperature})"
+            )
+
+        if self.thresholds.min_humidity >= self.thresholds.max_humidity:
+            errors.append(
+                f"MIN_HUMIDITY ({self.thresholds.min_humidity}) must be less than "
+                f"MAX_HUMIDITY ({self.thresholds.max_humidity})"
+            )
+
+        temp_min, temp_max = DHT22_BOUNDS[MeasureName.TEMPERATURE]
+        if not (
+            temp_min
+            <= self.thresholds.min_temperature
+            < self.thresholds.max_temperature
+            <= temp_max
+        ):
+            errors.append(
+                f"Temperature thresholds must be within sensor bounds [{temp_min}, {temp_max}]"
+            )
+
+        hum_min, hum_max = DHT22_BOUNDS[MeasureName.HUMIDITY]
+        if not (
+            hum_min
+            <= self.thresholds.min_humidity
+            < self.thresholds.max_humidity
+            <= hum_max
+        ):
+            errors.append(
+                f"Humidity thresholds must be within sensor bounds [{hum_min}, {hum_max}]"
+            )
+
+        for plant_id, threshold in self.thresholds.plant_moisture_thresholds.items():
+            if not (self.pico.moisture_min <= threshold <= self.pico.moisture_max):
+                errors.append(
+                    f"Moisture threshold for {plant_id} ({threshold}) must be "
+                    f"between {self.pico.moisture_min} and {self.pico.moisture_max}"
+                )
+
+        if self.notifications.enabled:
+            if NotificationBackend.GMAIL in self.notifications.backends:
+                missing = []
+                if not self.notifications.gmail.sender:
+                    missing.append("GMAIL_SENDER")
+                if not self.notifications.gmail.recipients:
+                    missing.append("GMAIL_RECIPIENTS")
+                if not self.notifications.gmail.username:
+                    missing.append("GMAIL_USERNAME")
+                if not self.notifications.gmail.password:
+                    missing.append("GMAIL_PASSWORD")
+                if missing:
+                    errors.append(
+                        f"Gmail enabled but missing: {', '.join(missing)}"
+                    )
+
+            if NotificationBackend.SLACK in self.notifications.backends:
+                if not self.notifications.slack.webhook_url:
+                    errors.append("Slack enabled but SLACK_WEBHOOK_URL is not set")
+
+        if errors:
+            raise ValueError(
+                "Configuration validation failed:\n  - " + "\n  - ".join(errors)
+            )
+
+        return self
+
 
 # Lazy-initialized settings (created on first access, not at import)
 _settings: Settings | None = None
@@ -326,10 +399,6 @@ def get_threshold_rules() -> dict[MeasureName, tuple[ThresholdRule, ...]]:
             (operator.gt, s.thresholds.max_humidity),
         ),
     }
-
-
-class ConfigurationError(Exception):
-    """Raised when configuration validation fails."""
 
 
 async def get_effective_thresholds() -> ThresholdSettings:
@@ -421,78 +490,3 @@ async def get_effective_cleanup() -> CleanupSettings:
     )
 
     return CleanupSettings(retention_days=retention_days)
-
-
-def validate_config() -> None:
-    """Validate configuration values at startup.
-
-    Raises ConfigurationError if any validation fails.
-    """
-    errors: list[str] = []
-    s = get_settings()
-
-    if s.thresholds.min_temperature >= s.thresholds.max_temperature:
-        errors.append(
-            f"MIN_TEMPERATURE ({s.thresholds.min_temperature}) must be less than "
-            f"MAX_TEMPERATURE ({s.thresholds.max_temperature})"
-        )
-
-    if s.thresholds.min_humidity >= s.thresholds.max_humidity:
-        errors.append(
-            f"MIN_HUMIDITY ({s.thresholds.min_humidity}) must be less than "
-            f"MAX_HUMIDITY ({s.thresholds.max_humidity})"
-        )
-
-    temp_min, temp_max = DHT22_BOUNDS[MeasureName.TEMPERATURE]
-    if not (
-        temp_min
-        <= s.thresholds.min_temperature
-        < s.thresholds.max_temperature
-        <= temp_max
-    ):
-        errors.append(
-            f"Temperature thresholds must be within sensor bounds [{temp_min}, {temp_max}]"
-        )
-
-    hum_min, hum_max = DHT22_BOUNDS[MeasureName.HUMIDITY]
-    if not (
-        hum_min
-        <= s.thresholds.min_humidity
-        < s.thresholds.max_humidity
-        <= hum_max
-    ):
-        errors.append(
-            f"Humidity thresholds must be within sensor bounds [{hum_min}, {hum_max}]"
-        )
-
-    for plant_id, threshold in s.thresholds.plant_moisture_thresholds.items():
-        if not (s.pico.moisture_min <= threshold <= s.pico.moisture_max):
-            errors.append(
-                f"Moisture threshold for {plant_id} ({threshold}) must be "
-                f"between {s.pico.moisture_min} and {s.pico.moisture_max}"
-            )
-
-    if s.notifications.enabled:
-        if NotificationBackend.GMAIL in s.notifications.backends:
-            missing = []
-            if not s.notifications.gmail.sender:
-                missing.append("GMAIL_SENDER")
-            if not s.notifications.gmail.recipients:
-                missing.append("GMAIL_RECIPIENTS")
-            if not s.notifications.gmail.username:
-                missing.append("GMAIL_USERNAME")
-            if not s.notifications.gmail.password:
-                missing.append("GMAIL_PASSWORD")
-            if missing:
-                errors.append(
-                    f"Gmail enabled but missing: {', '.join(missing)}"
-                )
-
-        if NotificationBackend.SLACK in s.notifications.backends:
-            if not s.notifications.slack.webhook_url:
-                errors.append("Slack enabled but SLACK_WEBHOOK_URL is not set")
-
-    if errors:
-        raise ConfigurationError(
-            "Configuration validation failed:\n  - " + "\n  - ".join(errors)
-        )

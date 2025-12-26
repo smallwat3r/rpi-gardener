@@ -7,7 +7,7 @@ if [ -d /app/data ] && id appuser >/dev/null 2>&1; then
 fi
 
 echo "Validating configuration..."
-python -c "from rpi.lib.config import validate_config; validate_config()"
+python -c "from rpi.lib.config import get_settings; get_settings()"
 
 echo "Initializing database..."
 python -c "

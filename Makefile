@@ -98,6 +98,15 @@ dev-logs:  ## View dev Docker logs
 dev-seed:  ## Seed dev database with dummy data (clears existing)
 	docker compose -f docker-compose.dev.yml exec app python scripts/seed_data.py -clear
 
+.PHONY: dev-reset-db
+dev-reset-db:  ## Reset dev database (removes volume and reseeds)
+	docker compose -f docker-compose.dev.yml down
+	docker volume rm -f rpi-gardener-dev-db
+	docker compose -f docker-compose.dev.yml up -d
+	@echo "Waiting for services to start..."
+	@sleep 3
+	docker compose -f docker-compose.dev.yml exec app python scripts/seed_data.py -clear
+
 .PHONY: down
 down:  ## Stop Docker services
 	docker compose down

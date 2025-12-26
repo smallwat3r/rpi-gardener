@@ -26,7 +26,7 @@ const HUMIDITY_SERIES: SeriesConfig[] = [
 const TEMP_Y_AXES = [{ position: 'left' as const, min: 15, max: 35 }];
 const HUMIDITY_Y_AXES = [{ position: 'left' as const, min: 30, max: 80 }];
 
-const ALERT_COLOR = '#ef4444';
+const ALERT_COLOR = 'rgba(239, 68, 68, 0.6)';
 
 type AlertStatus = 'ok' | 'too_low' | 'too_high';
 
@@ -190,7 +190,7 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
           thresholds={tempThresholds}
           colorAxis={false}
           showArea={false}
-          height={400}
+          height={350}
         />
       </Modal>
 
@@ -202,7 +202,7 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
           thresholds={humidityThresholds}
           colorAxis={false}
           showArea={false}
-          height={400}
+          height={350}
         />
       </Modal>
     </article>

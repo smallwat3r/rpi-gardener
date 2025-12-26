@@ -23,9 +23,9 @@
   background: var(--color-bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
+  width: 80%;
+  max-width: 1000px;
+  max-height: 80vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -49,6 +49,7 @@
   justify-content: space-between;
   padding: var(--spacing-md);
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .title {
@@ -84,14 +85,24 @@
 .body {
   padding: var(--spacing-lg);
   overflow: auto;
+  flex: 1;
+  min-height: 0;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .content {
+    width: 95%;
     max-height: 85vh;
   }
 
   .body {
     padding: var(--spacing-md);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure chart has minimum width for scrolling */
+  .body > * {
+    min-width: 500px;
   }
 }

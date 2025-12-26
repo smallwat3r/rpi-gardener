@@ -70,7 +70,9 @@ export function useDashboard(initialHours: number = 3) {
       setData((prev) => {
         if (!prev) return prev;
         const cutoff = Date.now() - hours * 60 * 60 * 1000;
-        const newChartData = [...prev.data.filter((r) => r.epoch >= cutoff), reading];
+        const filtered = prev.data.filter((r) => r.epoch >= cutoff);
+        // Insert at beginning to maintain DESC order (newest first)
+        const newChartData = [reading, ...filtered];
         return { ...prev, latest: reading, data: newChartData };
       });
     },

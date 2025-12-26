@@ -166,7 +166,7 @@ export const LineChart = memo(function LineChart({
                 position: t.type === 'max' ? 'insideStartTop' : 'insideStartBottom',
                 formatter: t.label,
                 color: 'rgba(255, 255, 255, 0.9)',
-                backgroundColor: 'rgba(239, 68, 68, 0.75)',
+                backgroundColor: 'rgba(239, 68, 68, 0.5)',
               },
             })),
           },
@@ -215,9 +215,7 @@ export const LineChart = memo(function LineChart({
     });
 
     const option: EChartsOption = {
-      animation: true,
-      animationDuration: 300,
-      animationEasing: 'cubicOut',
+      animation: false,
       grid: {
         left: 45,
         right: yAxes && yAxes.length > 1 ? 45 : 15,
@@ -270,7 +268,7 @@ export const LineChart = memo(function LineChart({
       series: seriesData,
     };
 
-    chart.setOption(option, { notMerge: false, lazyUpdate: true });
+    chart.setOption(option, { notMerge: true });
   }, [data, series, yAxes, showArea, colorAxis, thresholds]);
 
   return (

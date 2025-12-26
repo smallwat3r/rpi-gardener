@@ -9,7 +9,7 @@ const PLANT_COLOR = '#a78bfa';
 
 const Y_AXES = [{ position: 'left' as const, min: 0, max: 100 }];
 
-const ALERT_COLOR = '#ef4444';
+const ALERT_COLOR = 'rgba(239, 68, 68, 0.6)';
 
 const formatPlantLabel = (plantId: number | string): string => `Plant ${plantId}`;
 
@@ -128,7 +128,7 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
             thresholds={getPlantThresholds(openPlant.plant_id)}
             colorAxis={false}
             showArea={false}
-            height={400}
+            height={350}
           />
         </Modal>
       )}

@@ -17,7 +17,6 @@ from rpi.lib.alerts import AlertEvent
 from rpi.lib.config import (
     MeasureName,
     NotificationBackend,
-    NotificationSettings,
     PlantId,
     get_effective_notifications,
     get_settings,

@@ -56,9 +56,8 @@ async def _check_pico_sensor() -> tuple[bool, str | None]:
 async def _check_redis() -> tuple[bool, str]:
     """Check if Redis is accessible."""
     try:
-        client = redis.from_url(get_settings().redis_url)
-        await client.ping()
-        await client.aclose()
+        async with redis.from_url(get_settings().redis_url) as client:
+            await client.ping()
         return True, "ok"
     except (redis.RedisError, OSError) as e:
         logger.error("Redis health check failed: %s", e)

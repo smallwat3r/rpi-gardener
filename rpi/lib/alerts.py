@@ -251,9 +251,7 @@ class AlertTracker:
                 self._states.clear()
             elif sensor_name is None:
                 # Reset all sensors in this namespace
-                keys_to_remove = [
-                    k for k in self._states if k[0] == namespace
-                ]
+                keys_to_remove = [k for k in self._states if k[0] == namespace]
                 for key in keys_to_remove:
                     del self._states[key]
             elif threshold_type is None:

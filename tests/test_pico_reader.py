@@ -170,7 +170,7 @@ class TestPicoPollingServiceAudit:
         return PicoPollingService(mock_source)
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_moisture_threshold", return_value=30)
+    @patch("rpi.pico.reader.get_moisture_threshold_async", return_value=30)
     async def test_no_alert_when_above_threshold(
         self, mock_threshold, service, pico_audit_events, frozen_time
     ):
@@ -187,7 +187,7 @@ class TestPicoPollingServiceAudit:
         )
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_moisture_threshold", return_value=30)
+    @patch("rpi.pico.reader.get_moisture_threshold_async", return_value=30)
     async def test_alert_when_below_threshold(
         self, mock_threshold, service, pico_audit_events, frozen_time
     ):
@@ -209,7 +209,7 @@ class TestPicoPollingServiceAudit:
         )
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_moisture_threshold", return_value=30)
+    @patch("rpi.pico.reader.get_moisture_threshold_async", return_value=30)
     async def test_no_duplicate_alerts(
         self, mock_threshold, service, pico_audit_events, frozen_time
     ):
@@ -226,7 +226,7 @@ class TestPicoPollingServiceAudit:
         assert len(pico_audit_events) == 1
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_moisture_threshold", return_value=30)
+    @patch("rpi.pico.reader.get_moisture_threshold_async", return_value=30)
     async def test_independent_plant_states(
         self, mock_threshold, service, pico_audit_events, frozen_time
     ):
@@ -256,7 +256,7 @@ class TestPicoPollingServiceAudit:
         )
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_moisture_threshold", return_value=30)
+    @patch("rpi.pico.reader.get_moisture_threshold_async", return_value=30)
     async def test_hysteresis_prevents_moisture_flapping(
         self, mock_threshold, service, pico_audit_events, frozen_time
     ):

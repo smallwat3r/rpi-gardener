@@ -4,6 +4,7 @@ Reads JSON lines from the Pico's USB serial output and persists
 moisture readings to the database.
 """
 
+import asyncio
 import json
 from datetime import UTC, datetime
 from typing import Protocol, override
@@ -13,7 +14,7 @@ from rpi.lib.config import (
     HYSTERESIS_MOISTURE,
     ThresholdType,
     Unit,
-    get_moisture_threshold,
+    get_moisture_threshold_async,
     get_settings,
 )
 from rpi.lib.db import close_db, get_db, init_db
@@ -23,6 +24,10 @@ from rpi.logging import configure, get_logger
 from rpi.pico.models import MoistureReading, ValidationError
 
 logger = get_logger("pico.reader")
+
+# Timeout for serial read operations (in addition to serial port timeout)
+# Prevents indefinite blocking if serial port becomes unresponsive
+_READ_TIMEOUT_SEC = 60.0
 
 
 class PicoDataSource(Protocol):
@@ -86,7 +91,16 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
     @override
     async def poll(self) -> list[MoistureReading] | None:
         """Read and parse a JSON line from the Pico serial port."""
-        line = await self._source.readline()
+        try:
+            line = await asyncio.wait_for(
+                self._source.readline(),
+                timeout=_READ_TIMEOUT_SEC,
+            )
+        except TimeoutError:
+            self._logger.warning(
+                "Serial read timed out after %ds", _READ_TIMEOUT_SEC
+            )
+            return None
         if not line:
             self._logger.debug("Read timeout, no data received")
             return None
@@ -131,7 +145,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         tracker = get_alert_tracker()
 
         for reading in readings:
-            threshold = get_moisture_threshold(reading.plant_id)
+            threshold = await get_moisture_threshold_async(reading.plant_id)
             tracker.check(
                 namespace=Namespace.PICO,
                 sensor_name=reading.plant_id,

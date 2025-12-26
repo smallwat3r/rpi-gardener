@@ -7,7 +7,7 @@ The service is responsible for:
 
 from rpi.dht.models import Measure, Reading, State
 from rpi.lib.alerts import Namespace, get_alert_tracker, publish_alert
-from rpi.lib.config import get_threshold_rules
+from rpi.lib.config import get_threshold_rules_async
 from rpi.logging import get_logger
 
 logger = get_logger("dht.audit")
@@ -19,11 +19,16 @@ def init() -> None:
     tracker.register_callback(Namespace.DHT, publish_alert)
 
 
-def audit_reading(reading: Reading) -> None:
-    """Audit reading values against thresholds and publish alert events."""
-    tracker = get_alert_tracker()
+async def audit_reading(reading: Reading) -> None:
+    """Audit reading values against thresholds and publish alert events.
 
-    for name, rules in get_threshold_rules().items():
+    Fetches current thresholds from DB to support runtime configuration
+    changes made via the admin API.
+    """
+    tracker = get_alert_tracker()
+    threshold_rules = await get_threshold_rules_async()
+
+    for name, rules in threshold_rules.items():
         measure: Measure = getattr(reading, name)
 
         # Check all threshold rules for this measure

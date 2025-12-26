@@ -423,8 +423,22 @@ def set_settings(settings: Settings | None) -> None:
 
 
 def get_moisture_threshold(plant_id: int) -> int:
-    """Get moisture threshold for a plant, falling back to default."""
+    """Get moisture threshold for a plant, falling back to default.
+
+    Note: This uses cached settings. For runtime-updated thresholds,
+    use get_moisture_threshold_async() instead.
+    """
     return get_settings().thresholds.get_moisture_threshold(plant_id)
+
+
+async def get_moisture_threshold_async(plant_id: int) -> int:
+    """Get moisture threshold for a plant with DB overrides applied.
+
+    This checks the database for runtime setting changes made via
+    the admin API, falling back to environment variable defaults.
+    """
+    thresholds = await get_effective_thresholds()
+    return thresholds.get_moisture_threshold(plant_id)
 
 
 def parse_pico_plant_id(raw_id: str) -> int | None:
@@ -442,6 +456,9 @@ type ThresholdRule = tuple[
 
 def get_threshold_rules() -> dict[MeasureName, tuple[ThresholdRule, ...]]:
     """Get threshold rules based on current settings.
+
+    Note: This uses cached settings. For runtime-updated thresholds,
+    use get_threshold_rules_async() instead.
 
     Returns a dict mapping measure name to a tuple of (threshold_type, value, hysteresis).
     """
@@ -468,6 +485,45 @@ def get_threshold_rules() -> dict[MeasureName, tuple[ThresholdRule, ...]]:
             (
                 ThresholdType.MAX,
                 s.thresholds.max_humidity,
+                HYSTERESIS_HUMIDITY,
+            ),
+        ),
+    }
+
+
+async def get_threshold_rules_async() -> dict[
+    MeasureName, tuple[ThresholdRule, ...]
+]:
+    """Get threshold rules with DB overrides applied.
+
+    This checks the database for runtime setting changes made via
+    the admin API, falling back to environment variable defaults.
+
+    Returns a dict mapping measure name to a tuple of (threshold_type, value, hysteresis).
+    """
+    thresholds = await get_effective_thresholds()
+    return {
+        MeasureName.TEMPERATURE: (
+            (
+                ThresholdType.MIN,
+                thresholds.min_temperature,
+                HYSTERESIS_TEMPERATURE,
+            ),
+            (
+                ThresholdType.MAX,
+                thresholds.max_temperature,
+                HYSTERESIS_TEMPERATURE,
+            ),
+        ),
+        MeasureName.HUMIDITY: (
+            (
+                ThresholdType.MIN,
+                thresholds.min_humidity,
+                HYSTERESIS_HUMIDITY,
+            ),
+            (
+                ThresholdType.MAX,
+                thresholds.max_humidity,
                 HYSTERESIS_HUMIDITY,
             ),
         ),

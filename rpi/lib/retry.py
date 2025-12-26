@@ -12,6 +12,7 @@ async def with_retry(
     logger: Logger,
     max_retries: int = 3,
     initial_backoff_sec: float = 2.0,
+    max_backoff_sec: float = 60.0,
     retryable_exceptions: tuple[type[Exception], ...] = (OSError,),
     run_in_thread: bool = False,
 ) -> bool:
@@ -23,6 +24,7 @@ async def with_retry(
         logger: Logger instance to use.
         max_retries: Maximum number of attempts.
         initial_backoff_sec: Initial backoff delay in seconds (doubles each retry).
+        max_backoff_sec: Maximum backoff delay in seconds (caps exponential growth).
         retryable_exceptions: Exception types that trigger a retry.
         run_in_thread: If True, run sync fn in a thread pool.
 
@@ -42,9 +44,9 @@ async def with_retry(
             return True
         except retryable_exceptions as e:
             last_error = e
-            backoff = initial_backoff_sec * (2**attempt)
+            backoff = min(initial_backoff_sec * (2**attempt), max_backoff_sec)
             logger.warning(
-                "%s attempt %d/%d failed: %s. Retrying in %ds...",
+                "%s attempt %d/%d failed: %s. Retrying in %.1fs...",
                 name,
                 attempt + 1,
                 max_retries,

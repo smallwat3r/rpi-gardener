@@ -20,7 +20,7 @@ class TestDHTPollingServiceAudit:
 
     @pytest.mark.asyncio
     async def test_valid_reading_passes(self, service, sample_reading):
-        with patch("rpi.dht.polling.audit_reading"):
+        with patch("rpi.dht.polling.audit_reading", new_callable=AsyncMock):
             result = await service.audit(sample_reading)
             assert result is True
 
@@ -71,7 +71,7 @@ class TestDHTPollingServiceAudit:
     @pytest.mark.asyncio
     async def test_boundary_values_valid(self, service, frozen_time):
         """Readings at exact boundaries should be valid."""
-        with patch("rpi.dht.polling.audit_reading"):
+        with patch("rpi.dht.polling.audit_reading", new_callable=AsyncMock):
             # Min temperature boundary
             reading = Reading(
                 temperature=Measure(-40.0, Unit.CELSIUS),

@@ -100,7 +100,7 @@ class DHTPollingService(PollingService[Reading]):
                 return False
 
         # Check thresholds and potentially trigger notifications
-        audit_reading(reading)
+        await audit_reading(reading)
         return True
 
     @override

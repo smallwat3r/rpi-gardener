@@ -17,7 +17,9 @@ from rpi.lib.alerts import AlertEvent
 from rpi.lib.config import (
     MeasureName,
     NotificationBackend,
+    NotificationSettings,
     PlantId,
+    get_effective_notifications,
     get_settings,
 )
 from rpi.lib.retry import with_retry
@@ -237,9 +239,14 @@ _BACKEND_MAP: dict[NotificationBackend, type[AbstractNotifier]] = {
 }
 
 
-def get_notifier() -> AbstractNotifier:
-    """Factory function to get the configured notifier."""
-    cfg = get_settings().notifications
+async def get_notifier() -> AbstractNotifier:
+    """Factory function to get the configured notifier.
+
+    Fetches effective settings from the database, respecting any overrides
+    made via the admin UI. Call this for each notification to pick up
+    the latest settings.
+    """
+    cfg = await get_effective_notifications()
     if not cfg.enabled:
         return NoOpNotifier()
 

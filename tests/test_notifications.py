@@ -416,39 +416,71 @@ class TestNoOpNotifier:
 class TestGetNotifier:
     """Tests for the notifier factory function."""
 
-    def test_returns_gmail_when_configured(self):
-        with patch("rpi.lib.notifications.get_settings") as mock_get_settings:
-            mock_get_settings.return_value.notifications.enabled = True
-            mock_get_settings.return_value.notifications.backends = ["gmail"]
-            notifier = get_notifier()
+    @pytest.mark.asyncio
+    async def test_returns_gmail_when_configured(self):
+        async def mock_effective():
+            mock = MagicMock()
+            mock.enabled = True
+            mock.backends = ["gmail"]
+            return mock
+
+        with patch(
+            "rpi.lib.notifications.get_effective_notifications", mock_effective
+        ):
+            notifier = await get_notifier()
             assert isinstance(notifier, GmailNotifier)
 
-    def test_returns_slack_when_configured(self):
-        with patch("rpi.lib.notifications.get_settings") as mock_get_settings:
-            mock_get_settings.return_value.notifications.enabled = True
-            mock_get_settings.return_value.notifications.backends = ["slack"]
-            notifier = get_notifier()
+    @pytest.mark.asyncio
+    async def test_returns_slack_when_configured(self):
+        async def mock_effective():
+            mock = MagicMock()
+            mock.enabled = True
+            mock.backends = ["slack"]
+            return mock
+
+        with patch(
+            "rpi.lib.notifications.get_effective_notifications", mock_effective
+        ):
+            notifier = await get_notifier()
             assert isinstance(notifier, SlackNotifier)
 
-    def test_returns_composite_when_multiple_backends(self):
-        with patch("rpi.lib.notifications.get_settings") as mock_get_settings:
-            mock_get_settings.return_value.notifications.enabled = True
-            mock_get_settings.return_value.notifications.backends = [
-                "gmail",
-                "slack",
-            ]
-            notifier = get_notifier()
+    @pytest.mark.asyncio
+    async def test_returns_composite_when_multiple_backends(self):
+        async def mock_effective():
+            mock = MagicMock()
+            mock.enabled = True
+            mock.backends = ["gmail", "slack"]
+            return mock
+
+        with patch(
+            "rpi.lib.notifications.get_effective_notifications", mock_effective
+        ):
+            notifier = await get_notifier()
             assert isinstance(notifier, CompositeNotifier)
 
-    def test_returns_noop_when_disabled(self):
-        with patch("rpi.lib.notifications.get_settings") as mock_get_settings:
-            mock_get_settings.return_value.notifications.enabled = False
-            notifier = get_notifier()
+    @pytest.mark.asyncio
+    async def test_returns_noop_when_disabled(self):
+        async def mock_effective():
+            mock = MagicMock()
+            mock.enabled = False
+            return mock
+
+        with patch(
+            "rpi.lib.notifications.get_effective_notifications", mock_effective
+        ):
+            notifier = await get_notifier()
             assert isinstance(notifier, NoOpNotifier)
 
-    def test_returns_noop_for_unknown_backend(self):
-        with patch("rpi.lib.notifications.get_settings") as mock_get_settings:
-            mock_get_settings.return_value.notifications.enabled = True
-            mock_get_settings.return_value.notifications.backends = ["unknown"]
-            notifier = get_notifier()
+    @pytest.mark.asyncio
+    async def test_returns_noop_for_unknown_backend(self):
+        async def mock_effective():
+            mock = MagicMock()
+            mock.enabled = True
+            mock.backends = ["unknown"]
+            return mock
+
+        with patch(
+            "rpi.lib.notifications.get_effective_notifications", mock_effective
+        ):
+            notifier = await get_notifier()
             assert isinstance(notifier, NoOpNotifier)

@@ -35,8 +35,6 @@ def _parse_alert_event(data: dict[str, Any]) -> AlertEvent:
 
 async def run() -> None:
     """Run the notification service."""
-    notifier = get_notifier()
-
     async with EventSubscriber(topics=[Topic.ALERT]) as subscriber:
         logger.info("Notification service started")
         async for _topic, data in subscriber.receive():
@@ -45,6 +43,8 @@ async def run() -> None:
                 label = get_sensor_label(event.sensor_name)
                 event_type = "resolution" if event.is_resolved else "alert"
                 logger.info("Processing %s for %s", event_type, label)
+                # Get notifier for each event to pick up latest settings
+                notifier = await get_notifier()
                 await notifier.send(event)
             except (KeyError, ValueError, TypeError):
                 logger.exception("Failed to parse alert event")

@@ -19,16 +19,17 @@ Two connection patterns are supported, chosen automatically by get_db():
        async with get_db() as db:
            await db.execute(...)  # Uses persistent connection
 
-2. **Connection-per-Request** (web server)
-   - If init_db() was NOT called, get_db() creates a temporary connection
-   - Connection is closed automatically when the context manager exits
-   - Provides isolation for concurrent request handling
-   - Used by: Web server API endpoints, tests
+2. **Connection Pool** (web server)
+   - If init_db() was NOT called, get_db() uses a connection pool
+   - Connections are reused across requests (up to pool_max_size)
+   - Avoids overhead of creating new connections per request
+   - Pool is closed when close_db() is called
+   - Used by: Web server API endpoints
 
    Example:
-       async with get_db() as db:  # Creates new connection
+       async with get_db() as db:  # Gets connection from pool
            await db.execute(...)
-       # Connection closed automatically
+       # Connection returned to pool for reuse
 
 The pattern is transparent to calling code - just use get_db() and the
 appropriate connection type is selected based on whether init_db() was called.
@@ -74,8 +75,12 @@ _PICO_LATEST_SQL = _load_template("pico_latest_recording.sql")
 _INIT_SETTINGS_SQL = _load_template("init_settings_table.sql")
 _INIT_ADMIN_SQL = _load_template("init_admin_table.sql")
 
-# Global persistent database connection
+# Global persistent database connection (for polling services)
 _db: Database | None = None
+
+# Connection pool for web server (avoids creating new connections per request)
+_pool: list[Database] = []
+_pool_max_size = 5
 
 
 class DHTReading(TypedDict):
@@ -244,7 +249,7 @@ async def get_db() -> AsyncIterator[Database]:
 
     This context manager automatically selects the connection pattern:
     - If init_db() was called: reuses the persistent connection
-    - Otherwise: creates a temporary connection (closed on exit)
+    - Otherwise: uses connection pool (reuses connections across requests)
 
     Calling code doesn't need to know which pattern is in use.
 
@@ -256,13 +261,21 @@ async def get_db() -> AsyncIterator[Database]:
         # Persistent connection mode: reuse existing connection
         yield _db
     else:
-        # Per-request mode: create temporary connection
-        db = Database()
-        await db.connect()
+        # Pool mode: reuse connections from pool when available
+        if _pool:
+            db = _pool.pop()
+        else:
+            db = Database()
+            await db.connect()
+
         try:
             yield db
         finally:
-            await db.close()
+            # Return to pool if under max size, otherwise close
+            if len(_pool) < _pool_max_size:
+                _pool.append(db)
+            else:
+                await db.close()
 
 
 async def init_db() -> None:
@@ -324,15 +337,22 @@ async def _init_admin_password() -> None:
 
 
 async def close_db() -> None:
-    """Close the persistent database connection.
+    """Close the persistent database connection and connection pool.
 
     Should be called on application shutdown.
     """
-    global _db
+    global _db, _pool
     if _db is not None:
         await _db.close()
         _logger.info("Closed persistent database connection")
         _db = None
+
+    # Close all pooled connections
+    if _pool:
+        for conn in _pool:
+            await conn.close()
+        _logger.info("Closed %d pooled database connections", len(_pool))
+        _pool = []
 
 
 def _calculate_bucket_size(

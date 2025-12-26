@@ -46,7 +46,7 @@ def reset_settings():
 
 
 @pytest.fixture(autouse=True)
-def test_db(tmp_path):
+async def test_db(tmp_path):
     """Use a temporary SQLite database for tests.
 
     This creates a fresh database with the full schema for each test,
@@ -55,6 +55,8 @@ def test_db(tmp_path):
     """
     import sqlite3
     from pathlib import Path
+
+    from rpi.lib.db import close_db
 
     # Create a unique database file for this test
     db_file = tmp_path / "test.sqlite3"
@@ -73,7 +75,8 @@ def test_db(tmp_path):
     conn.close()
 
     yield
-    # tmp_path cleanup is automatic
+    # Clean up database connection pool to prevent hanging threads
+    await close_db()
 
 
 @pytest.fixture

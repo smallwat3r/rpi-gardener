@@ -137,18 +137,18 @@
 
 .saveButton {
   padding: var(--spacing-xs) var(--spacing-lg);
-  background: var(--color-humidity);
+  background: var(--color-primary);
   border: none;
   border-radius: var(--radius-sm);
-  color: #000;
+  color: #fff;
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: background-color 0.15s;
 }
 
 .saveButton:hover:not(:disabled) {
-  opacity: 0.9;
+  background-color: var(--color-primary-hover);
 }
 
 .saveButton:disabled {

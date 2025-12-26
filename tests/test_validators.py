@@ -43,7 +43,7 @@ class TestHoursQuery:
 
     def test_above_max_raises(self):
         with pytest.raises(ValidationError):
-            HoursQuery(hours=25)
+            HoursQuery(hours=MAX_HOURS + 1)
 
 
 class TestHoursQueryFromParams:

@@ -1,4 +1,3 @@
-import { useState } from 'preact/hooks';
 import styles from './HoursFilter.module.css';
 
 interface HoursFilterProps {
@@ -6,33 +5,28 @@ interface HoursFilterProps {
   onChange: (hours: number) => void;
 }
 
+const TIMEFRAMES = [
+  { hours: 1, label: '1h' },
+  { hours: 3, label: '3h' },
+  { hours: 6, label: '6h' },
+  { hours: 12, label: '12h' },
+  { hours: 24, label: '24h' },
+  { hours: 72, label: '3d' },
+];
+
 export function HoursFilter({ value, onChange }: HoursFilterProps) {
-  const [inputValue, setInputValue] = useState(value.toString());
-
-  const handleSubmit = (e: Event) => {
-    e.preventDefault();
-    const hours = Math.min(24, Math.max(1, parseInt(inputValue, 10) || 3));
-    setInputValue(hours.toString());
-    onChange(hours);
-  };
-
   return (
-    <form class={styles.form} onSubmit={handleSubmit}>
-      <label class={styles.label} htmlFor="hours">
-        Hours ago
-      </label>
-      <input
-        type="number"
-        id="hours"
-        min="1"
-        max="24"
-        class={styles.input}
-        value={inputValue}
-        onInput={(e) => setInputValue((e.target as HTMLInputElement).value)}
-      />
-      <button type="submit" class={styles.button}>
-        Update
-      </button>
-    </form>
+    <div class={styles.container}>
+      {TIMEFRAMES.map(({ hours, label }) => (
+        <button
+          key={hours}
+          type="button"
+          class={`${styles.button} ${value === hours ? styles.active : ''}`}
+          onClick={() => onChange(hours)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
   );
 }

@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from pydantic import BaseModel, Field, field_validator, model_validator
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -9,13 +10,92 @@ from rpi.lib.config import NotificationBackend, get_settings
 from rpi.lib.db import get_all_settings, set_settings_batch
 from rpi.logging import get_logger
 from rpi.server.auth import require_auth
-from rpi.server.validators import (
-    validate_int_range,
-    validate_list_items,
-    validate_min_max_pair,
-)
 
 logger = get_logger("server.api.admin")
+
+
+class MinMax(BaseModel):
+    """Min/max threshold pair."""
+
+    min: int | None = None
+    max: int | None = None
+
+
+class TemperatureThreshold(MinMax):
+    """Temperature threshold with validation."""
+
+    @model_validator(mode="after")
+    def validate_range(self) -> TemperatureThreshold:
+        if self.min is not None and self.max is not None:
+            if self.min >= self.max:
+                raise ValueError("Temperature min must be less than max")
+            if self.min < -40 or self.max > 80:
+                raise ValueError("Temperature must be within [-40, 80]")
+        return self
+
+
+class HumidityThreshold(MinMax):
+    """Humidity threshold with validation."""
+
+    @model_validator(mode="after")
+    def validate_range(self) -> HumidityThreshold:
+        if self.min is not None and self.max is not None:
+            if self.min >= self.max:
+                raise ValueError("Humidity min must be less than max")
+            if self.min < 0 or self.max > 100:
+                raise ValueError("Humidity must be within [0, 100]")
+        return self
+
+
+class MoistureThresholds(BaseModel):
+    """Moisture thresholds for default and per-plant."""
+
+    default: int | None = Field(None, ge=0, le=100)
+    plant_1: int | None = Field(None, alias="1", ge=0, le=100)
+    plant_2: int | None = Field(None, alias="2", ge=0, le=100)
+    plant_3: int | None = Field(None, alias="3", ge=0, le=100)
+
+    model_config = {"populate_by_name": True}
+
+
+class Thresholds(BaseModel):
+    """All threshold settings."""
+
+    temperature: TemperatureThreshold = TemperatureThreshold()
+    humidity: HumidityThreshold = HumidityThreshold()
+    moisture: MoistureThresholds = MoistureThresholds()
+
+
+class Notifications(BaseModel):
+    """Notification settings."""
+
+    enabled: bool | None = None
+    backends: list[str] | None = None
+
+    @field_validator("backends")
+    @classmethod
+    def validate_backends(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        valid = set(NotificationBackend)
+        for backend in v:
+            if backend not in valid:
+                raise ValueError(f"Invalid notification backend: {backend}")
+        return v
+
+
+class Cleanup(BaseModel):
+    """Cleanup settings."""
+
+    retentionDays: int | None = Field(None, ge=1, le=365)
+
+
+class AdminSettingsRequest(BaseModel):
+    """Request model for admin settings update."""
+
+    thresholds: Thresholds = Thresholds()
+    notifications: Notifications = Notifications()
+    cleanup: Cleanup = Cleanup()
 
 
 def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
@@ -33,9 +113,7 @@ def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
     def get_list(key: str, default: list[str]) -> list[str]:
         val = db_settings.get(key)
         return (
-            [x.strip() for x in val.split(",") if x.strip()]
-            if val
-            else default
+            [x.strip() for x in val.split(",") if x.strip()] if val else default
         )
 
     return {
@@ -96,83 +174,58 @@ def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
     }
 
 
-def _validate_settings(data: dict[str, Any]) -> list[str]:
-    """Validate settings data. Returns list of error messages."""
-    thresholds = data.get("thresholds", {})
-    temp = thresholds.get("temperature", {})
-    humidity = thresholds.get("humidity", {})
-    moisture = thresholds.get("moisture", {})
-    notifications = data.get("notifications", {})
-    cleanup = data.get("cleanup", {})
-
-    errors: list[str] = [
-        *validate_min_max_pair(
-            temp.get("min"), temp.get("max"), "Temperature", -40, 80
-        ),
-        *validate_min_max_pair(
-            humidity.get("min"), humidity.get("max"), "Humidity", 0, 100
-        ),
-        *[
-            e
-            for key in ("default", "1", "2", "3")
-            if (e := validate_int_range(moisture.get(key), f"Moisture '{key}'", 0, 100))
-        ],
-        *validate_list_items(
-            notifications.get("backends"), "notification backend", set(NotificationBackend)
-        ),
-        *[
-            e
-            for e in [validate_int_range(cleanup.get("retentionDays"), "Retention days", 1, 365)]
-            if e
-        ],
-    ]
-    return errors
-
-
-def _request_to_db_settings(data: dict[str, Any]) -> dict[str, str]:
-    """Convert structured request data to flat DB settings."""
+def _request_to_db_settings(data: AdminSettingsRequest) -> dict[str, str]:
+    """Convert validated request data to flat DB settings."""
     result: dict[str, str] = {}
 
-    thresholds = data.get("thresholds", {})
-    temp = thresholds.get("temperature", {})
-    humidity = thresholds.get("humidity", {})
-    moisture = thresholds.get("moisture", {})
+    temp = data.thresholds.temperature
+    if temp.min is not None:
+        result["threshold.temperature.min"] = str(temp.min)
+    if temp.max is not None:
+        result["threshold.temperature.max"] = str(temp.max)
 
-    if "min" in temp:
-        result["threshold.temperature.min"] = str(temp["min"])
-    if "max" in temp:
-        result["threshold.temperature.max"] = str(temp["max"])
-    if "min" in humidity:
-        result["threshold.humidity.min"] = str(humidity["min"])
-    if "max" in humidity:
-        result["threshold.humidity.max"] = str(humidity["max"])
-    if "default" in moisture:
-        result["threshold.moisture.default"] = str(moisture["default"])
-    for key in ("1", "2", "3"):
-        if key in moisture:
-            result[f"threshold.moisture.{key}"] = str(moisture[key])
+    humidity = data.thresholds.humidity
+    if humidity.min is not None:
+        result["threshold.humidity.min"] = str(humidity.min)
+    if humidity.max is not None:
+        result["threshold.humidity.max"] = str(humidity.max)
 
-    notifications = data.get("notifications", {})
-    if "enabled" in notifications:
-        result["notification.enabled"] = (
-            "1" if notifications["enabled"] else "0"
-        )
-    if "backends" in notifications:
-        result["notification.backends"] = ",".join(notifications["backends"])
+    moisture = data.thresholds.moisture
+    if moisture.default is not None:
+        result["threshold.moisture.default"] = str(moisture.default)
+    if moisture.plant_1 is not None:
+        result["threshold.moisture.1"] = str(moisture.plant_1)
+    if moisture.plant_2 is not None:
+        result["threshold.moisture.2"] = str(moisture.plant_2)
+    if moisture.plant_3 is not None:
+        result["threshold.moisture.3"] = str(moisture.plant_3)
 
-    cleanup = data.get("cleanup", {})
-    if "retentionDays" in cleanup:
-        result["cleanup.retention_days"] = str(cleanup["retentionDays"])
+    notifications = data.notifications
+    if notifications.enabled is not None:
+        result["notification.enabled"] = "1" if notifications.enabled else "0"
+    if notifications.backends is not None:
+        result["notification.backends"] = ",".join(notifications.backends)
+
+    cleanup = data.cleanup
+    if cleanup.retentionDays is not None:
+        result["cleanup.retention_days"] = str(cleanup.retentionDays)
 
     return result
 
 
+def _format_pydantic_errors(errors: list[dict[str, Any]]) -> list[str]:
+    """Format Pydantic validation errors into readable messages."""
+    messages = []
+    for error in errors:
+        loc = " -> ".join(str(x) for x in error["loc"])
+        msg = error["msg"]
+        messages.append(f"{loc}: {msg}")
+    return messages
+
+
 @require_auth
 async def get_admin_settings(request: Request) -> JSONResponse:
-    """Get all admin-configurable settings.
-
-    GET /api/admin/settings
-    """
+    """Get all admin-configurable settings."""
     db_settings = await get_all_settings()
     response_data = _db_settings_to_response(db_settings)
     return JSONResponse(response_data)
@@ -180,31 +233,19 @@ async def get_admin_settings(request: Request) -> JSONResponse:
 
 @require_auth
 async def update_admin_settings(request: Request) -> JSONResponse:
-    """Update admin settings.
-
-    PUT /api/admin/settings
-    Body: {
-        "thresholds": {
-            "temperature": {"min": 18, "max": 25},
-            "humidity": {"min": 40, "max": 65},
-            "moisture": {"default": 30, "1": 55, "2": 30, "3": 35}
-        },
-        "notifications": {
-            "enabled": true,
-            "backends": ["gmail", "slack"]
-        },
-        "cleanup": {
-            "retentionDays": 3
-        }
-    }
-    """
+    """Update admin settings."""
     try:
-        data = await request.json()
+        raw_data = await request.json()
     except Exception:
         return JSONResponse({"error": "Invalid JSON"}, status_code=400)
 
-    errors = _validate_settings(data)
-    if errors:
+    try:
+        data = AdminSettingsRequest.model_validate(raw_data)
+    except Exception as e:
+        if hasattr(e, "errors"):
+            errors = _format_pydantic_errors(e.errors())
+        else:
+            errors = [str(e)]
         return JSONResponse({"errors": errors}, status_code=400)
 
     db_settings = _request_to_db_settings(data)
@@ -212,7 +253,6 @@ async def update_admin_settings(request: Request) -> JSONResponse:
         await set_settings_batch(db_settings)
         logger.info("Admin settings updated: %s", list(db_settings.keys()))
 
-    # Return current settings after update
     all_settings = await get_all_settings()
     response_data = _db_settings_to_response(all_settings)
     return JSONResponse(response_data)

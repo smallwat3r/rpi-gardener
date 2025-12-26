@@ -1,60 +1,28 @@
 """Shared validation utilities."""
 
-from collections.abc import Collection
 from datetime import UTC, datetime, timedelta
 from typing import Any
+
+from pydantic import BaseModel, Field, ValidationError
 
 MIN_HOURS = 1
 MAX_HOURS = 24
 DEFAULT_HOURS = 3
 
 
+class HoursQuery(BaseModel):
+    """Validated hours query parameter."""
+
+    hours: int = Field(default=DEFAULT_HOURS, ge=MIN_HOURS, le=MAX_HOURS)
+
+    @property
+    def from_time(self) -> datetime:
+        """Get the datetime for hours ago from now."""
+        return datetime.now(UTC) - timedelta(hours=self.hours)
+
+
 class InvalidParameter(Exception):
     """Raised when a query parameter is invalid."""
-
-
-def validate_int_range(
-    val: Any, name: str, min_v: int, max_v: int
-) -> str | None:
-    """Validate an integer is within range. Returns error message or None."""
-    if val is None:
-        return None
-    if not isinstance(val, int):
-        return f"{name} must be an integer"
-    if not (min_v <= val <= max_v):
-        return f"{name} must be within [{min_v}, {max_v}]"
-    return None
-
-
-def validate_min_max_pair(
-    min_val: Any,
-    max_val: Any,
-    name: str,
-    min_bound: int,
-    max_bound: int,
-) -> list[str]:
-    """Validate a min/max pair. Returns list of error messages."""
-    if min_val is None or max_val is None:
-        return []
-    if not isinstance(min_val, int) or not isinstance(max_val, int):
-        return [f"{name} thresholds must be integers"]
-    errors = []
-    if min_val >= max_val:
-        errors.append(f"{name} min must be less than max")
-    if min_val < min_bound or max_val > max_bound:
-        errors.append(f"{name} must be within [{min_bound}, {max_bound}]")
-    return errors
-
-
-def validate_list_items(
-    items: Any, name: str, valid_values: Collection[str]
-) -> list[str]:
-    """Validate list items are from allowed values. Returns error messages."""
-    if items is None:
-        return []
-    if not isinstance(items, list):
-        return [f"{name} must be a list"]
-    return [f"Invalid {name}: {item}" for item in items if item not in valid_values]
 
 
 def parse_hours(params: Any, *, strict: bool = True) -> tuple[int, datetime]:
@@ -71,20 +39,30 @@ def parse_hours(params: Any, *, strict: bool = True) -> tuple[int, datetime]:
     Raises:
         InvalidParameter: If strict=True and parameter is invalid.
     """
+    raw_hours = params.get("hours", DEFAULT_HOURS)
+
+    # Handle None explicitly as invalid
+    if raw_hours is None:
+        if strict:
+            raise InvalidParameter("Parameter needs to be an integer")
+        return DEFAULT_HOURS, datetime.now(UTC) - timedelta(hours=DEFAULT_HOURS)
+
+    # Try to parse as integer
     try:
-        hours = int(params.get("hours", DEFAULT_HOURS))
+        hours_int = int(raw_hours)
     except (ValueError, TypeError):
         if strict:
-            raise InvalidParameter(
-                "Parameter needs to be an integer"
-            ) from None
-        hours = DEFAULT_HOURS
+            raise InvalidParameter("Parameter needs to be an integer") from None
+        return DEFAULT_HOURS, datetime.now(UTC) - timedelta(hours=DEFAULT_HOURS)
 
-    if not (MIN_HOURS <= hours <= MAX_HOURS):
+    # Validate with Pydantic
+    try:
+        query = HoursQuery(hours=hours_int)
+        return query.hours, query.from_time
+    except ValidationError:
         if strict:
             raise InvalidParameter(
                 f"Hours must be between {MIN_HOURS} and {MAX_HOURS}"
-            )
-        hours = max(MIN_HOURS, min(MAX_HOURS, hours))
-
-    return hours, datetime.now(UTC) - timedelta(hours=hours)
+            ) from None
+        clamped = max(MIN_HOURS, min(MAX_HOURS, hours_int))
+        return clamped, datetime.now(UTC) - timedelta(hours=clamped)

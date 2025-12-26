@@ -3,13 +3,11 @@
 import operator
 import re
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
-from os import environ
+from typing import Annotated, Any
 
-from dotenv import load_dotenv
-
-load_dotenv()
+from pydantic import BaseModel, BeforeValidator, ConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class NotificationBackend(StrEnum):
@@ -42,9 +40,22 @@ DHT22_BOUNDS = {
 }
 
 
-@dataclass(frozen=True, slots=True)
-class GmailSettings:
+def _parse_bool(v: Any) -> bool:
+    """Parse boolean from string '1'/'0' or actual bool."""
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v == "1"
+    return bool(v)
+
+
+BoolFromStr = Annotated[bool, BeforeValidator(_parse_bool)]
+
+
+class GmailSettings(BaseModel):
     """Gmail notification settings."""
+
+    model_config = ConfigDict(frozen=True)
 
     sender: str = ""
     recipients: str = ""
@@ -52,96 +63,50 @@ class GmailSettings:
     password: str = ""
     subject: str = "Sensor alert!"
 
-    @classmethod
-    def from_env(cls) -> GmailSettings:
-        return cls(
-            sender=environ.get("GMAIL_SENDER", ""),
-            recipients=environ.get("GMAIL_RECIPIENTS", ""),
-            username=environ.get("GMAIL_USERNAME", ""),
-            password=environ.get("GMAIL_PASSWORD", ""),
-            subject=environ.get("GMAIL_SUBJECT", "Sensor alert!"),
-        )
 
-
-@dataclass(frozen=True, slots=True)
-class SlackSettings:
+class SlackSettings(BaseModel):
     """Slack notification settings."""
+
+    model_config = ConfigDict(frozen=True)
 
     webhook_url: str = ""
 
-    @classmethod
-    def from_env(cls) -> SlackSettings:
-        return cls(webhook_url=environ.get("SLACK_WEBHOOK_URL", ""))
 
-
-@dataclass(frozen=True, slots=True)
-class ThresholdSettings:
+class ThresholdSettings(BaseModel):
     """Sensor threshold settings."""
+
+    model_config = ConfigDict(frozen=True)
 
     max_temperature: int = 25
     min_temperature: int = 18
     max_humidity: int = 65
     min_humidity: int = 40
     min_moisture: int = 30
-    plant_moisture_thresholds: dict[int, int] = field(default_factory=dict)
-
-    @classmethod
-    def from_env(cls) -> ThresholdSettings:
-        min_moisture = int(environ.get("MIN_MOISTURE", 30))
-        plant_thresholds = {
-            int(plant_id): int(
-                environ.get(
-                    f"MIN_MOISTURE_PLANT_{plant_id.value}", min_moisture
-                )
-            )
-            for plant_id in PlantId
-        }
-        return cls(
-            max_temperature=int(environ.get("MAX_TEMPERATURE", 25)),
-            min_temperature=int(environ.get("MIN_TEMPERATURE", 18)),
-            max_humidity=int(environ.get("MAX_HUMIDITY", 65)),
-            min_humidity=int(environ.get("MIN_HUMIDITY", 40)),
-            min_moisture=min_moisture,
-            plant_moisture_thresholds=plant_thresholds,
-        )
+    plant_moisture_thresholds: dict[int, int] = {}
 
     def get_moisture_threshold(self, plant_id: int) -> int:
         """Get moisture threshold for a plant, falling back to default."""
         return self.plant_moisture_thresholds.get(plant_id, self.min_moisture)
 
 
-@dataclass(frozen=True, slots=True)
-class NotificationSettings:
+class NotificationSettings(BaseModel):
     """Notification service settings."""
 
+    model_config = ConfigDict(frozen=True)
+
     enabled: bool = False
-    backends: list[str] = field(default_factory=list)
-    gmail: GmailSettings = field(default_factory=GmailSettings)
-    slack: SlackSettings = field(default_factory=SlackSettings)
+    backends: list[str] = []
+    gmail: GmailSettings = GmailSettings()
+    slack: SlackSettings = SlackSettings()
     max_retries: int = 3
     initial_backoff_sec: int = 2
     timeout_sec: int = 30
 
-    @classmethod
-    def from_env(cls) -> NotificationSettings:
-        backends_str = environ.get("NOTIFICATION_BACKENDS", "gmail")
-        backends = [b.strip() for b in backends_str.split(",") if b.strip()]
-        return cls(
-            enabled=environ.get("ENABLE_NOTIFICATION_SERVICE", "0") == "1",
-            backends=backends,
-            gmail=GmailSettings.from_env(),
-            slack=SlackSettings.from_env(),
-            max_retries=int(environ.get("EMAIL_MAX_RETRIES", 3)),
-            initial_backoff_sec=int(
-                environ.get("EMAIL_INITIAL_BACKOFF_SEC", 2)
-            ),
-            timeout_sec=int(environ.get("EMAIL_TIMEOUT_SEC", 30)),
-        )
 
-
-@dataclass(frozen=True, slots=True)
-class PicoSettings:
+class PicoSettings(BaseModel):
     """Pico serial connection settings."""
+
+    model_config = ConfigDict(frozen=True)
 
     serial_port: str = "/dev/ttyACM0"
     serial_baud: int = 115200
@@ -150,20 +115,11 @@ class PicoSettings:
     moisture_max: float = 100.0
     plant_id_max_length: int = 64
 
-    @classmethod
-    def from_env(cls) -> PicoSettings:
-        return cls(
-            serial_port=environ.get("PICO_SERIAL_PORT", "/dev/ttyACM0"),
-            serial_baud=int(environ.get("PICO_SERIAL_BAUD", "115200")),
-            serial_timeout_sec=float(
-                environ.get("PICO_SERIAL_TIMEOUT_SEC", "30.0")
-            ),
-        )
 
-
-@dataclass(frozen=True, slots=True)
-class DisplaySettings:
+class DisplaySettings(BaseModel):
     """OLED display settings."""
+
+    model_config = ConfigDict(frozen=True)
 
     width: int = 128
     height: int = 64
@@ -174,71 +130,151 @@ class DisplaySettings:
     text_y_humidity: int = 20
 
 
-@dataclass(frozen=True, slots=True)
-class PollingSettings:
+class PollingSettings(BaseModel):
     """Polling service settings."""
+
+    model_config = ConfigDict(frozen=True)
 
     frequency_sec: int = 2
 
 
-@dataclass(frozen=True, slots=True)
-class CleanupSettings:
+class CleanupSettings(BaseModel):
     """Database cleanup settings (used by cron job)."""
+
+    model_config = ConfigDict(frozen=True)
 
     retention_days: int = 3
 
-    @classmethod
-    def from_env(cls) -> CleanupSettings:
-        return cls(
-            retention_days=int(environ.get("RETENTION_DAYS", 3)),
-        )
 
-
-@dataclass(frozen=True, slots=True)
-class EventBusSettings:
+class EventBusSettings(BaseModel):
     """Redis event bus settings."""
+
+    model_config = ConfigDict(frozen=True)
 
     redis_url: str = "redis://localhost:6379/0"
 
-    @classmethod
-    def from_env(cls) -> EventBusSettings:
-        return cls(
-            redis_url=environ.get("REDIS_URL", "redis://localhost:6379/0"),
-        )
 
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
 
-@dataclass(frozen=True, slots=True)
-class Settings:
-    """Application settings container."""
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
+    # Database
     db_path: str = "dht.sqlite3"
     db_timeout_sec: float = 30.0
-    mock_sensors: bool = False
-    thresholds: ThresholdSettings = field(default_factory=ThresholdSettings)
-    notifications: NotificationSettings = field(
-        default_factory=NotificationSettings
-    )
-    pico: PicoSettings = field(default_factory=PicoSettings)
-    display: DisplaySettings = field(default_factory=DisplaySettings)
-    polling: PollingSettings = field(default_factory=PollingSettings)
-    cleanup: CleanupSettings = field(default_factory=CleanupSettings)
-    eventbus: EventBusSettings = field(default_factory=EventBusSettings)
 
-    @classmethod
-    def from_env(cls) -> Settings:
-        """Create settings from environment variables."""
-        return cls(
-            db_path=environ.get("DB_PATH", "dht.sqlite3"),
-            db_timeout_sec=float(environ.get("DB_TIMEOUT_SEC", "30.0")),
-            mock_sensors=environ.get("MOCK_SENSORS", "0") == "1",
-            thresholds=ThresholdSettings.from_env(),
-            notifications=NotificationSettings.from_env(),
-            pico=PicoSettings.from_env(),
-            display=DisplaySettings(),
-            polling=PollingSettings(),
-            cleanup=CleanupSettings.from_env(),
-            eventbus=EventBusSettings.from_env(),
+    # Sensors
+    mock_sensors: BoolFromStr = False
+
+    # Thresholds
+    max_temperature: int = 25
+    min_temperature: int = 18
+    max_humidity: int = 65
+    min_humidity: int = 40
+    min_moisture: int = 30
+    min_moisture_plant_1: int | None = None
+    min_moisture_plant_2: int | None = None
+    min_moisture_plant_3: int | None = None
+
+    # Notifications
+    enable_notification_service: BoolFromStr = False
+    notification_backends: str = "gmail"
+    gmail_sender: str = ""
+    gmail_recipients: str = ""
+    gmail_username: str = ""
+    gmail_password: str = ""
+    gmail_subject: str = "Sensor alert!"
+    slack_webhook_url: str = ""
+    email_max_retries: int = 3
+    email_initial_backoff_sec: int = 2
+    email_timeout_sec: int = 30
+
+    # Pico
+    pico_serial_port: str = "/dev/ttyACM0"
+    pico_serial_baud: int = 115200
+    pico_serial_timeout_sec: float = 30.0
+
+    # Cleanup
+    retention_days: int = 3
+
+    # Redis
+    redis_url: str = "redis://localhost:6379/0"
+
+    @property
+    def thresholds(self) -> ThresholdSettings:
+        """Get threshold settings as nested object."""
+        plant_thresholds = {}
+        for plant_id, val in [
+            (1, self.min_moisture_plant_1),
+            (2, self.min_moisture_plant_2),
+            (3, self.min_moisture_plant_3),
+        ]:
+            plant_thresholds[plant_id] = (
+                val if val is not None else self.min_moisture
+            )
+        return ThresholdSettings(
+            max_temperature=self.max_temperature,
+            min_temperature=self.min_temperature,
+            max_humidity=self.max_humidity,
+            min_humidity=self.min_humidity,
+            min_moisture=self.min_moisture,
+            plant_moisture_thresholds=plant_thresholds,
         )
+
+    @property
+    def notifications(self) -> NotificationSettings:
+        """Get notification settings as nested object."""
+        backends = [
+            b.strip() for b in self.notification_backends.split(",") if b.strip()
+        ]
+        return NotificationSettings(
+            enabled=self.enable_notification_service,
+            backends=backends,
+            gmail=GmailSettings(
+                sender=self.gmail_sender,
+                recipients=self.gmail_recipients,
+                username=self.gmail_username,
+                password=self.gmail_password,
+                subject=self.gmail_subject,
+            ),
+            slack=SlackSettings(webhook_url=self.slack_webhook_url),
+            max_retries=self.email_max_retries,
+            initial_backoff_sec=self.email_initial_backoff_sec,
+            timeout_sec=self.email_timeout_sec,
+        )
+
+    @property
+    def pico(self) -> PicoSettings:
+        """Get Pico settings as nested object."""
+        return PicoSettings(
+            serial_port=self.pico_serial_port,
+            serial_baud=self.pico_serial_baud,
+            serial_timeout_sec=self.pico_serial_timeout_sec,
+        )
+
+    @property
+    def display(self) -> DisplaySettings:
+        """Get display settings."""
+        return DisplaySettings()
+
+    @property
+    def polling(self) -> PollingSettings:
+        """Get polling settings."""
+        return PollingSettings()
+
+    @property
+    def cleanup(self) -> CleanupSettings:
+        """Get cleanup settings."""
+        return CleanupSettings(retention_days=self.retention_days)
+
+    @property
+    def eventbus(self) -> EventBusSettings:
+        """Get event bus settings."""
+        return EventBusSettings(redis_url=self.redis_url)
 
 
 # Lazy-initialized settings (created on first access, not at import)
@@ -246,14 +282,10 @@ _settings: Settings | None = None
 
 
 def get_settings() -> Settings:
-    """Get the global settings instance, initializing on first call.
-
-    This lazy initialization allows tests to set up environment variables
-    before settings are read, and supports settings override via set_settings().
-    """
+    """Get the global settings instance, initializing on first call."""
     global _settings
     if _settings is None:
-        _settings = Settings.from_env()
+        _settings = Settings()
     return _settings
 
 
@@ -299,11 +331,7 @@ class ConfigurationError(Exception):
 
 
 async def get_effective_thresholds() -> ThresholdSettings:
-    """Get threshold settings with DB overrides applied.
-
-    Reads from database first, falls back to environment variables.
-    Use this for runtime threshold checks that should respect admin UI changes.
-    """
+    """Get threshold settings with DB overrides applied."""
     from rpi.lib.db import get_all_settings
 
     db_settings = await get_all_settings()
@@ -317,18 +345,11 @@ async def get_effective_thresholds() -> ThresholdSettings:
         "threshold.moisture.default", env_settings.thresholds.min_moisture
     )
     plant_thresholds = {
-        1: get_int(
-            "threshold.moisture.1",
-            env_settings.thresholds.get_moisture_threshold(1),
-        ),
-        2: get_int(
-            "threshold.moisture.2",
-            env_settings.thresholds.get_moisture_threshold(2),
-        ),
-        3: get_int(
-            "threshold.moisture.3",
-            env_settings.thresholds.get_moisture_threshold(3),
-        ),
+        i: get_int(
+            f"threshold.moisture.{i}",
+            env_settings.thresholds.get_moisture_threshold(i),
+        )
+        for i in (1, 2, 3)
     }
 
     return ThresholdSettings(
@@ -408,7 +429,6 @@ def validate_config() -> None:
     errors: list[str] = []
     s = get_settings()
 
-    # Threshold sanity checks
     if s.thresholds.min_temperature >= s.thresholds.max_temperature:
         errors.append(
             f"MIN_TEMPERATURE ({s.thresholds.min_temperature}) must be less than "
@@ -421,7 +441,6 @@ def validate_config() -> None:
             f"MAX_HUMIDITY ({s.thresholds.max_humidity})"
         )
 
-    # DHT22 bounds validation
     temp_min, temp_max = DHT22_BOUNDS[MeasureName.TEMPERATURE]
     if not (
         temp_min
@@ -444,7 +463,6 @@ def validate_config() -> None:
             f"Humidity thresholds must be within sensor bounds [{hum_min}, {hum_max}]"
         )
 
-    # Moisture thresholds validation
     for plant_id, threshold in s.thresholds.plant_moisture_thresholds.items():
         if not (s.pico.moisture_min <= threshold <= s.pico.moisture_max):
             errors.append(
@@ -452,7 +470,6 @@ def validate_config() -> None:
                 f"between {s.pico.moisture_min} and {s.pico.moisture_max}"
             )
 
-    # Notification config validation
     if s.notifications.enabled:
         if NotificationBackend.GMAIL in s.notifications.backends:
             missing = []

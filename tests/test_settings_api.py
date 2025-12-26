@@ -1,17 +1,20 @@
 """Tests for admin settings API."""
 
+import pytest
+from pydantic import ValidationError
+
 from rpi.server.api.admin import (
+    AdminSettingsRequest,
     _db_settings_to_response,
     _request_to_db_settings,
-    _validate_settings,
 )
 
 
 class TestSettingsValidation:
-    """Tests for settings validation."""
+    """Tests for settings validation via Pydantic."""
 
     def test_validate_valid_settings(self):
-        """Valid settings should return no errors."""
+        """Valid settings should parse without errors."""
         settings = {
             "thresholds": {
                 "temperature": {"min": 18, "max": 25},
@@ -27,8 +30,10 @@ class TestSettingsValidation:
             },
         }
 
-        errors = _validate_settings(settings)
-        assert errors == []
+        # Should not raise
+        data = AdminSettingsRequest.model_validate(settings)
+        assert data.thresholds.temperature.min == 18
+        assert data.thresholds.temperature.max == 25
 
     def test_validate_temperature_min_gt_max(self):
         """Should error when temperature min >= max."""
@@ -38,8 +43,9 @@ class TestSettingsValidation:
             },
         }
 
-        errors = _validate_settings(settings)
-        assert any("min must be less than max" in e for e in errors)
+        with pytest.raises(ValidationError) as exc_info:
+            AdminSettingsRequest.model_validate(settings)
+        assert "min must be less than max" in str(exc_info.value)
 
     def test_validate_temperature_out_of_bounds(self):
         """Should error when temperature outside [-40, 80]."""
@@ -49,8 +55,9 @@ class TestSettingsValidation:
             },
         }
 
-        errors = _validate_settings(settings)
-        assert any("[-40, 80]" in e for e in errors)
+        with pytest.raises(ValidationError) as exc_info:
+            AdminSettingsRequest.model_validate(settings)
+        assert "[-40, 80]" in str(exc_info.value)
 
     def test_validate_humidity_min_gt_max(self):
         """Should error when humidity min >= max."""
@@ -60,8 +67,9 @@ class TestSettingsValidation:
             },
         }
 
-        errors = _validate_settings(settings)
-        assert any("min must be less than max" in e for e in errors)
+        with pytest.raises(ValidationError) as exc_info:
+            AdminSettingsRequest.model_validate(settings)
+        assert "min must be less than max" in str(exc_info.value)
 
     def test_validate_humidity_out_of_bounds(self):
         """Should error when humidity outside [0, 100]."""
@@ -71,8 +79,9 @@ class TestSettingsValidation:
             },
         }
 
-        errors = _validate_settings(settings)
-        assert any("[0, 100]" in e for e in errors)
+        with pytest.raises(ValidationError) as exc_info:
+            AdminSettingsRequest.model_validate(settings)
+        assert "[0, 100]" in str(exc_info.value)
 
     def test_validate_moisture_out_of_bounds(self):
         """Should error when moisture outside [0, 100]."""
@@ -82,8 +91,10 @@ class TestSettingsValidation:
             },
         }
 
-        errors = _validate_settings(settings)
-        assert any("moisture" in e.lower() for e in errors)
+        with pytest.raises(ValidationError) as exc_info:
+            AdminSettingsRequest.model_validate(settings)
+        errors = str(exc_info.value).lower()
+        assert "less than or equal to 100" in errors or "le" in errors
 
     def test_validate_invalid_backend(self):
         """Should error for invalid notification backend."""
@@ -93,8 +104,9 @@ class TestSettingsValidation:
             },
         }
 
-        errors = _validate_settings(settings)
-        assert any("Invalid notification backend" in e for e in errors)
+        with pytest.raises(ValidationError) as exc_info:
+            AdminSettingsRequest.model_validate(settings)
+        assert "Invalid notification backend" in str(exc_info.value)
 
     def test_validate_retention_days_out_of_bounds(self):
         """Should error when retention days outside [1, 365]."""
@@ -104,8 +116,10 @@ class TestSettingsValidation:
             },
         }
 
-        errors = _validate_settings(settings)
-        assert any("within [1, 365]" in e for e in errors)
+        with pytest.raises(ValidationError) as exc_info:
+            AdminSettingsRequest.model_validate(settings)
+        errors = str(exc_info.value).lower()
+        assert "less than or equal to 365" in errors or "le" in errors
 
 
 class TestSettingsConversion:
@@ -113,20 +127,22 @@ class TestSettingsConversion:
 
     def test_request_to_db_settings(self):
         """Should convert structured request to flat DB keys."""
-        request = {
-            "thresholds": {
-                "temperature": {"min": 18, "max": 25},
-                "humidity": {"min": 40, "max": 65},
-                "moisture": {"default": 30, "1": 55},
-            },
-            "notifications": {
-                "enabled": True,
-                "backends": ["gmail", "slack"],
-            },
-            "cleanup": {
-                "retentionDays": 7,
-            },
-        }
+        request = AdminSettingsRequest.model_validate(
+            {
+                "thresholds": {
+                    "temperature": {"min": 18, "max": 25},
+                    "humidity": {"min": 40, "max": 65},
+                    "moisture": {"default": 30, "1": 55},
+                },
+                "notifications": {
+                    "enabled": True,
+                    "backends": ["gmail", "slack"],
+                },
+                "cleanup": {
+                    "retentionDays": 7,
+                },
+            }
+        )
 
         result = _request_to_db_settings(request)
 
@@ -142,11 +158,13 @@ class TestSettingsConversion:
 
     def test_request_to_db_settings_partial(self):
         """Should handle partial settings update."""
-        request = {
-            "thresholds": {
-                "temperature": {"min": 20},
-            },
-        }
+        request = AdminSettingsRequest.model_validate(
+            {
+                "thresholds": {
+                    "temperature": {"min": 20},
+                },
+            }
+        )
 
         result = _request_to_db_settings(request)
 

@@ -162,7 +162,8 @@ def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
                 "notification.enabled", s.notifications.enabled
             ),
             "backends": get_list(
-                "notification.backends", [str(b) for b in s.notifications.backends]
+                "notification.backends",
+                [str(b) for b in s.notifications.backends],
             ),
         },
         "cleanup": {

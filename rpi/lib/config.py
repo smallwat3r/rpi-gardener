@@ -478,7 +478,11 @@ async def get_effective_notifications() -> NotificationSettings:
 
     backends_val = db_settings.get("notification.backends")
     backends: list[NotificationBackend] = (
-        [NotificationBackend(b.strip()) for b in backends_val.split(",") if b.strip()]
+        [
+            NotificationBackend(b.strip())
+            for b in backends_val.split(",")
+            if b.strip()
+        ]
         if backends_val is not None
         else list(env_settings.notifications.backends)
     )

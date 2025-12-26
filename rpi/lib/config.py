@@ -187,6 +187,12 @@ class CleanupSettings:
 
     retention_days: int = 3
 
+    @classmethod
+    def from_env(cls) -> CleanupSettings:
+        return cls(
+            retention_days=int(environ.get("RETENTION_DAYS", 3)),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class EventBusSettings:
@@ -230,7 +236,7 @@ class Settings:
             pico=PicoSettings.from_env(),
             display=DisplaySettings(),
             polling=PollingSettings(),
-            cleanup=CleanupSettings(),
+            cleanup=CleanupSettings.from_env(),
             eventbus=EventBusSettings.from_env(),
         )
 

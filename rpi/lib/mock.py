@@ -4,7 +4,7 @@ Provides mock implementations of sensor interfaces that generate
 realistic data without requiring hardware. Used by polling/reader
 services when MOCK_SENSORS=1 is set.
 
-Uses the same random walk algorithm as scripts/seed_data.py for
+The random_walk function is shared with scripts/seed_data.py for
 consistent data patterns between seeded and live mock data.
 """
 
@@ -13,12 +13,22 @@ import random
 from rpi.lib.config import PlantId
 
 
-def _random_walk(
+def random_walk(
     current: float, drift: float, min_val: float, max_val: float
 ) -> float:
     """Generate next value using random walk with bounds.
 
-    Same algorithm as scripts/seed_data.py for consistent data patterns.
+    Shared algorithm used by both mock sensors and seed_data.py script
+    to ensure consistent data patterns.
+
+    Args:
+        current: Current value to drift from.
+        drift: Standard deviation for gaussian noise.
+        min_val: Lower bound for the result.
+        max_val: Upper bound for the result.
+
+    Returns:
+        New value within [min_val, max_val].
     """
     change = random.gauss(0, drift)
     new_val = current + change
@@ -39,14 +49,14 @@ class MockDHTSensor:
 
     @property
     def temperature(self) -> float:
-        self._temperature = _random_walk(
+        self._temperature = random_walk(
             self._temperature, drift=0.15, min_val=15.0, max_val=30.0
         )
         return round(self._temperature, 1)
 
     @property
     def humidity(self) -> float:
-        self._humidity = _random_walk(
+        self._humidity = random_walk(
             self._humidity, drift=0.3, min_val=30.0, max_val=70.0
         )
         return round(self._humidity, 1)
@@ -71,7 +81,7 @@ class MockPicoDataSource:
 
     def _generate_moisture(self, plant_id: PlantId) -> float:
         """Generate a realistic moisture reading for a plant."""
-        self._moisture[plant_id] = _random_walk(
+        self._moisture[plant_id] = random_walk(
             self._moisture[plant_id], drift=0.5, min_val=10.0, max_val=90.0
         )
         return round(self._moisture[plant_id], 1)

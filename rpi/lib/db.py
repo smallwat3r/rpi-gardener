@@ -3,13 +3,35 @@
 Provides async database operations using aiosqlite for non-blocking
 database access throughout the application.
 
-Two connection patterns are supported:
-- Persistent connection: Call init_db() at startup to open a connection
-  that is reused for all queries. Used by polling services (DHT, Pico)
-  to avoid connection overhead on their 2-second polling loops.
-- Connection-per-request: If init_db() is not called, get_db() creates
-  a temporary connection for each use. Used by the web server for
-  concurrent request handling.
+Connection Patterns
+-------------------
+Two connection patterns are supported, chosen automatically by get_db():
+
+1. **Persistent Connection** (polling services)
+   - Call init_db() once at startup to open a long-lived connection
+   - All subsequent get_db() calls reuse this connection
+   - Avoids connection overhead on frequent polling loops (2-second intervals)
+   - Used by: DHT polling service, Pico reader service
+   - Call close_db() on shutdown to close the connection
+
+   Example:
+       await init_db()  # Once at startup
+       async with get_db() as db:
+           await db.execute(...)  # Uses persistent connection
+
+2. **Connection-per-Request** (web server)
+   - If init_db() was NOT called, get_db() creates a temporary connection
+   - Connection is closed automatically when the context manager exits
+   - Provides isolation for concurrent request handling
+   - Used by: Web server API endpoints, tests
+
+   Example:
+       async with get_db() as db:  # Creates new connection
+           await db.execute(...)
+       # Connection closed automatically
+
+The pattern is transparent to calling code - just use get_db() and the
+appropriate connection type is selected based on whether init_db() was called.
 """
 
 from collections.abc import AsyncIterator, Sequence
@@ -209,20 +231,23 @@ class Database:
 
 @asynccontextmanager
 async def get_db() -> AsyncIterator[Database]:
-    """Get a database connection.
+    """Get a database connection using the appropriate pattern.
 
-    Uses the persistent connection if initialized via init_db(),
-    otherwise creates a temporary connection (useful for tests).
+    This context manager automatically selects the connection pattern:
+    - If init_db() was called: reuses the persistent connection
+    - Otherwise: creates a temporary connection (closed on exit)
+
+    Calling code doesn't need to know which pattern is in use.
 
     Usage:
         async with get_db() as db:
             await db.execute("INSERT INTO ...")
     """
     if _db is not None:
-        # Use persistent connection (no close on exit)
+        # Persistent connection mode: reuse existing connection
         yield _db
     else:
-        # Fallback: create temporary connection (for tests or pre-init usage)
+        # Per-request mode: create temporary connection
         db = Database()
         await db.connect()
         try:
@@ -234,9 +259,16 @@ async def get_db() -> AsyncIterator[Database]:
 async def init_db() -> None:
     """Initialize database with persistent connection and schema.
 
-    Opens a persistent connection that will be reused for all queries.
+    Call this once at startup for services that make frequent database
+    queries (e.g., polling services with 2-second intervals). This opens
+    a persistent connection that will be reused by all get_db() calls,
+    avoiding connection overhead on each query.
+
+    For services that don't call init_db() (e.g., web server), get_db()
+    will create temporary per-request connections instead.
+
     Safe to call multiple times - uses IF NOT EXISTS clauses.
-    Call close_db() on shutdown to close the connection.
+    Call close_db() on shutdown to close the persistent connection.
     """
     global _db
     if _db is None:

@@ -8,15 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 from rpi.lib.config import PlantId
 from rpi.lib.db import close_db, get_db, init_db
-
-
-def _random_walk(
-    current: float, drift: float, min_val: float, max_val: float
-) -> float:
-    """Generate next value using random walk with bounds."""
-    change = random.gauss(0, drift)
-    new_val = current + change
-    return max(min_val, min(max_val, new_val))
+from rpi.lib.mock import random_walk
 
 
 def generate_dht_data(
@@ -31,10 +23,10 @@ def generate_dht_data(
 
     for i in range(num_records):
         recording_time = now - (interval * (num_records - 1 - i))
-        temperature = _random_walk(
+        temperature = random_walk(
             temperature, drift=0.15, min_val=15.0, max_val=30.0
         )
-        humidity = _random_walk(
+        humidity = random_walk(
             humidity, drift=0.3, min_val=30.0, max_val=70.0
         )
         data.append(
@@ -57,7 +49,7 @@ def generate_pico_data(
     for i in range(num_records):
         recording_time = now - (interval * (num_records - 1 - i))
         for plant_id in plant_ids:
-            moisture[plant_id] = _random_walk(
+            moisture[plant_id] = random_walk(
                 moisture[plant_id], drift=0.5, min_val=10.0, max_val=90.0
             )
             data.append(

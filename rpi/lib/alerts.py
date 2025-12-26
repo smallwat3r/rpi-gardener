@@ -5,8 +5,12 @@ across different namespaces (DHT, Pico) and triggers callbacks only on state
 transitions (to prevent notification spam).
 
 Uses hysteresis to prevent flapping when values oscillate around thresholds.
+
+Thread-safe: Uses locks to protect shared state when accessed from multiple
+polling services or async contexts.
 """
 
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -61,10 +65,13 @@ class AlertTracker:
 
     Uses hysteresis to prevent flapping when values oscillate around thresholds.
     Supports multiple namespaces (DHT, Pico) to keep sensor states organized.
+
+    Thread-safe: All state mutations are protected by a lock.
     """
 
     def __init__(self) -> None:
         """Initialize the tracker with empty state."""
+        self._lock = threading.Lock()
         self._states: dict[AlertKey, AlertState] = {}
         self._callbacks: dict[Namespace, AlertCallback] = {}
 
@@ -77,7 +84,8 @@ class AlertTracker:
             namespace: The namespace to register for.
             callback: Function called when a sensor transitions state.
         """
-        self._callbacks[namespace] = callback
+        with self._lock:
+            self._callbacks[namespace] = callback
         logger.debug(
             "Registered alert callback for namespace %s", namespace.value
         )
@@ -122,27 +130,36 @@ class AlertTracker:
             The new alert state for this sensor.
         """
         key = self._make_key(namespace, sensor_name, threshold_type)
-        previous_state = self._states.get(key, AlertState.OK)
 
-        # Determine if threshold is violated
-        if threshold_type == ThresholdType.MIN:
-            is_violated = value < threshold
-            # Recovery requires value to rise above threshold + hysteresis
-            has_recovered = value >= threshold + hysteresis
-        else:  # MAX
-            is_violated = value > threshold
-            # Recovery requires value to drop below threshold - hysteresis
-            has_recovered = value <= threshold - hysteresis
+        # Determine state transition while holding the lock
+        with self._lock:
+            previous_state = self._states.get(key, AlertState.OK)
 
-        # Apply state transition logic with hysteresis
-        if previous_state == AlertState.OK:
-            new_state = AlertState.IN_ALERT if is_violated else AlertState.OK
-        else:  # Currently IN_ALERT
-            # Only clear if recovered past hysteresis band
-            new_state = AlertState.OK if has_recovered else AlertState.IN_ALERT
+            # Determine if threshold is violated
+            if threshold_type == ThresholdType.MIN:
+                is_violated = value < threshold
+                # Recovery requires value to rise above threshold + hysteresis
+                has_recovered = value >= threshold + hysteresis
+            else:  # MAX
+                is_violated = value > threshold
+                # Recovery requires value to drop below threshold - hysteresis
+                has_recovered = value <= threshold - hysteresis
 
-        callback = self._callbacks.get(namespace)
+            # Apply state transition logic with hysteresis
+            if previous_state == AlertState.OK:
+                new_state = (
+                    AlertState.IN_ALERT if is_violated else AlertState.OK
+                )
+            else:  # Currently IN_ALERT
+                # Only clear if recovered past hysteresis band
+                new_state = (
+                    AlertState.OK if has_recovered else AlertState.IN_ALERT
+                )
 
+            self._states[key] = new_state
+            callback = self._callbacks.get(namespace)
+
+        # Call callback outside of lock to prevent deadlocks
         if (
             new_state == AlertState.IN_ALERT
             and previous_state != AlertState.IN_ALERT
@@ -192,7 +209,6 @@ class AlertTracker:
                     )
                 )
 
-        self._states[key] = new_state
         return new_state
 
     def get_state(
@@ -203,17 +219,19 @@ class AlertTracker:
     ) -> AlertState:
         """Get current alert state for a sensor threshold."""
         key = self._make_key(namespace, sensor_name, threshold_type)
-        return self._states.get(key, AlertState.OK)
+        with self._lock:
+            return self._states.get(key, AlertState.OK)
 
     def is_any_alert(
         self, namespace: Namespace, sensor_name: SensorName
     ) -> bool:
         """Check if any threshold for this sensor is in alert state."""
-        return any(
-            state == AlertState.IN_ALERT
-            for key, state in self._states.items()
-            if key[0] == namespace and key[1] == sensor_name
-        )
+        with self._lock:
+            return any(
+                state == AlertState.IN_ALERT
+                for key, state in self._states.items()
+                if key[0] == namespace and key[1] == sensor_name
+            )
 
     def reset(
         self,
@@ -228,46 +246,54 @@ class AlertTracker:
             sensor_name: Specific sensor to reset within the namespace.
             threshold_type: Specific threshold type to reset.
         """
-        if namespace is None:
-            self._states.clear()
-        elif sensor_name is None:
-            # Reset all sensors in this namespace
-            keys_to_remove = [k for k in self._states if k[0] == namespace]
-            for key in keys_to_remove:
-                del self._states[key]
-        elif threshold_type is None:
-            # Reset all thresholds for this sensor
-            keys_to_remove = [
-                k
-                for k in self._states
-                if k[0] == namespace and k[1] == sensor_name
-            ]
-            for key in keys_to_remove:
-                del self._states[key]
-        else:
-            key = self._make_key(namespace, sensor_name, threshold_type)
-            if key in self._states:
-                del self._states[key]
+        with self._lock:
+            if namespace is None:
+                self._states.clear()
+            elif sensor_name is None:
+                # Reset all sensors in this namespace
+                keys_to_remove = [
+                    k for k in self._states if k[0] == namespace
+                ]
+                for key in keys_to_remove:
+                    del self._states[key]
+            elif threshold_type is None:
+                # Reset all thresholds for this sensor
+                keys_to_remove = [
+                    k
+                    for k in self._states
+                    if k[0] == namespace and k[1] == sensor_name
+                ]
+                for key in keys_to_remove:
+                    del self._states[key]
+            else:
+                key = self._make_key(namespace, sensor_name, threshold_type)
+                if key in self._states:
+                    del self._states[key]
 
 
-# Global singleton instance
+# Global singleton instance with lock for thread-safe initialization
 _alert_tracker: AlertTracker | None = None
+_tracker_lock = threading.Lock()
 
 
 def get_alert_tracker() -> AlertTracker:
-    """Get the global AlertTracker singleton."""
+    """Get the global AlertTracker singleton (thread-safe)."""
     global _alert_tracker
     if _alert_tracker is None:
-        _alert_tracker = AlertTracker()
+        with _tracker_lock:
+            # Double-check locking pattern
+            if _alert_tracker is None:
+                _alert_tracker = AlertTracker()
     return _alert_tracker
 
 
 def reset_alert_tracker() -> None:
     """Reset the global AlertTracker (mainly for testing)."""
     global _alert_tracker
-    if _alert_tracker is not None:
-        _alert_tracker.reset()
-    _alert_tracker = None
+    with _tracker_lock:
+        if _alert_tracker is not None:
+            _alert_tracker.reset()
+        _alert_tracker = None
 
 
 def publish_alert(event: AlertEvent) -> None:

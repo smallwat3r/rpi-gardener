@@ -1,4 +1,13 @@
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   # One-time self-signed certificate generation
   certgen:
     image: alpine:latest
@@ -34,10 +43,13 @@ services:
     env_file: .env
     environment:
       - DB_PATH=/app/data/dht.sqlite3
+      - REDIS_URL=redis://redis:6379/0
     restart: unless-stopped
     depends_on:
       certgen:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
 
   nginx:
     image: nginx:alpine

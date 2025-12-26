@@ -149,6 +149,11 @@ class EventPublisher:
             data: Event or list of Events to publish.
         """
         if self._client is None:
+            logger.warning(
+                "Cannot publish to %s: Redis client not connected. "
+                "Call connect() first.",
+                topic,
+            )
             return
 
         payload: list[dict[str, Any]] | dict[str, Any]

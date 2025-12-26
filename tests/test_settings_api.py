@@ -105,7 +105,7 @@ class TestSettingsValidation:
         }
 
         errors = _validate_settings(settings)
-        assert any("between 1 and 365" in e for e in errors)
+        assert any("within [1, 365]" in e for e in errors)
 
 
 class TestSettingsConversion:

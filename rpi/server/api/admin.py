@@ -5,10 +5,15 @@ from typing import Any
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from rpi.lib.config import get_settings
+from rpi.lib.config import NotificationBackend, get_settings
 from rpi.lib.db import get_all_settings, set_settings_batch
 from rpi.logging import get_logger
 from rpi.server.auth import require_auth
+from rpi.server.validators import (
+    validate_int_range,
+    validate_list_items,
+    validate_min_max_pair,
+)
 
 logger = get_logger("server.api.admin")
 
@@ -93,67 +98,34 @@ def _db_settings_to_response(db_settings: dict[str, str]) -> dict[str, Any]:
 
 def _validate_settings(data: dict[str, Any]) -> list[str]:
     """Validate settings data. Returns list of error messages."""
-    errors: list[str] = []
-
     thresholds = data.get("thresholds", {})
     temp = thresholds.get("temperature", {})
     humidity = thresholds.get("humidity", {})
     moisture = thresholds.get("moisture", {})
-
-    # Temperature validation
-    temp_min = temp.get("min")
-    temp_max = temp.get("max")
-    if temp_min is not None and temp_max is not None:
-        if not isinstance(temp_min, int) or not isinstance(temp_max, int):
-            errors.append("Temperature thresholds must be integers")
-        elif temp_min >= temp_max:
-            errors.append("Temperature min must be less than max")
-        elif temp_min < -40 or temp_max > 80:
-            errors.append("Temperature must be within [-40, 80]")
-
-    # Humidity validation
-    hum_min = humidity.get("min")
-    hum_max = humidity.get("max")
-    if hum_min is not None and hum_max is not None:
-        if not isinstance(hum_min, int) or not isinstance(hum_max, int):
-            errors.append("Humidity thresholds must be integers")
-        elif hum_min >= hum_max:
-            errors.append("Humidity min must be less than max")
-        elif hum_min < 0 or hum_max > 100:
-            errors.append("Humidity must be within [0, 100]")
-
-    # Moisture validation
-    for key in ["default", "1", "2", "3"]:
-        val = moisture.get(key)
-        if val is not None:
-            if not isinstance(val, int):
-                errors.append(f"Moisture threshold '{key}' must be an integer")
-            elif val < 0 or val > 100:
-                errors.append(
-                    f"Moisture threshold '{key}' must be within [0, 100]"
-                )
-
-    # Notifications validation
     notifications = data.get("notifications", {})
-    backends = notifications.get("backends")
-    if backends is not None:
-        if not isinstance(backends, list):
-            errors.append("Notification backends must be a list")
-        else:
-            valid_backends = {"gmail", "slack"}
-            for b in backends:
-                if b not in valid_backends:
-                    errors.append(f"Invalid notification backend: {b}")
-
-    # Cleanup validation
     cleanup = data.get("cleanup", {})
-    retention = cleanup.get("retentionDays")
-    if retention is not None:
-        if not isinstance(retention, int):
-            errors.append("Retention days must be an integer")
-        elif retention < 1 or retention > 365:
-            errors.append("Retention days must be between 1 and 365")
 
+    errors: list[str] = [
+        *validate_min_max_pair(
+            temp.get("min"), temp.get("max"), "Temperature", -40, 80
+        ),
+        *validate_min_max_pair(
+            humidity.get("min"), humidity.get("max"), "Humidity", 0, 100
+        ),
+        *[
+            e
+            for key in ("default", "1", "2", "3")
+            if (e := validate_int_range(moisture.get(key), f"Moisture '{key}'", 0, 100))
+        ],
+        *validate_list_items(
+            notifications.get("backends"), "notification backend", set(NotificationBackend)
+        ),
+        *[
+            e
+            for e in [validate_int_range(cleanup.get("retentionDays"), "Retention days", 1, 365)]
+            if e
+        ],
+    ]
     return errors
 
 
@@ -176,7 +148,7 @@ def _request_to_db_settings(data: dict[str, Any]) -> dict[str, str]:
         result["threshold.humidity.max"] = str(humidity["max"])
     if "default" in moisture:
         result["threshold.moisture.default"] = str(moisture["default"])
-    for key in ["1", "2", "3"]:
+    for key in ("1", "2", "3"):
         if key in moisture:
             result[f"threshold.moisture.{key}"] = str(moisture[key])
 

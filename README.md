@@ -97,46 +97,41 @@ See [pico/README.md](./pico/README.md) for Pico installation instructions.
 
 ## Commands
 
+### Production (Raspberry Pi)
+
 ```bash
-make up          # Start services (production)
+make up          # Start all services
 make down        # Stop services
 make logs        # View all logs
-make logs-app    # View app logs only
+make logs-app    # View app container logs
 make restart     # Restart services
 make clean       # Stop and remove volumes
-make pico        # Start Pico serial reader (local dev)
-make mprestart   # Restart Pico (if it loses sync)
-make devdeps     # Install dev dependencies (pytest)
-make test        # Run test suite
+make mprestart   # Restart Pico script (if it loses sync)
 ```
 
-## Local Development
+### Development (local machine)
 
-Run the dashboard locally without RPi hardware using Docker. The dev environment
-automatically uses mock sensors (`MOCK_SENSORS=1`) to generate realistic data
-without requiring physical hardware.
+Run the dashboard locally without RPi hardware. The dev environment uses mock
+sensors (`MOCK_SENSORS=1`) to generate realistic data without physical hardware.
 
 ```bash
-# Copy and configure environment
-cp .env.example .env
-
-# Start dev environment
-make dev
-
-# Seed database with sample data
-make dev-seed
-
-# View logs
-make dev-logs
-
-# Stop dev environment
-make dev-down
-
-# Rebuild after frontend changes
-make dev-rebuild
+cp .env.example .env   # Configure environment
+make dev               # Start dev environment
+make dev-seed          # Seed database with sample data
+make dev-logs          # View logs
+make dev-down          # Stop dev environment
+make dev-rebuild       # Rebuild after frontend changes
 ```
 
 The dev dashboard will be available at `http://localhost:5000/`
+
+### Testing
+
+```bash
+make devdeps     # Install dev dependencies
+make test        # Run test suite
+make lint        # Run linters
+```
 
 ## Pico Communication
 

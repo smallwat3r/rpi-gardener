@@ -285,15 +285,6 @@ def get_alert_tracker() -> AlertTracker:
     return _alert_tracker
 
 
-def reset_alert_tracker() -> None:
-    """Reset the global AlertTracker (mainly for testing)."""
-    global _alert_tracker
-    with _tracker_lock:
-        if _alert_tracker is not None:
-            _alert_tracker.reset()
-        _alert_tracker = None
-
-
 def publish_alert(event: AlertEvent) -> None:
     """Publish an alert event to the event bus."""
     payload = AlertEventPayload(

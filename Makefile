@@ -52,7 +52,7 @@ serve:  ## Start the dev server (with hot reload)
 
 .PHONY: serve-prod
 serve-prod:  ## Start the prod server (Unix socket for Nginx)
-	uv run uvicorn $(RPI).server.entrypoint:create_app --factory --uds /tmp/uvicorn.sock --workers 3
+	uv run uvicorn $(RPI).server.entrypoint:create_app --factory --uds /tmp/uvicorn.sock
 
 .PHONY: polling
 polling:  ## Start the DHT polling service

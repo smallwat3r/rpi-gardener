@@ -19,10 +19,9 @@ sys.modules["PIL.Image"] = MagicMock()
 sys.modules["PIL.ImageDraw"] = MagicMock()
 sys.modules["PIL.ImageFont"] = MagicMock()
 
-import rpi.lib.alerts as alerts
 import rpi.lib.config as config
 from rpi.dht.models import Measure, Reading, State
-from rpi.lib.alerts import Namespace, get_alert_tracker
+from rpi.lib.alerts import AlertTracker, Namespace
 from rpi.lib.config import Settings, Unit
 
 
@@ -32,26 +31,16 @@ def set_settings(settings: Settings | None) -> None:
     config._load_settings.cache_clear()
 
 
-def reset_alert_tracker() -> None:
-    """Reset the global AlertTracker for testing."""
-    with alerts._tracker_lock:
-        if alerts._alert_tracker is not None:
-            alerts._alert_tracker.reset()
-        alerts._alert_tracker = None
-
-
 @pytest.fixture(autouse=True)
 def configure_caplog(caplog):
     """Ensure caplog captures logs from the rpi namespace."""
     caplog.set_level(logging.INFO, logger="rpi")
 
 
-@pytest.fixture(autouse=True)
-def reset_alerts():
-    """Reset the global alert tracker before each test."""
-    reset_alert_tracker()
-    yield
-    reset_alert_tracker()
+@pytest.fixture
+def alert_tracker():
+    """Provide a fresh AlertTracker for each test."""
+    return AlertTracker()
 
 
 @pytest.fixture(autouse=True)
@@ -135,7 +124,7 @@ def mock_display():
 
 
 @pytest.fixture
-def dht_audit_events():
+def dht_audit_events(alert_tracker):
     """Capture DHT audit events published to the event bus.
 
     Use this fixture when testing DHT audit functionality that needs
@@ -151,13 +140,12 @@ def dht_audit_events():
     def capture_event(event: AlertEvent) -> None:
         events.append(event)
 
-    tracker = get_alert_tracker()
-    tracker.register_callback(Namespace.DHT, capture_event)
+    alert_tracker.register_callback(Namespace.DHT, capture_event)
     return events
 
 
 @pytest.fixture
-def pico_audit_events():
+def pico_audit_events(alert_tracker):
     """Capture Pico audit events published to the event bus.
 
     Use this fixture when testing Pico moisture auditing that needs
@@ -173,6 +161,5 @@ def pico_audit_events():
     def capture_event(event: AlertEvent) -> None:
         events.append(event)
 
-    tracker = get_alert_tracker()
-    tracker.register_callback(Namespace.PICO, capture_event)
+    alert_tracker.register_callback(Namespace.PICO, capture_event)
     return events

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
+from rpi.lib.alerts import AlertState, Namespace
 from rpi.lib.config import PlantId, ThresholdSettings, ThresholdType
 from rpi.pico.models import MoistureReading, ValidationError
 
@@ -82,10 +82,18 @@ class TestPicoPollingServicePoll:
         return source
 
     @pytest.fixture
-    def service(self, mock_source):
+    def mock_publisher(self):
+        publisher = MagicMock()
+        publisher.connect = MagicMock()
+        publisher.publish = MagicMock()
+        publisher.close = MagicMock()
+        return publisher
+
+    @pytest.fixture
+    def service(self, mock_source, mock_publisher, alert_tracker):
         from rpi.pico.reader import PicoPollingService
 
-        return PicoPollingService(mock_source)
+        return PicoPollingService(mock_source, mock_publisher, alert_tracker)
 
     @pytest.mark.asyncio
     async def test_empty_line_returns_none(self, service, mock_source):
@@ -164,24 +172,36 @@ class TestPicoPollingServiceAudit:
         return source
 
     @pytest.fixture
-    def service(self, mock_source):
+    def mock_publisher(self):
+        publisher = MagicMock()
+        publisher.connect = MagicMock()
+        publisher.publish = MagicMock()
+        publisher.close = MagicMock()
+        return publisher
+
+    @pytest.fixture
+    def service(self, mock_source, mock_publisher, alert_tracker):
         from rpi.pico.reader import PicoPollingService
 
-        return PicoPollingService(mock_source)
+        return PicoPollingService(mock_source, mock_publisher, alert_tracker)
 
     @pytest.mark.asyncio
     @patch("rpi.pico.reader.get_effective_thresholds")
     async def test_no_alert_when_above_threshold(
-        self, mock_thresholds, service, pico_audit_events, frozen_time
+        self,
+        mock_thresholds,
+        service,
+        pico_audit_events,
+        frozen_time,
+        alert_tracker,
     ):
         mock_thresholds.return_value = ThresholdSettings(min_moisture=30)
         readings = [MoistureReading(PlantId.PLANT_1, 50.0, frozen_time)]
         await service.audit(readings)
 
         assert len(pico_audit_events) == 0
-        tracker = get_alert_tracker()
         assert (
-            tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
             )
             == AlertState.OK
@@ -190,7 +210,12 @@ class TestPicoPollingServiceAudit:
     @pytest.mark.asyncio
     @patch("rpi.pico.reader.get_effective_thresholds")
     async def test_alert_when_below_threshold(
-        self, mock_thresholds, service, pico_audit_events, frozen_time
+        self,
+        mock_thresholds,
+        service,
+        pico_audit_events,
+        frozen_time,
+        alert_tracker,
     ):
         mock_thresholds.return_value = ThresholdSettings(min_moisture=30)
         readings = [MoistureReading(PlantId.PLANT_1, 20.0, frozen_time)]
@@ -202,9 +227,8 @@ class TestPicoPollingServiceAudit:
         assert event.value == 20.0
         assert event.threshold == 30
         assert event.namespace == Namespace.PICO
-        tracker = get_alert_tracker()
         assert (
-            tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
             )
             == AlertState.IN_ALERT
@@ -231,7 +255,12 @@ class TestPicoPollingServiceAudit:
     @pytest.mark.asyncio
     @patch("rpi.pico.reader.get_effective_thresholds")
     async def test_independent_plant_states(
-        self, mock_thresholds, service, pico_audit_events, frozen_time
+        self,
+        mock_thresholds,
+        service,
+        pico_audit_events,
+        frozen_time,
+        alert_tracker,
     ):
         mock_thresholds.return_value = ThresholdSettings(min_moisture=30)
         await service.audit(
@@ -245,15 +274,14 @@ class TestPicoPollingServiceAudit:
         )
 
         assert len(pico_audit_events) == 2
-        tracker = get_alert_tracker()
         assert (
-            tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
             )
             == AlertState.IN_ALERT
         )
         assert (
-            tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_2, ThresholdType.MIN
             )
             == AlertState.IN_ALERT

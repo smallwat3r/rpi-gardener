@@ -14,9 +14,21 @@ class TestDHTPollingServiceAudit:
     """Tests for DHT22 sensor boundary validation during audit."""
 
     @pytest.fixture
-    def service(self, mock_sensor, mock_display):
+    def mock_publisher(self):
+        publisher = MagicMock()
+        publisher.connect = MagicMock()
+        publisher.publish = MagicMock()
+        publisher.close = MagicMock()
+        return publisher
+
+    @pytest.fixture
+    def service(
+        self, mock_sensor, mock_display, mock_publisher, alert_tracker
+    ):
         """Create a DHTPollingService instance for testing."""
-        return DHTPollingService(mock_sensor, mock_display)
+        return DHTPollingService(
+            mock_sensor, mock_display, mock_publisher, alert_tracker
+        )
 
     @pytest.mark.asyncio
     async def test_valid_reading_passes(self, service, sample_reading):
@@ -108,9 +120,21 @@ class TestDHTPollingServicePoll:
     """Tests for polling the DHT22 sensor."""
 
     @pytest.fixture
-    def service(self, mock_sensor, mock_display):
+    def mock_publisher(self):
+        publisher = MagicMock()
+        publisher.connect = MagicMock()
+        publisher.publish = MagicMock()
+        publisher.close = MagicMock()
+        return publisher
+
+    @pytest.fixture
+    def service(
+        self, mock_sensor, mock_display, mock_publisher, alert_tracker
+    ):
         """Create a DHTPollingService instance for testing."""
-        return DHTPollingService(mock_sensor, mock_display)
+        return DHTPollingService(
+            mock_sensor, mock_display, mock_publisher, alert_tracker
+        )
 
     @pytest.mark.asyncio
     @patch("asyncio.to_thread")
@@ -135,9 +159,21 @@ class TestDHTPollingServicePersist:
     """Tests for persisting readings to the database."""
 
     @pytest.fixture
-    def service(self, mock_sensor, mock_display):
+    def mock_publisher(self):
+        publisher = MagicMock()
+        publisher.connect = MagicMock()
+        publisher.publish = MagicMock()
+        publisher.close = MagicMock()
+        return publisher
+
+    @pytest.fixture
+    def service(
+        self, mock_sensor, mock_display, mock_publisher, alert_tracker
+    ):
         """Create a DHTPollingService instance for testing."""
-        return DHTPollingService(mock_sensor, mock_display)
+        return DHTPollingService(
+            mock_sensor, mock_display, mock_publisher, alert_tracker
+        )
 
     @pytest.mark.asyncio
     async def test_persist_inserts_reading(self, service, sample_reading):
@@ -167,9 +203,21 @@ class TestDHTPollingServiceErrorHandling:
     """Tests for error handling in the polling service."""
 
     @pytest.fixture
-    def service(self, mock_sensor, mock_display):
+    def mock_publisher(self):
+        publisher = MagicMock()
+        publisher.connect = MagicMock()
+        publisher.publish = MagicMock()
+        publisher.close = MagicMock()
+        return publisher
+
+    @pytest.fixture
+    def service(
+        self, mock_sensor, mock_display, mock_publisher, alert_tracker
+    ):
         """Create a DHTPollingService instance for testing."""
-        return DHTPollingService(mock_sensor, mock_display)
+        return DHTPollingService(
+            mock_sensor, mock_display, mock_publisher, alert_tracker
+        )
 
     def test_on_poll_error_handles_runtime_error(self, service, caplog):
         """RuntimeError from DHT should be logged as debug."""

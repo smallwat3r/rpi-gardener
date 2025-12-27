@@ -235,15 +235,3 @@ class EventSubscriber:
     async def __aexit__(self, *_: object) -> None:
         """Async context manager exit."""
         await self.close()
-
-
-# Global publisher instance (initialized by polling services)
-_publisher: EventPublisher | None = None
-
-
-def get_publisher() -> EventPublisher:
-    """Get or create the global publisher instance."""
-    global _publisher
-    if _publisher is None:
-        _publisher = EventPublisher()
-    return _publisher

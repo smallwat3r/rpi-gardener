@@ -17,7 +17,7 @@ from datetime import datetime
 from enum import Enum, auto
 
 from rpi.lib.config import PlantIdValue, ThresholdType, Unit
-from rpi.lib.eventbus import AlertEventPayload, Topic, get_publisher
+from rpi.lib.eventbus import EventPublisher
 from rpi.logging import get_logger
 
 logger = get_logger("lib.alerts")
@@ -269,31 +269,27 @@ class AlertTracker:
                     del self._states[key]
 
 
-# Global singleton instance with lock for thread-safe initialization
-_alert_tracker: AlertTracker | None = None
-_tracker_lock = threading.Lock()
+def create_alert_publisher(publisher: EventPublisher) -> AlertCallback:
+    """Create an alert callback that publishes to the event bus.
 
+    Args:
+        publisher: The EventPublisher to use for publishing alerts.
 
-def get_alert_tracker() -> AlertTracker:
-    """Get the global AlertTracker singleton (thread-safe)."""
-    global _alert_tracker
-    if _alert_tracker is None:
-        with _tracker_lock:
-            # Double-check locking pattern
-            if _alert_tracker is None:
-                _alert_tracker = AlertTracker()
-    return _alert_tracker
+    Returns:
+        A callback function that can be registered with AlertTracker.
+    """
+    from rpi.lib.eventbus import AlertEventPayload, Topic
 
+    def publish_alert(event: AlertEvent) -> None:
+        payload = AlertEventPayload(
+            namespace=event.namespace.value,
+            sensor_name=event.sensor_name,
+            value=event.value,
+            unit=event.unit,
+            threshold=event.threshold,
+            recording_time=event.recording_time,
+            is_resolved=event.is_resolved,
+        )
+        publisher.publish(Topic.ALERT, payload)
 
-def publish_alert(event: AlertEvent) -> None:
-    """Publish an alert event to the event bus."""
-    payload = AlertEventPayload(
-        namespace=event.namespace.value,
-        sensor_name=event.sensor_name,
-        value=event.value,
-        unit=event.unit,
-        threshold=event.threshold,
-        recording_time=event.recording_time,
-        is_resolved=event.is_resolved,
-    )
-    get_publisher().publish(Topic.ALERT, payload)
+    return publish_alert

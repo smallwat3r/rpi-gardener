@@ -9,7 +9,7 @@ import json
 from datetime import UTC, datetime
 from typing import Protocol, override
 
-from rpi.lib.alerts import Namespace, get_alert_tracker, publish_alert
+from rpi.lib.alerts import AlertTracker, Namespace, create_alert_publisher
 from rpi.lib.config import (
     HYSTERESIS_MOISTURE,
     ThresholdType,
@@ -18,7 +18,7 @@ from rpi.lib.config import (
     get_settings,
 )
 from rpi.lib.db import close_db, get_db, init_db
-from rpi.lib.eventbus import PicoReadingEvent, Topic, get_publisher
+from rpi.lib.eventbus import EventPublisher, PicoReadingEvent, Topic
 from rpi.lib.polling import PollingService
 from rpi.logging import configure, get_logger
 from rpi.pico.models import MoistureReading, ValidationError
@@ -68,18 +68,25 @@ class SerialDataSource:
 class PicoPollingService(PollingService[list[MoistureReading]]):
     """Polling service for Pico moisture sensors via USB serial."""
 
-    def __init__(self, source: PicoDataSource) -> None:
+    def __init__(
+        self,
+        source: PicoDataSource,
+        publisher: EventPublisher,
+        alert_tracker: AlertTracker,
+    ) -> None:
         super().__init__(name="Pico")
         self._source = source
+        self._publisher = publisher
+        self._alert_tracker = alert_tracker
 
     @override
     async def initialize(self) -> None:
-        """Initialize database, event publisher, and register alert callback."""
+        """Initialize database and register alert callback."""
         await init_db()
-        self._publisher = get_publisher()
         self._publisher.connect()
-        tracker = get_alert_tracker()
-        tracker.register_callback(Namespace.PICO, publish_alert)
+        self._alert_tracker.register_callback(
+            Namespace.PICO, create_alert_publisher(self._publisher)
+        )
 
     @override
     async def cleanup(self) -> None:
@@ -142,11 +149,10 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
     @override
     async def audit(self, readings: list[MoistureReading]) -> bool:
         """Check moisture levels and trigger alerts for thirsty plants."""
-        tracker = get_alert_tracker()
         thresholds = await get_effective_thresholds()
 
         for reading in readings:
-            tracker.check(
+            self._alert_tracker.check(
                 namespace=Namespace.PICO,
                 sensor_name=reading.plant_id,
                 value=reading.moisture,
@@ -203,7 +209,9 @@ def main() -> None:
     """Start the Pico polling service."""
     configure()
     source = _create_data_source()
-    service = PicoPollingService(source)
+    publisher = EventPublisher()
+    alert_tracker = AlertTracker()
+    service = PicoPollingService(source, publisher, alert_tracker)
     service.run()
 
 

@@ -11,12 +11,12 @@ from datetime import UTC, datetime
 from typing import Protocol, override
 
 from rpi.dht.audit import audit_reading
-from rpi.dht.audit import init as init_audit
 from rpi.dht.display import DisplayProtocol
 from rpi.dht.models import Measure, Reading
+from rpi.lib.alerts import AlertTracker, Namespace, create_alert_publisher
 from rpi.lib.config import DHT22_BOUNDS, MeasureName, Unit
 from rpi.lib.db import close_db, get_db, init_db
-from rpi.lib.eventbus import DHTReadingEvent, Topic, get_publisher
+from rpi.lib.eventbus import DHTReadingEvent, EventPublisher, Topic
 from rpi.lib.polling import PollingService
 from rpi.logging import configure, get_logger
 
@@ -38,10 +38,18 @@ class DHTSensor(Protocol):
 class DHTPollingService(PollingService[Reading]):
     """Polling service for the DHT22 temperature/humidity sensor."""
 
-    def __init__(self, sensor: DHTSensor, display: DisplayProtocol) -> None:
+    def __init__(
+        self,
+        sensor: DHTSensor,
+        display: DisplayProtocol,
+        publisher: EventPublisher,
+        alert_tracker: AlertTracker,
+    ) -> None:
         super().__init__(name="DHT22")
         self._dht = sensor
         self._display = display
+        self._publisher = publisher
+        self._alert_tracker = alert_tracker
         self._reading = Reading(
             Measure(0.0, Unit.CELSIUS),
             Measure(0.0, Unit.PERCENT),
@@ -50,11 +58,12 @@ class DHTPollingService(PollingService[Reading]):
 
     @override
     async def initialize(self) -> None:
-        """Initialize database, audit worker, and event publisher."""
+        """Initialize database and register alert callback."""
         await init_db()
-        init_audit()
-        self._publisher = get_publisher()
         self._publisher.connect()
+        self._alert_tracker.register_callback(
+            Namespace.DHT, create_alert_publisher(self._publisher)
+        )
         self._display.clear()
 
     @override
@@ -100,7 +109,7 @@ class DHTPollingService(PollingService[Reading]):
                 return False
 
         # Check thresholds and potentially trigger notifications
-        await audit_reading(reading)
+        await audit_reading(reading, self._alert_tracker)
         return True
 
     @override
@@ -168,7 +177,9 @@ def main() -> None:
     configure()
     sensor = _create_sensor()
     display = _create_display()
-    service = DHTPollingService(sensor, display)
+    publisher = EventPublisher()
+    alert_tracker = AlertTracker()
+    service = DHTPollingService(sensor, display, publisher, alert_tracker)
     service.run()
 
 

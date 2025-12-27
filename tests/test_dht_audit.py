@@ -4,7 +4,7 @@ import pytest
 
 from rpi.dht.audit import audit_reading
 from rpi.dht.models import Measure, Reading, State
-from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
+from rpi.lib.alerts import AlertState, Namespace
 from rpi.lib.config import ThresholdType, Unit
 
 
@@ -13,10 +13,10 @@ class TestAuditReading:
 
     @pytest.mark.asyncio
     async def test_normal_reading_no_event(
-        self, dht_audit_events, sample_reading
+        self, dht_audit_events, sample_reading, alert_tracker
     ):
         """Normal reading within thresholds should not trigger events."""
-        await audit_reading(sample_reading)
+        await audit_reading(sample_reading, alert_tracker)
 
         assert len(dht_audit_events) == 0
         assert sample_reading.temperature.state == State.OK
@@ -24,7 +24,7 @@ class TestAuditReading:
 
     @pytest.mark.asyncio
     async def test_high_temperature_triggers_event(
-        self, dht_audit_events, frozen_time
+        self, dht_audit_events, frozen_time, alert_tracker
     ):
         """Temperature above max should trigger an event."""
         reading = Reading(
@@ -37,7 +37,7 @@ class TestAuditReading:
             recording_time=frozen_time,
         )
 
-        await audit_reading(reading)
+        await audit_reading(reading, alert_tracker)
 
         assert reading.temperature.state == State.IN_ALERT
         assert len(dht_audit_events) == 1
@@ -48,7 +48,7 @@ class TestAuditReading:
 
     @pytest.mark.asyncio
     async def test_low_temperature_triggers_event(
-        self, dht_audit_events, frozen_time
+        self, dht_audit_events, frozen_time, alert_tracker
     ):
         """Temperature below min should trigger an event."""
         reading = Reading(
@@ -61,7 +61,7 @@ class TestAuditReading:
             recording_time=frozen_time,
         )
 
-        await audit_reading(reading)
+        await audit_reading(reading, alert_tracker)
 
         assert reading.temperature.state == State.IN_ALERT
         assert len(dht_audit_events) == 1
@@ -69,7 +69,7 @@ class TestAuditReading:
 
     @pytest.mark.asyncio
     async def test_high_humidity_triggers_event(
-        self, dht_audit_events, frozen_time
+        self, dht_audit_events, frozen_time, alert_tracker
     ):
         """Humidity above max should trigger an event."""
         reading = Reading(
@@ -80,7 +80,7 @@ class TestAuditReading:
             recording_time=frozen_time,
         )
 
-        await audit_reading(reading)
+        await audit_reading(reading, alert_tracker)
 
         assert reading.humidity.state == State.IN_ALERT
         assert len(dht_audit_events) == 1
@@ -88,7 +88,7 @@ class TestAuditReading:
 
     @pytest.mark.asyncio
     async def test_low_humidity_triggers_event(
-        self, dht_audit_events, frozen_time
+        self, dht_audit_events, frozen_time, alert_tracker
     ):
         """Humidity below min should trigger an event."""
         reading = Reading(
@@ -99,14 +99,16 @@ class TestAuditReading:
             recording_time=frozen_time,
         )
 
-        await audit_reading(reading)
+        await audit_reading(reading, alert_tracker)
 
         assert reading.humidity.state == State.IN_ALERT
         assert len(dht_audit_events) == 1
         assert dht_audit_events[0].sensor_name == "humidity"
 
     @pytest.mark.asyncio
-    async def test_no_duplicate_events(self, dht_audit_events, frozen_time):
+    async def test_no_duplicate_events(
+        self, dht_audit_events, frozen_time, alert_tracker
+    ):
         """Consecutive alerts should not trigger duplicate events."""
         reading1 = Reading(
             temperature=Measure(80.0, Unit.CELSIUS),  # Definitely triggers
@@ -123,18 +125,18 @@ class TestAuditReading:
             recording_time=frozen_time,
         )
 
-        await audit_reading(reading1)
+        await audit_reading(reading1, alert_tracker)
         initial_count = len(dht_audit_events)
         assert initial_count == 1  # First alert triggers
 
-        await audit_reading(reading2)
+        await audit_reading(reading2, alert_tracker)
 
         # No new temperature event should be triggered (still in alert state)
         assert len(dht_audit_events) == initial_count
 
     @pytest.mark.asyncio
     async def test_new_event_after_recovery(
-        self, dht_audit_events, frozen_time
+        self, dht_audit_events, frozen_time, alert_tracker
     ):
         """New alert after recovery should trigger a new event."""
         # Initial alert
@@ -145,7 +147,7 @@ class TestAuditReading:
             ),  # Safe value within thresholds
             recording_time=frozen_time,
         )
-        await audit_reading(reading1)
+        await audit_reading(reading1, alert_tracker)
         assert len(dht_audit_events) == 1
 
         # Recovery - use very safe middle value
@@ -156,7 +158,7 @@ class TestAuditReading:
             ),  # Safe value within thresholds
             recording_time=frozen_time,
         )
-        await audit_reading(reading2)
+        await audit_reading(reading2, alert_tracker)
         # Recovery event (is_resolved=True)
         assert len(dht_audit_events) == 2
         assert dht_audit_events[1].is_resolved is True
@@ -171,7 +173,7 @@ class TestAuditReading:
             ),  # Safe value within thresholds
             recording_time=frozen_time,
         )
-        await audit_reading(reading3)
+        await audit_reading(reading3, alert_tracker)
 
         # New temperature event should be triggered
         assert len(dht_audit_events) == 3
@@ -180,7 +182,7 @@ class TestAuditReading:
 
     @pytest.mark.asyncio
     async def test_multiple_alerts_same_reading(
-        self, dht_audit_events, frozen_time
+        self, dht_audit_events, frozen_time, alert_tracker
     ):
         """Both temperature and humidity alerts should trigger separate events."""
         reading = Reading(
@@ -189,7 +191,7 @@ class TestAuditReading:
             recording_time=frozen_time,
         )
 
-        await audit_reading(reading)
+        await audit_reading(reading, alert_tracker)
 
         sensor_names = {e.sensor_name for e in dht_audit_events}
         assert "temperature" in sensor_names
@@ -197,7 +199,7 @@ class TestAuditReading:
 
     @pytest.mark.asyncio
     async def test_state_updated_on_reading(
-        self, dht_audit_events, frozen_time
+        self, dht_audit_events, frozen_time, alert_tracker
     ):
         """Reading's measure states should be updated after audit."""
         reading = Reading(
@@ -207,12 +209,12 @@ class TestAuditReading:
         )
 
         assert reading.temperature.state == State.OK
-        await audit_reading(reading)
+        await audit_reading(reading, alert_tracker)
         assert reading.temperature.state == State.IN_ALERT  # type: ignore[comparison-overlap]
 
     @pytest.mark.asyncio
     async def test_alert_tracker_uses_dht_namespace(
-        self, dht_audit_events, frozen_time
+        self, dht_audit_events, frozen_time, alert_tracker
     ):
         """Alert tracker should use DHT namespace for temperature/humidity."""
         # Temperature is high (alert), humidity is within normal range
@@ -226,27 +228,32 @@ class TestAuditReading:
             recording_time=frozen_time,
         )
 
-        await audit_reading(reading)
+        await audit_reading(reading, alert_tracker)
 
-        tracker = get_alert_tracker()
         # Temperature is above max threshold
         assert (
-            tracker.get_state(Namespace.DHT, "temperature", ThresholdType.MAX)
+            alert_tracker.get_state(
+                Namespace.DHT, "temperature", ThresholdType.MAX
+            )
             == AlertState.IN_ALERT
         )
         # Humidity is within normal range (neither MIN nor MAX violated)
         assert (
-            tracker.get_state(Namespace.DHT, "humidity", ThresholdType.MIN)
+            alert_tracker.get_state(
+                Namespace.DHT, "humidity", ThresholdType.MIN
+            )
             == AlertState.OK
         )
         assert (
-            tracker.get_state(Namespace.DHT, "humidity", ThresholdType.MAX)
+            alert_tracker.get_state(
+                Namespace.DHT, "humidity", ThresholdType.MAX
+            )
             == AlertState.OK
         )
 
     @pytest.mark.asyncio
     async def test_hysteresis_prevents_flapping(
-        self, dht_audit_events, frozen_time
+        self, dht_audit_events, frozen_time, alert_tracker
     ):
         """Alert should not clear until value recovers past hysteresis band.
 
@@ -264,7 +271,7 @@ class TestAuditReading:
             humidity=Measure(safe_humidity, Unit.PERCENT),
             recording_time=frozen_time,
         )
-        await audit_reading(reading1)
+        await audit_reading(reading1, alert_tracker)
         assert len(dht_audit_events) == 1
         assert reading1.temperature.state == State.IN_ALERT
 
@@ -274,7 +281,7 @@ class TestAuditReading:
             humidity=Measure(safe_humidity, Unit.PERCENT),
             recording_time=frozen_time,
         )
-        await audit_reading(reading2)
+        await audit_reading(reading2, alert_tracker)
         # No new events (still in alert, no recovery)
         assert len(dht_audit_events) == 1
         assert reading2.temperature.state == State.IN_ALERT
@@ -285,7 +292,7 @@ class TestAuditReading:
             humidity=Measure(safe_humidity, Unit.PERCENT),
             recording_time=frozen_time,
         )
-        await audit_reading(reading3)
+        await audit_reading(reading3, alert_tracker)
         # Recovery event triggered
         assert len(dht_audit_events) == 2
         assert dht_audit_events[1].is_resolved is True
@@ -293,7 +300,7 @@ class TestAuditReading:
 
     @pytest.mark.asyncio
     async def test_hysteresis_min_threshold(
-        self, dht_audit_events, frozen_time
+        self, dht_audit_events, frozen_time, alert_tracker
     ):
         """Hysteresis also works for MIN thresholds.
 
@@ -310,7 +317,7 @@ class TestAuditReading:
             humidity=Measure(safe_humidity, Unit.PERCENT),
             recording_time=frozen_time,
         )
-        await audit_reading(reading1)
+        await audit_reading(reading1, alert_tracker)
         assert len(dht_audit_events) == 1
         assert reading1.temperature.state == State.IN_ALERT
 
@@ -320,7 +327,7 @@ class TestAuditReading:
             humidity=Measure(safe_humidity, Unit.PERCENT),
             recording_time=frozen_time,
         )
-        await audit_reading(reading2)
+        await audit_reading(reading2, alert_tracker)
         assert len(dht_audit_events) == 1
         assert reading2.temperature.state == State.IN_ALERT
 
@@ -330,7 +337,7 @@ class TestAuditReading:
             humidity=Measure(safe_humidity, Unit.PERCENT),
             recording_time=frozen_time,
         )
-        await audit_reading(reading3)
+        await audit_reading(reading3, alert_tracker)
         assert len(dht_audit_events) == 2
         assert dht_audit_events[1].is_resolved is True
         assert reading3.temperature.state == State.OK

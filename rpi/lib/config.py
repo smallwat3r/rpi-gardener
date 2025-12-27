@@ -53,13 +53,13 @@ type PlantIdValue = int
 
 
 # Patterns
-PICO_PLANT_ID_PATTERN = re.compile(r"^plant-(\d+)$")
+_PICO_PLANT_ID_PATTERN = re.compile(r"^plant-(\d+)$")
 
 # Hysteresis offsets for alert recovery (prevents flapping)
 # Alert triggers at threshold, clears at threshold ± hysteresis
-HYSTERESIS_TEMPERATURE = 1  # °C
-HYSTERESIS_HUMIDITY = 3  # %
-HYSTERESIS_MOISTURE = 3  # %
+_HYSTERESIS_TEMPERATURE = 1  # °C
+_HYSTERESIS_HUMIDITY = 3  # %
+_HYSTERESIS_MOISTURE = 3  # %
 
 # DHT22 sensor physical bounds
 DHT22_BOUNDS = {
@@ -92,7 +92,7 @@ def _parse_bool(v: Any) -> bool:
     return bool(v)
 
 
-BoolFromStr = Annotated[bool, BeforeValidator(_parse_bool)]
+_BoolFromStr = Annotated[bool, BeforeValidator(_parse_bool)]
 
 
 def _validate_email_or_empty(v: str) -> str:
@@ -113,8 +113,8 @@ def _validate_http_url_or_empty(v: str) -> str:
     return v
 
 
-EmailOrEmpty = Annotated[str, AfterValidator(_validate_email_or_empty)]
-HttpUrlOrEmpty = Annotated[str, AfterValidator(_validate_http_url_or_empty)]
+_EmailOrEmpty = Annotated[str, AfterValidator(_validate_email_or_empty)]
+_HttpUrlOrEmpty = Annotated[str, AfterValidator(_validate_http_url_or_empty)]
 
 
 class GmailSettings(BaseModel):
@@ -122,7 +122,7 @@ class GmailSettings(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    sender: EmailOrEmpty = ""
+    sender: _EmailOrEmpty = ""
     recipients: str = ""  # Comma-separated list, validated separately
     username: str = ""
     password: SecretStr = SecretStr("")
@@ -134,7 +134,7 @@ class SlackSettings(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    webhook_url: HttpUrlOrEmpty = ""
+    webhook_url: _HttpUrlOrEmpty = ""
 
 
 class ThresholdSettings(BaseModel):
@@ -148,6 +148,11 @@ class ThresholdSettings(BaseModel):
     min_humidity: int = 40
     min_moisture: int = 30
     plant_moisture_thresholds: dict[int, int] = {}
+
+    @property
+    def moisture_hysteresis(self) -> int:
+        """Hysteresis offset for moisture alerts."""
+        return _HYSTERESIS_MOISTURE
 
     def get_moisture_threshold(self, plant_id: int) -> int:
         """Get moisture threshold for a plant, falling back to default."""
@@ -233,7 +238,7 @@ class Settings(BaseSettings):
     db_timeout_sec: float = 30.0
 
     # Sensors
-    mock_sensors: BoolFromStr = False
+    mock_sensors: _BoolFromStr = False
 
     # Thresholds (DHT22 bounds: temp -40 to 80, humidity 0 to 100)
     max_temperature: int = Field(default=25, ge=-40, le=80)
@@ -246,14 +251,14 @@ class Settings(BaseSettings):
     min_moisture_plant_3: int | None = Field(default=None, ge=0, le=100)
 
     # Notifications
-    enable_notification_service: BoolFromStr = False
+    enable_notification_service: _BoolFromStr = False
     notification_backends: str = "gmail"
-    gmail_sender: EmailOrEmpty = ""
+    gmail_sender: _EmailOrEmpty = ""
     gmail_recipients: str = ""  # Comma-separated list
     gmail_username: str = ""
     gmail_password: SecretStr = SecretStr("")
     gmail_subject: str = "Sensor alert!"
-    slack_webhook_url: HttpUrlOrEmpty = ""
+    slack_webhook_url: _HttpUrlOrEmpty = ""
     email_max_retries: int = Field(default=3, ge=0)
     email_initial_backoff_sec: int = Field(default=2, ge=0)
     email_timeout_sec: int = Field(default=30, ge=1)
@@ -419,19 +424,19 @@ def get_settings() -> Settings:
 
 def parse_pico_plant_id(raw_id: str) -> int | None:
     """Parse Pico's 'plant-N' format to integer N. Returns None if invalid."""
-    match = PICO_PLANT_ID_PATTERN.match(raw_id)
+    match = _PICO_PLANT_ID_PATTERN.match(raw_id)
     if match:
         return int(match.group(1))
     return None
 
 
-type ThresholdRule = tuple[
+type _ThresholdRule = tuple[
     ThresholdType, int, float
 ]  # (type, value, hysteresis)
 
 
 async def get_threshold_rules_async() -> dict[
-    MeasureName, tuple[ThresholdRule, ...]
+    MeasureName, tuple[_ThresholdRule, ...]
 ]:
     """Get threshold rules with DB overrides applied.
 
@@ -446,24 +451,24 @@ async def get_threshold_rules_async() -> dict[
             (
                 ThresholdType.MIN,
                 thresholds.min_temperature,
-                HYSTERESIS_TEMPERATURE,
+                _HYSTERESIS_TEMPERATURE,
             ),
             (
                 ThresholdType.MAX,
                 thresholds.max_temperature,
-                HYSTERESIS_TEMPERATURE,
+                _HYSTERESIS_TEMPERATURE,
             ),
         ),
         MeasureName.HUMIDITY: (
             (
                 ThresholdType.MIN,
                 thresholds.min_humidity,
-                HYSTERESIS_HUMIDITY,
+                _HYSTERESIS_HUMIDITY,
             ),
             (
                 ThresholdType.MAX,
                 thresholds.max_humidity,
-                HYSTERESIS_HUMIDITY,
+                _HYSTERESIS_HUMIDITY,
             ),
         ),
     }

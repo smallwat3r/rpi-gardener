@@ -11,7 +11,6 @@ from typing import Protocol, override
 
 from rpi.lib.alerts import AlertTracker, Namespace, create_alert_publisher
 from rpi.lib.config import (
-    HYSTERESIS_MOISTURE,
     ThresholdType,
     Unit,
     get_effective_thresholds,
@@ -159,7 +158,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
                 unit=Unit.PERCENT,
                 threshold=thresholds.get_moisture_threshold(reading.plant_id),
                 threshold_type=ThresholdType.MIN,
-                hysteresis=HYSTERESIS_MOISTURE,
+                hysteresis=thresholds.moisture_hysteresis,
                 recording_time=reading.recording_time,
             )
 

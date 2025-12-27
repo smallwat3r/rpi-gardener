@@ -10,7 +10,7 @@ from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal, Self
+from typing import Any, Self
 
 import redis
 import redis.asyncio as aioredis
@@ -22,7 +22,7 @@ logger = get_logger("lib.eventbus")
 
 
 class Topic(StrEnum):
-    """Event bus topics."""
+    """Event bus topics for pub/sub channels."""
 
     DHT_READING = "dht.reading"
     PICO_READING = "pico.reading"
@@ -30,13 +30,13 @@ class Topic(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
-class Event(ABC):
+class _Event(ABC):
     """Base class for all event bus payloads."""
 
     @property
     @abstractmethod
-    def event_type(self) -> str:
-        """Discriminator field for event type identification."""
+    def topic(self) -> Topic:
+        """Topic this event should be published to."""
 
     @abstractmethod
     def to_dict(self) -> dict[str, Any]:
@@ -44,7 +44,7 @@ class Event(ABC):
 
 
 @dataclass(frozen=True, slots=True)
-class DHTReadingEvent(Event):
+class DHTReadingEvent(_Event):
     """DHT sensor reading event."""
 
     temperature: float
@@ -52,12 +52,12 @@ class DHTReadingEvent(Event):
     recording_time: datetime
 
     @property
-    def event_type(self) -> Literal["dht_reading"]:
-        return "dht_reading"
+    def topic(self) -> Topic:
+        return Topic.DHT_READING
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "type": self.event_type,
+            "type": self.topic,
             "temperature": self.temperature,
             "humidity": self.humidity,
             "recording_time": self.recording_time.strftime(
@@ -68,7 +68,7 @@ class DHTReadingEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class PicoReadingEvent(Event):
+class PicoReadingEvent(_Event):
     """Single plant moisture reading."""
 
     plant_id: int
@@ -76,12 +76,12 @@ class PicoReadingEvent(Event):
     recording_time: datetime
 
     @property
-    def event_type(self) -> Literal["pico_reading"]:
-        return "pico_reading"
+    def topic(self) -> Topic:
+        return Topic.PICO_READING
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "type": self.event_type,
+            "type": self.topic,
             "plant_id": self.plant_id,
             "moisture": self.moisture,
             "recording_time": self.recording_time.strftime(
@@ -92,7 +92,7 @@ class PicoReadingEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class AlertEventPayload(Event):
+class AlertEventPayload(_Event):
     """Alert event for threshold violations and resolutions."""
 
     namespace: str
@@ -104,12 +104,12 @@ class AlertEventPayload(Event):
     is_resolved: bool = False
 
     @property
-    def event_type(self) -> Literal["alert"]:
-        return "alert"
+    def topic(self) -> Topic:
+        return Topic.ALERT
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "type": self.event_type,
+            "type": self.topic,
             "namespace": self.namespace,
             "sensor_name": self.sensor_name,
             "value": self.value,
@@ -123,7 +123,7 @@ class AlertEventPayload(Event):
 
 
 # Type alias for any concrete event type
-type AnyEvent = DHTReadingEvent | PicoReadingEvent | AlertEventPayload
+type _AnyEvent = DHTReadingEvent | PicoReadingEvent | AlertEventPayload
 
 
 class EventPublisher:
@@ -141,25 +141,25 @@ class EventPublisher:
         self._client = redis.from_url(self._redis_url)
         logger.info("Event publisher connected to Redis")
 
-    def publish(self, topic: Topic, data: Event | Sequence[Event]) -> None:
-        """Publish a message to the event bus.
+    def publish(self, data: _Event | Sequence[_Event]) -> None:
+        """Publish event(s) to the event bus.
 
-        Args:
-            topic: The topic to publish to (e.g., Topic.DHT_READING).
-            data: Event or list of Events to publish.
+        The topic is derived from the event's topic property.
         """
         if self._client is None:
+            first = data if isinstance(data, _Event) else data[0]
             logger.warning(
                 "Cannot publish to %s: Redis client not connected. "
                 "Call connect() first.",
-                topic,
+                first.topic,
             )
             return
 
-        payload: list[dict[str, Any]] | dict[str, Any]
-        if isinstance(data, Event):
-            payload = data.to_dict()
+        if isinstance(data, _Event):
+            topic = data.topic
+            payload: list[dict[str, Any]] | dict[str, Any] = data.to_dict()
         else:
+            topic = data[0].topic
             payload = [event.to_dict() for event in data]
 
         message = json.dumps(payload)

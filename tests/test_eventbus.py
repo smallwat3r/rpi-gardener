@@ -124,11 +124,11 @@ class TestEventPublisher:
             humidity=50.0,
             recording_time=datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC),
         )
-        publisher.publish(Topic.DHT_READING, event)
+        publisher.publish(event)
 
         mock_client.publish.assert_called_once()
         call_args = mock_client.publish.call_args
-        assert call_args[0][0] == Topic.DHT_READING
+        assert call_args[0][0] == Topic.DHT_READING  # topic derived from event
         payload = json.loads(call_args[0][1])
         assert payload["temperature"] == 22.0
         assert payload["humidity"] == 50.0
@@ -150,7 +150,7 @@ class TestEventPublisher:
                 2, 55.0, datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
             ),
         ]
-        publisher.publish(Topic.PICO_READING, events)
+        publisher.publish(events)
 
         mock_client.publish.assert_called_once()
         call_args = mock_client.publish.call_args
@@ -166,7 +166,7 @@ class TestEventPublisher:
         event = DHTReadingEvent(22.0, 50.0, datetime.now(UTC))
 
         # Should not raise
-        publisher.publish(Topic.DHT_READING, event)
+        publisher.publish(event)
 
     @patch("rpi.lib.eventbus.redis")
     def test_close(self, mock_redis):

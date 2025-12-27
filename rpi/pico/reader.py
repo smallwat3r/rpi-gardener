@@ -18,7 +18,7 @@ from rpi.lib.config import (
     get_settings,
 )
 from rpi.lib.db import close_db, get_db, init_db
-from rpi.lib.eventbus import EventPublisher, PicoReadingEvent, Topic
+from rpi.lib.eventbus import EventPublisher, PicoReadingEvent
 from rpi.lib.polling import PollingService
 from rpi.logging import configure, get_logger
 from rpi.pico.models import MoistureReading, ValidationError
@@ -192,7 +192,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
             )
             for r in readings
         ]
-        self._publisher.publish(Topic.PICO_READING, events)
+        self._publisher.publish(events)
 
 
 def _create_data_source() -> PicoDataSource:

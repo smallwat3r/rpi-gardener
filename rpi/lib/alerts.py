@@ -282,7 +282,7 @@ def create_alert_publisher(publisher: EventPublisher) -> AlertCallback:
     Returns:
         A callback function that can be registered with AlertTracker.
     """
-    from rpi.lib.eventbus import AlertEventPayload, Topic
+    from rpi.lib.eventbus import AlertEventPayload
 
     def publish_alert(event: AlertEvent) -> None:
         payload = AlertEventPayload(
@@ -294,6 +294,6 @@ def create_alert_publisher(publisher: EventPublisher) -> AlertCallback:
             recording_time=event.recording_time,
             is_resolved=event.is_resolved,
         )
-        publisher.publish(Topic.ALERT, payload)
+        publisher.publish(payload)
 
     return publish_alert

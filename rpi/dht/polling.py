@@ -16,7 +16,7 @@ from rpi.dht.models import Measure, Reading
 from rpi.lib.alerts import AlertTracker, Namespace, create_alert_publisher
 from rpi.lib.config import DHT22_BOUNDS, MeasureName, Unit
 from rpi.lib.db import close_db, get_db, init_db
-from rpi.lib.eventbus import DHTReadingEvent, EventPublisher, Topic
+from rpi.lib.eventbus import DHTReadingEvent, EventPublisher
 from rpi.lib.polling import PollingService
 from rpi.logging import configure, get_logger
 
@@ -131,7 +131,7 @@ class DHTPollingService(PollingService[Reading]):
             humidity=reading.humidity.value,
             recording_time=reading.recording_time,
         )
-        self._publisher.publish(Topic.DHT_READING, event)
+        self._publisher.publish(event)
 
     @override
     def on_poll_error(self, error: Exception) -> None:

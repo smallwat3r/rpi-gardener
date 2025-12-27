@@ -442,7 +442,10 @@ async def get_all_settings() -> dict[SettingsKey, str]:
     global _settings_cache, _settings_cache_time
 
     now = time.monotonic()
-    if _settings_cache is not None and (now - _settings_cache_time) < _SETTINGS_CACHE_TTL_SEC:
+    if (
+        _settings_cache is not None
+        and (now - _settings_cache_time) < _SETTINGS_CACHE_TTL_SEC
+    ):
         return _settings_cache  # type: ignore[return-value]
 
     async with get_db() as db:

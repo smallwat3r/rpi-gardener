@@ -14,7 +14,7 @@ from rpi.lib.config import (
     HYSTERESIS_MOISTURE,
     ThresholdType,
     Unit,
-    get_moisture_threshold_async,
+    get_effective_thresholds,
     get_settings,
 )
 from rpi.lib.db import close_db, get_db, init_db
@@ -143,15 +143,15 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
     async def audit(self, readings: list[MoistureReading]) -> bool:
         """Check moisture levels and trigger alerts for thirsty plants."""
         tracker = get_alert_tracker()
+        thresholds = await get_effective_thresholds()
 
         for reading in readings:
-            threshold = await get_moisture_threshold_async(reading.plant_id)
             tracker.check(
                 namespace=Namespace.PICO,
                 sensor_name=reading.plant_id,
                 value=reading.moisture,
                 unit=Unit.PERCENT,
-                threshold=threshold,
+                threshold=thresholds.get_moisture_threshold(reading.plant_id),
                 threshold_type=ThresholdType.MIN,
                 hysteresis=HYSTERESIS_MOISTURE,
                 recording_time=reading.recording_time,

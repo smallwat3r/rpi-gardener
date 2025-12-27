@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from rpi.lib.alerts import AlertState, Namespace, get_alert_tracker
-from rpi.lib.config import PlantId, ThresholdType
+from rpi.lib.config import PlantId, ThresholdSettings, ThresholdType
 from rpi.pico.models import MoistureReading, ValidationError
 
 
@@ -170,10 +170,11 @@ class TestPicoPollingServiceAudit:
         return PicoPollingService(mock_source)
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_moisture_threshold_async", return_value=30)
+    @patch("rpi.pico.reader.get_effective_thresholds")
     async def test_no_alert_when_above_threshold(
-        self, mock_threshold, service, pico_audit_events, frozen_time
+        self, mock_thresholds, service, pico_audit_events, frozen_time
     ):
+        mock_thresholds.return_value = ThresholdSettings(min_moisture=30)
         readings = [MoistureReading(PlantId.PLANT_1, 50.0, frozen_time)]
         await service.audit(readings)
 
@@ -187,10 +188,11 @@ class TestPicoPollingServiceAudit:
         )
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_moisture_threshold_async", return_value=30)
+    @patch("rpi.pico.reader.get_effective_thresholds")
     async def test_alert_when_below_threshold(
-        self, mock_threshold, service, pico_audit_events, frozen_time
+        self, mock_thresholds, service, pico_audit_events, frozen_time
     ):
+        mock_thresholds.return_value = ThresholdSettings(min_moisture=30)
         readings = [MoistureReading(PlantId.PLANT_1, 20.0, frozen_time)]
         await service.audit(readings)
 
@@ -209,10 +211,11 @@ class TestPicoPollingServiceAudit:
         )
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_moisture_threshold_async", return_value=30)
+    @patch("rpi.pico.reader.get_effective_thresholds")
     async def test_no_duplicate_alerts(
-        self, mock_threshold, service, pico_audit_events, frozen_time
+        self, mock_thresholds, service, pico_audit_events, frozen_time
     ):
+        mock_thresholds.return_value = ThresholdSettings(min_moisture=30)
         # First alert
         await service.audit(
             [MoistureReading(PlantId.PLANT_1, 20.0, frozen_time)]
@@ -226,10 +229,11 @@ class TestPicoPollingServiceAudit:
         assert len(pico_audit_events) == 1
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_moisture_threshold_async", return_value=30)
+    @patch("rpi.pico.reader.get_effective_thresholds")
     async def test_independent_plant_states(
-        self, mock_threshold, service, pico_audit_events, frozen_time
+        self, mock_thresholds, service, pico_audit_events, frozen_time
     ):
+        mock_thresholds.return_value = ThresholdSettings(min_moisture=30)
         await service.audit(
             [MoistureReading(PlantId.PLANT_1, 20.0, frozen_time)]
         )
@@ -256,9 +260,9 @@ class TestPicoPollingServiceAudit:
         )
 
     @pytest.mark.asyncio
-    @patch("rpi.pico.reader.get_moisture_threshold_async", return_value=30)
+    @patch("rpi.pico.reader.get_effective_thresholds")
     async def test_hysteresis_prevents_moisture_flapping(
-        self, mock_threshold, service, pico_audit_events, frozen_time
+        self, mock_thresholds, service, pico_audit_events, frozen_time
     ):
         """Alert should not clear until moisture recovers past hysteresis band.
 
@@ -267,6 +271,7 @@ class TestPicoPollingServiceAudit:
         - Alert clears at moisture >= 33 (30 + 3)
         - Value between 30-33 should stay IN_ALERT
         """
+        mock_thresholds.return_value = ThresholdSettings(min_moisture=30)
         # Trigger alert with low moisture
         await service.audit(
             [MoistureReading(PlantId.PLANT_1, 25.0, frozen_time)]

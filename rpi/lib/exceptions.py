@@ -9,10 +9,6 @@ class RpiGardenerError(Exception):
     """Base exception for all application errors."""
 
 
-class ConfigurationError(RpiGardenerError):
-    """Raised when configuration validation fails."""
-
-
 class DatabaseError(RpiGardenerError):
     """Base exception for database-related errors."""
 
@@ -24,17 +20,5 @@ class DatabaseNotConnectedError(DatabaseError):
         super().__init__(message)
 
 
-class ValidationError(RpiGardenerError):
-    """Raised when input validation fails."""
-
-
-class ThresholdValidationError(ValidationError):
-    """Raised when threshold values are invalid."""
-
-
 class NotificationError(RpiGardenerError):
     """Base exception for notification-related errors."""
-
-
-class NotificationSendError(NotificationError):
-    """Raised when sending a notification fails."""

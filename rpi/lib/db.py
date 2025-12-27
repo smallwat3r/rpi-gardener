@@ -478,7 +478,7 @@ async def set_settings_batch(
                ON CONFLICT(key) DO UPDATE SET
                    value = excluded.value,
                    updated_at = excluded.updated_at""",
-            [(key, value) for key, value in settings.items()],
+            list(settings.items()),
         )
         # Fetch all settings within the same transaction for consistency
         rows = await db.fetchall("SELECT key, value FROM settings")

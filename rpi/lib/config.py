@@ -422,25 +422,6 @@ def set_settings(settings: Settings | None) -> None:
     _load_settings.cache_clear()
 
 
-def get_moisture_threshold(plant_id: int) -> int:
-    """Get moisture threshold for a plant, falling back to default.
-
-    Note: This uses cached settings. For runtime-updated thresholds,
-    use get_moisture_threshold_async() instead.
-    """
-    return get_settings().thresholds.get_moisture_threshold(plant_id)
-
-
-async def get_moisture_threshold_async(plant_id: int) -> int:
-    """Get moisture threshold for a plant with DB overrides applied.
-
-    This checks the database for runtime setting changes made via
-    the admin API, falling back to environment variable defaults.
-    """
-    thresholds = await get_effective_thresholds()
-    return thresholds.get_moisture_threshold(plant_id)
-
-
 def parse_pico_plant_id(raw_id: str) -> int | None:
     """Parse Pico's 'plant-N' format to integer N. Returns None if invalid."""
     match = PICO_PLANT_ID_PATTERN.match(raw_id)
@@ -452,43 +433,6 @@ def parse_pico_plant_id(raw_id: str) -> int | None:
 type ThresholdRule = tuple[
     ThresholdType, int, float
 ]  # (type, value, hysteresis)
-
-
-def get_threshold_rules() -> dict[MeasureName, tuple[ThresholdRule, ...]]:
-    """Get threshold rules based on current settings.
-
-    Note: This uses cached settings. For runtime-updated thresholds,
-    use get_threshold_rules_async() instead.
-
-    Returns a dict mapping measure name to a tuple of (threshold_type, value, hysteresis).
-    """
-    s = get_settings()
-    return {
-        MeasureName.TEMPERATURE: (
-            (
-                ThresholdType.MIN,
-                s.thresholds.min_temperature,
-                HYSTERESIS_TEMPERATURE,
-            ),
-            (
-                ThresholdType.MAX,
-                s.thresholds.max_temperature,
-                HYSTERESIS_TEMPERATURE,
-            ),
-        ),
-        MeasureName.HUMIDITY: (
-            (
-                ThresholdType.MIN,
-                s.thresholds.min_humidity,
-                HYSTERESIS_HUMIDITY,
-            ),
-            (
-                ThresholdType.MAX,
-                s.thresholds.max_humidity,
-                HYSTERESIS_HUMIDITY,
-            ),
-        ),
-    }
 
 
 async def get_threshold_rules_async() -> dict[
@@ -611,20 +555,3 @@ async def get_effective_notifications() -> NotificationSettings:
         initial_backoff_sec=env_settings.notifications.initial_backoff_sec,
         timeout_sec=env_settings.notifications.timeout_sec,
     )
-
-
-async def get_effective_cleanup() -> CleanupSettings:
-    """Get cleanup settings with DB overrides applied."""
-    from rpi.lib.db import get_all_settings
-
-    db_settings = await get_all_settings()
-    env_settings = get_settings()
-
-    retention_val = db_settings.get("cleanup.retention_days")
-    retention_days = (
-        int(retention_val)
-        if retention_val is not None
-        else env_settings.cleanup.retention_days
-    )
-
-    return CleanupSettings(retention_days=retention_days)

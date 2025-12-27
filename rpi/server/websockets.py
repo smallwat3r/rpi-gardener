@@ -170,12 +170,3 @@ async def ws_pico_latest(websocket: WebSocket) -> None:
     """
     initial_data = await get_latest_pico_data()
     await _maintain_connection(websocket, "/pico/latest", initial_data)
-
-
-async def ws_alerts(websocket: WebSocket) -> None:
-    """Stream alert events (threshold violations and resolutions).
-
-    Receives real-time alerts via event bus when sensors cross thresholds.
-    No initial data - alerts are transient events.
-    """
-    await _maintain_connection(websocket, "/alerts")

@@ -54,7 +54,6 @@ Runs independently of the web server.
 | `/api/admin/settings` | PUT | Update admin settings (requires auth) |
 | `/dht/latest` | WS | Real-time DHT22 readings |
 | `/pico/latest` | WS | Real-time Pico readings |
-| `/alerts` | WS | Real-time threshold alerts |
 
 ## Dashboard Features
 

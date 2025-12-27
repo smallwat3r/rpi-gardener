@@ -217,20 +217,6 @@ class TestWebSocketEndpoints:
                 mock_websocket, "/pico/latest", initial_data
             )
 
-    @pytest.mark.asyncio
-    async def test_ws_alerts_no_initial_data(self, mock_websocket):
-        """Alerts WebSocket should not send initial data."""
-        from rpi.server.websockets import ws_alerts
-
-        with patch(
-            "rpi.server.websockets._maintain_connection",
-            new_callable=AsyncMock,
-        ) as mock_maintain:
-            await ws_alerts(mock_websocket)
-
-            # Called without initial_data (alerts are transient)
-            mock_maintain.assert_called_once_with(mock_websocket, "/alerts")
-
 
 class TestMaintainConnection:
     """Tests for the _maintain_connection helper."""

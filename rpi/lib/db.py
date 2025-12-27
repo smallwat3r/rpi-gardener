@@ -37,21 +37,28 @@ appropriate connection type is selected based on whether init_db() was called.
 
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
-type SQLParams = tuple[Any, ...] | dict[str, Any]
-
 import aiosqlite
 
 from rpi.lib.config import SettingsKey, get_settings
+
+type SQLParams = tuple[Any, ...] | dict[str, Any]
+
 from rpi.lib.exceptions import DatabaseNotConnectedError
 from rpi.logging import get_logger
 
 _logger = get_logger("lib.db")
+
+# TTL cache for settings (reduces DB queries during polling)
+_settings_cache: dict[str, str] | None = None
+_settings_cache_time: float = 0.0
+_SETTINGS_CACHE_TTL_SEC: float = 30.0
 
 # SQL templates directory
 _SQL_DIR = Path(__file__).resolve().parent / "sql"
@@ -420,11 +427,30 @@ async def get_latest_pico_data() -> list[PicoReading]:
         return cast(list[PicoReading], rows)
 
 
+def _invalidate_settings_cache() -> None:
+    """Invalidate the settings cache."""
+    global _settings_cache, _settings_cache_time
+    _settings_cache = None
+    _settings_cache_time = 0.0
+
+
 async def get_all_settings() -> dict[SettingsKey, str]:
-    """Get all settings as a dictionary."""
+    """Get all settings as a dictionary.
+
+    Results are cached for 30 seconds to reduce DB load during polling.
+    """
+    global _settings_cache, _settings_cache_time
+
+    now = time.monotonic()
+    if _settings_cache is not None and (now - _settings_cache_time) < _SETTINGS_CACHE_TTL_SEC:
+        return _settings_cache  # type: ignore[return-value]
+
     async with get_db() as db:
         rows = await db.fetchall("SELECT key, value FROM settings")
-        return {row["key"]: row["value"] for row in rows}
+        _settings_cache = {row["key"]: row["value"] for row in rows}
+        _settings_cache_time = now
+
+    return _settings_cache  # type: ignore[return-value]
 
 
 async def set_settings_batch(settings: dict[SettingsKey, str]) -> None:
@@ -439,6 +465,7 @@ async def set_settings_batch(settings: dict[SettingsKey, str]) -> None:
                        updated_at = excluded.updated_at""",
                 (key, value),
             )
+    _invalidate_settings_cache()
 
 
 async def get_admin_password_hash() -> str | None:

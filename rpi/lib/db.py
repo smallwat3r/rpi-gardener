@@ -472,15 +472,14 @@ async def set_settings_batch(
     global _settings_cache, _settings_cache_time
 
     async with get_db() as db, db.transaction():
-        for key, value in settings.items():
-            await db.execute(
-                """INSERT INTO settings (key, value, updated_at)
-                   VALUES (?, ?, datetime('now'))
-                   ON CONFLICT(key) DO UPDATE SET
-                       value = excluded.value,
-                       updated_at = excluded.updated_at""",
-                (key, value),
-            )
+        await db.executemany(
+            """INSERT INTO settings (key, value, updated_at)
+               VALUES (?, ?, datetime('now'))
+               ON CONFLICT(key) DO UPDATE SET
+                   value = excluded.value,
+                   updated_at = excluded.updated_at""",
+            [(key, value) for key, value in settings.items()],
+        )
         # Fetch all settings within the same transaction for consistency
         rows = await db.fetchall("SELECT key, value FROM settings")
         all_settings: dict[SettingsKey, str] = {

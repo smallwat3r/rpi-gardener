@@ -106,81 +106,85 @@ class AdminSettingsRequest(BaseModel):
     cleanup: Cleanup = Cleanup()
 
 
-def _db_settings_to_response(
-    db_settings: dict[SettingsKey, str],
-) -> dict[str, Any]:
-    """Convert flat DB settings to structured response format."""
-    s = get_settings()
+class _SettingsReader:
+    """Helper to read typed values from flat DB settings with defaults."""
 
-    def get_int(key: SettingsKey, default: int) -> int:
-        val = db_settings.get(key)
+    def __init__(self, db_settings: dict[SettingsKey, str]):
+        self._db = db_settings
+
+    def get_int(self, key: SettingsKey, default: int) -> int:
+        val = self._db.get(key)
         return int(val) if val is not None else default
 
-    def get_bool(key: SettingsKey, default: bool) -> bool:
-        val = db_settings.get(key)
+    def get_bool(self, key: SettingsKey, default: bool) -> bool:
+        val = self._db.get(key)
         return val == "1" if val is not None else default
 
-    def get_list(key: SettingsKey, default: list[str]) -> list[str]:
-        val = db_settings.get(key)
+    def get_list(self, key: SettingsKey, default: list[str]) -> list[str]:
+        val = self._db.get(key)
         return (
             [x.strip() for x in val.split(",") if x.strip()]
             if val
             else default
         )
 
+
+def _db_settings_to_response(
+    db_settings: dict[SettingsKey, str],
+) -> dict[str, Any]:
+    """Convert flat DB settings to structured response format."""
+    s = get_settings()
+    r = _SettingsReader(db_settings)
+    plant_thresholds = s.thresholds.plant_moisture_thresholds
+    default_moisture = s.thresholds.min_moisture
+
     return {
         "thresholds": {
             "temperature": {
-                "min": get_int(
+                "min": r.get_int(
                     "threshold.temperature.min", s.thresholds.min_temperature
                 ),
-                "max": get_int(
+                "max": r.get_int(
                     "threshold.temperature.max", s.thresholds.max_temperature
                 ),
             },
             "humidity": {
-                "min": get_int(
+                "min": r.get_int(
                     "threshold.humidity.min", s.thresholds.min_humidity
                 ),
-                "max": get_int(
+                "max": r.get_int(
                     "threshold.humidity.max", s.thresholds.max_humidity
                 ),
             },
             "moisture": {
-                "default": get_int(
-                    "threshold.moisture.default", s.thresholds.min_moisture
+                "default": r.get_int(
+                    "threshold.moisture.default", default_moisture
                 ),
-                "1": get_int(
+                "1": r.get_int(
                     "threshold.moisture.1",
-                    s.thresholds.plant_moisture_thresholds.get(
-                        1, s.thresholds.min_moisture
-                    ),
+                    plant_thresholds.get(1, default_moisture),
                 ),
-                "2": get_int(
+                "2": r.get_int(
                     "threshold.moisture.2",
-                    s.thresholds.plant_moisture_thresholds.get(
-                        2, s.thresholds.min_moisture
-                    ),
+                    plant_thresholds.get(2, default_moisture),
                 ),
-                "3": get_int(
+                "3": r.get_int(
                     "threshold.moisture.3",
-                    s.thresholds.plant_moisture_thresholds.get(
-                        3, s.thresholds.min_moisture
-                    ),
+                    plant_thresholds.get(3, default_moisture),
                 ),
             },
         },
         "notifications": {
-            "enabled": get_bool(
+            "enabled": r.get_bool(
                 "notification.enabled", s.notifications.enabled
             ),
-            "backends": get_list(
+            "backends": r.get_list(
                 "notification.backends",
                 [str(b) for b in s.notifications.backends],
             ),
         },
         "cleanup": {
-            "retentionDays": get_int(
+            "retentionDays": r.get_int(
                 "cleanup.retention_days", s.cleanup.retention_days
             ),
         },
@@ -249,8 +253,9 @@ async def update_admin_settings(request: Request) -> JSONResponse:
 
     db_settings = _request_to_db_settings(data)
     if db_settings:
-        await set_settings_batch(db_settings)
+        all_settings = await set_settings_batch(db_settings)
         logger.info("Admin settings updated: %s", list(db_settings.keys()))
+    else:
+        all_settings = await get_all_settings()
 
-    all_settings = await get_all_settings()
     return JSONResponse(_db_settings_to_response(all_settings))

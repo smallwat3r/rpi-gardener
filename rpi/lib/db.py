@@ -438,6 +438,7 @@ async def get_all_settings() -> dict[SettingsKey, str]:
     """Get all settings as a dictionary.
 
     Results are cached for 30 seconds to reduce DB load during polling.
+    On database errors, the cache is invalidated to ensure fresh data on retry.
     """
     global _settings_cache, _settings_cache_time
 
@@ -448,16 +449,28 @@ async def get_all_settings() -> dict[SettingsKey, str]:
     ):
         return _settings_cache  # type: ignore[return-value]
 
-    async with get_db() as db:
-        rows = await db.fetchall("SELECT key, value FROM settings")
-        _settings_cache = {row["key"]: row["value"] for row in rows}
-        _settings_cache_time = now
+    try:
+        async with get_db() as db:
+            rows = await db.fetchall("SELECT key, value FROM settings")
+            _settings_cache = {row["key"]: row["value"] for row in rows}
+            _settings_cache_time = now
+    except (aiosqlite.Error, OSError) as e:
+        _invalidate_settings_cache()
+        _logger.warning("Failed to fetch settings, cache invalidated: %s", e)
+        raise
 
     return _settings_cache  # type: ignore[return-value]
 
 
-async def set_settings_batch(settings: dict[SettingsKey, str]) -> None:
-    """Set multiple settings in a single transaction."""
+async def set_settings_batch(
+    settings: dict[SettingsKey, str],
+) -> dict[SettingsKey, str]:
+    """Set multiple settings in a single transaction.
+
+    Returns the full settings dict after update (avoids needing a separate fetch).
+    """
+    global _settings_cache, _settings_cache_time
+
     async with get_db() as db, db.transaction():
         for key, value in settings.items():
             await db.execute(
@@ -468,7 +481,17 @@ async def set_settings_batch(settings: dict[SettingsKey, str]) -> None:
                        updated_at = excluded.updated_at""",
                 (key, value),
             )
-    _invalidate_settings_cache()
+        # Fetch all settings within the same transaction for consistency
+        rows = await db.fetchall("SELECT key, value FROM settings")
+        all_settings: dict[SettingsKey, str] = {
+            row["key"]: row["value"] for row in rows
+        }
+
+    # Update cache with fresh data
+    _settings_cache = cast(dict[str, str], all_settings)
+    _settings_cache_time = time.monotonic()
+
+    return all_settings
 
 
 async def get_admin_password_hash() -> str | None:

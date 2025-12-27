@@ -32,7 +32,9 @@ export function useDashboard(initialHours: number = 24) {
       .then((t) => {
         if (mountedRef.current) setThresholds(t);
       })
-      .catch(() => {});
+      .catch(() => {
+        // Ignore errors - thresholds are non-critical
+      });
   }, []);
 
   useEffect(() => {

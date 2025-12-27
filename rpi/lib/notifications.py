@@ -213,10 +213,18 @@ class CompositeNotifier(AbstractNotifier):
     @override
     async def send(self, event: AlertEvent) -> None:
         """Send notification to all configured backends concurrently."""
-        await asyncio.gather(
+        results = await asyncio.gather(
             *(notifier.send(event) for notifier in self._notifiers),
             return_exceptions=True,
         )
+        for notifier, result in zip(self._notifiers, results, strict=True):
+            if isinstance(result, Exception):
+                backend_name = notifier.__class__.__name__
+                logger.error(
+                    "Failed to send %s notification: %s",
+                    backend_name,
+                    result,
+                )
 
 
 class NoOpNotifier(AbstractNotifier):

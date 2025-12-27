@@ -33,6 +33,7 @@ export function AdminSettings({ onClose, onSave }: AdminSettingsProps) {
 
   useEffect(() => {
     mountedRef.current = true;
+    const onCloseRef = onClose; // Capture current value
     getAdminSettings()
       .then((data) => {
         if (mountedRef.current) {
@@ -44,7 +45,7 @@ export function AdminSettings({ onClose, onSave }: AdminSettingsProps) {
         if (mountedRef.current) {
           if (err.message === 'Unauthorized') {
             // Auth failed or was cancelled - close modal
-            onClose();
+            onCloseRef();
           } else if (err.message === 'Admin not configured') {
             setNotConfigured(true);
             setLoading(false);
@@ -57,7 +58,7 @@ export function AdminSettings({ onClose, onSave }: AdminSettingsProps) {
     return () => {
       mountedRef.current = false;
     };
-  }, []);
+  }, [onClose]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);

@@ -415,13 +415,6 @@ def get_settings() -> Settings:
     return _load_settings()
 
 
-def set_settings(settings: Settings | None) -> None:
-    """Override global settings (primarily for testing)."""
-    global _settings_override
-    _settings_override = settings
-    _load_settings.cache_clear()
-
-
 def parse_pico_plant_id(raw_id: str) -> int | None:
     """Parse Pico's 'plant-N' format to integer N. Returns None if invalid."""
     match = PICO_PLANT_ID_PATTERN.match(raw_id)

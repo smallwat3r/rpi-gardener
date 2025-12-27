@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import SecretStr, ValidationError
 
+import rpi.lib.config as config
 from rpi.lib.config import (
     GmailSettings,
     NotificationSettings,
@@ -14,7 +15,6 @@ from rpi.lib.config import (
     ThresholdSettings,
     get_settings,
     parse_pico_plant_id,
-    set_settings,
 )
 
 
@@ -205,21 +205,21 @@ class TestSettings:
         assert settings.pico.serial_timeout_sec == 10.0
 
 
-class TestGetSetSettings:
+class TestGetSettings:
     """Tests for global settings management."""
 
     def test_get_settings_lazy_initialization(self):
-        set_settings(None)
+        config._settings_override = None
+        config._load_settings.cache_clear()
 
         settings = get_settings()
 
         assert settings is not None
         assert isinstance(settings, Settings)
 
-    def test_set_settings_override(self):
+    def test_get_settings_uses_override(self):
         custom = Settings(db_path="custom.db")
-
-        set_settings(custom)
+        config._settings_override = custom
 
         assert get_settings().db_path == "custom.db"
 

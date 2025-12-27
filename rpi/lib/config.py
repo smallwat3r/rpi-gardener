@@ -399,6 +399,8 @@ class Settings(BaseSettings):
         return self
 
 
+# Test-only: allows tests to inject custom Settings without modifying environment
+# variables or clearing the lru_cache. Set via conftest.set_settings().
 _settings_override: Settings | None = None
 
 

@@ -47,11 +47,11 @@ lint-fe:  ## Run frontend linter only (biome)
 	cd $(RPI)/server/frontend && npm run check
 
 .PHONY: serve
-serve:  ## Start the server (for development)
+serve:  ## Start the dev server (with hot reload)
 	uv run uvicorn $(RPI).server.entrypoint:create_app --factory --host 0.0.0.0 --reload
 
-.PHONY: server
-server:  ## Start the server with uvicorn (binded for Nginx)
+.PHONY: serve-prod
+serve-prod:  ## Start the prod server (Unix socket for Nginx)
 	uv run uvicorn $(RPI).server.entrypoint:create_app --factory --uds /tmp/uvicorn.sock --workers 3
 
 .PHONY: polling

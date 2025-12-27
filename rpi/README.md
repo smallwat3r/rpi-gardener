@@ -33,8 +33,8 @@ Parses JSON lines and publishes readings to the event bus.
 REST API and WebSocket server for the dashboard. Uses Starlette (ASGI).
 Subscribes to the event bus for real-time updates.
 
-    make serve     # Development (with reload)
-    make server    # Production (uvicorn)
+    make serve       # Development (with hot reload)
+    make serve-prod  # Production (Unix socket for Nginx)
 
 ### Notification Service (`notifications/`)
 

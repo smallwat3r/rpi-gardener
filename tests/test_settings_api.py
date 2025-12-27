@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from rpi.lib.config import SettingsKey
 from rpi.server.api.admin import (
-    AdminSettingsRequest,
+    _AdminSettingsRequest,
     _db_settings_to_response,
     _request_to_db_settings,
 )
@@ -32,7 +32,7 @@ class TestSettingsValidation:
         }
 
         # Should not raise
-        data = AdminSettingsRequest.model_validate(settings)
+        data = _AdminSettingsRequest.model_validate(settings)
         assert data.thresholds.temperature.min == 18
         assert data.thresholds.temperature.max == 25
 
@@ -45,7 +45,7 @@ class TestSettingsValidation:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            AdminSettingsRequest.model_validate(settings)
+            _AdminSettingsRequest.model_validate(settings)
         assert "max must be greater than min" in str(exc_info.value)
 
     def test_validate_temperature_out_of_bounds(self):
@@ -57,7 +57,7 @@ class TestSettingsValidation:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            AdminSettingsRequest.model_validate(settings)
+            _AdminSettingsRequest.model_validate(settings)
         errors = str(exc_info.value).lower()
         assert "greater than or equal to -40" in errors or "ge" in errors
 
@@ -70,7 +70,7 @@ class TestSettingsValidation:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            AdminSettingsRequest.model_validate(settings)
+            _AdminSettingsRequest.model_validate(settings)
         assert "max must be greater than min" in str(exc_info.value)
 
     def test_validate_humidity_out_of_bounds(self):
@@ -82,7 +82,7 @@ class TestSettingsValidation:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            AdminSettingsRequest.model_validate(settings)
+            _AdminSettingsRequest.model_validate(settings)
         errors = str(exc_info.value).lower()
         assert "greater than or equal to 0" in errors or "ge" in errors
 
@@ -95,7 +95,7 @@ class TestSettingsValidation:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            AdminSettingsRequest.model_validate(settings)
+            _AdminSettingsRequest.model_validate(settings)
         errors = str(exc_info.value).lower()
         assert "less than or equal to 100" in errors or "le" in errors
 
@@ -108,7 +108,7 @@ class TestSettingsValidation:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            AdminSettingsRequest.model_validate(settings)
+            _AdminSettingsRequest.model_validate(settings)
         assert "Invalid backends" in str(exc_info.value)
 
     def test_validate_retention_days_out_of_bounds(self):
@@ -120,7 +120,7 @@ class TestSettingsValidation:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            AdminSettingsRequest.model_validate(settings)
+            _AdminSettingsRequest.model_validate(settings)
         errors = str(exc_info.value).lower()
         assert "less than or equal to 365" in errors or "le" in errors
 
@@ -130,7 +130,7 @@ class TestSettingsConversion:
 
     def test_request_to_db_settings(self):
         """Should convert structured request to flat DB keys."""
-        request = AdminSettingsRequest.model_validate(
+        request = _AdminSettingsRequest.model_validate(
             {
                 "thresholds": {
                     "temperature": {"min": 18, "max": 25},
@@ -161,7 +161,7 @@ class TestSettingsConversion:
 
     def test_request_to_db_settings_partial(self):
         """Should handle partial settings update."""
-        request = AdminSettingsRequest.model_validate(
+        request = _AdminSettingsRequest.model_validate(
             {
                 "thresholds": {
                     "temperature": {"min": 20},

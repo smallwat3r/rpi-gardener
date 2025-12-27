@@ -25,7 +25,7 @@ TEMP_MIN, TEMP_MAX = DHT22_BOUNDS[MeasureName.TEMPERATURE]
 HUM_MIN, HUM_MAX = DHT22_BOUNDS[MeasureName.HUMIDITY]
 
 
-class TemperatureThreshold(BaseModel):
+class _TemperatureThreshold(BaseModel):
     """Temperature threshold with validation."""
 
     min: int | None = Field(None, ge=TEMP_MIN, le=TEMP_MAX)
@@ -40,7 +40,7 @@ class TemperatureThreshold(BaseModel):
         return v
 
 
-class HumidityThreshold(BaseModel):
+class _HumidityThreshold(BaseModel):
     """Humidity threshold with validation."""
 
     min: int | None = Field(None, ge=HUM_MIN, le=HUM_MAX)
@@ -55,7 +55,7 @@ class HumidityThreshold(BaseModel):
         return v
 
 
-class MoistureThresholds(BaseModel):
+class _MoistureThresholds(BaseModel):
     """Moisture thresholds for default and per-plant."""
 
     default: int | None = Field(None, ge=0, le=100)
@@ -66,15 +66,15 @@ class MoistureThresholds(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class Thresholds(BaseModel):
+class _Thresholds(BaseModel):
     """All threshold settings."""
 
-    temperature: TemperatureThreshold = TemperatureThreshold()
-    humidity: HumidityThreshold = HumidityThreshold()
-    moisture: MoistureThresholds = MoistureThresholds()
+    temperature: _TemperatureThreshold = _TemperatureThreshold()
+    humidity: _HumidityThreshold = _HumidityThreshold()
+    moisture: _MoistureThresholds = _MoistureThresholds()
 
 
-class Notifications(BaseModel):
+class _Notifications(BaseModel):
     """Notification settings."""
 
     enabled: bool | None = None
@@ -92,18 +92,18 @@ class Notifications(BaseModel):
         return v
 
 
-class Cleanup(BaseModel):
+class _Cleanup(BaseModel):
     """Cleanup settings."""
 
     retentionDays: int | None = Field(None, ge=1, le=365)
 
 
-class AdminSettingsRequest(BaseModel):
+class _AdminSettingsRequest(BaseModel):
     """Request model for admin settings update."""
 
-    thresholds: Thresholds = Thresholds()
-    notifications: Notifications = Notifications()
-    cleanup: Cleanup = Cleanup()
+    thresholds: _Thresholds = _Thresholds()
+    notifications: _Notifications = _Notifications()
+    cleanup: _Cleanup = _Cleanup()
 
 
 class _SettingsReader:
@@ -192,7 +192,7 @@ def _db_settings_to_response(
 
 
 def _request_to_db_settings(
-    data: AdminSettingsRequest,
+    data: _AdminSettingsRequest,
 ) -> dict[SettingsKey, str]:
     """Convert validated request data to flat DB settings."""
     result: dict[SettingsKey, str] = {}
@@ -243,7 +243,7 @@ async def update_admin_settings(request: Request) -> JSONResponse:
         return JSONResponse({"error": "Invalid JSON"}, status_code=400)
 
     try:
-        data = AdminSettingsRequest.model_validate(raw_data)
+        data = _AdminSettingsRequest.model_validate(raw_data)
     except ValidationError as e:
         errors = [
             f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}"

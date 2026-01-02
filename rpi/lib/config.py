@@ -131,9 +131,9 @@ class GmailSettings(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    sender: _EmailOrEmpty = ""
+    sender: str = ""
     recipients: str = ""  # Comma-separated list, validated separately
-    username: str = ""
+    username: _EmailOrEmpty = ""
     password: SecretStr = SecretStr("")
 
 
@@ -261,9 +261,9 @@ class Settings(BaseSettings):
     # Notifications
     enable_notification_service: _BoolFromStr = False
     notification_backends: str = "gmail"
-    gmail_sender: _EmailOrEmpty = ""
+    gmail_sender: str = ""
     gmail_recipients: str = ""  # Comma-separated list
-    gmail_username: str = ""
+    gmail_username: _EmailOrEmpty = ""
     gmail_password: SecretStr = SecretStr("")
     slack_webhook_url: _HttpUrlOrEmpty = ""
     email_max_retries: int = Field(default=3, ge=0)

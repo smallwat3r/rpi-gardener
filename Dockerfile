@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Non-root user with hardware access (GIDs must match host: gpio=993, i2c=994)
 RUN groupadd --gid 1000 appgroup \
     && groupadd --gid 993 gpio \
-    && groupadd --gid 994 i2c \
+    && (groupmod --gid 994 i2c 2>/dev/null || groupadd --gid 994 i2c) \
     && useradd --uid 1000 --gid appgroup --shell /usr/sbin/nologin --no-create-home appuser \
     && usermod -aG dialout,i2c,gpio appuser
 

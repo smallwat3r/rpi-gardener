@@ -14,8 +14,10 @@ POLLING_INTERVAL_SEC = 2
 DISPLAY_WIDTH = 128
 DISPLAY_HEIGHT = 64
 DISPLAY_I2C_FREQ = 200000
-DISPLAY_TEXT_START_Y = 10
-DISPLAY_TEXT_LINE_HEIGHT = 10
+# Yellow zone: 0-15, Blue zone: 16-63
+DISPLAY_HEADER_Y = 4
+DISPLAY_VALUES_START_Y = 20
+DISPLAY_VALUES_LINE_HEIGHT = 14
 
 
 class Plant:
@@ -52,20 +54,21 @@ plants = (
 class Display(SSD1306_I2C):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._content = []
 
     def clear(self):
-        self._content = []
         self.fill(0)
 
-    def add_content(self, text):
-        self._content.append(text)
-
-    def display_content(self):
-        y_pos = DISPLAY_TEXT_START_Y
-        for text in self._content:
-            self.text(text, 0, y_pos)
-            y_pos += DISPLAY_TEXT_LINE_HEIGHT
+    def render(self, readings):
+        """Render readings with yellow header and blue values."""
+        self.clear()
+        # Yellow zone: Header
+        self.text("SOIL MOISTURE", 16, DISPLAY_HEADER_Y)
+        # Blue zone: Plant readings
+        y_pos = DISPLAY_VALUES_START_Y
+        for plant in plants:
+            pct = readings[plant.name]
+            self.text(f"P{plant.id}: {pct:5.1f}%", 0, y_pos)
+            y_pos += DISPLAY_VALUES_LINE_HEIGHT
         self.show()
 
 
@@ -90,10 +93,7 @@ def update_display(display, readings):
     if display is None:
         return
     try:
-        display.clear()
-        for plant in plants:
-            display.add_content(f"[{plant.id}]: {readings[plant.name]} %")
-        display.display_content()
+        display.render(readings)
     except OSError:
         pass
 

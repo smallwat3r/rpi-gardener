@@ -36,26 +36,32 @@ class Display:
         self._oled.show()
 
     def render_reading(self, reading: Reading) -> None:
-        """Render a reading on the display."""
+        """Render a reading on the display.
+
+        Layout optimized for yellow/blue SSD1306 displays:
+        - Yellow zone (top 16px): Header
+        - Blue zone (below 16px): Temperature and humidity values
+        """
         from PIL import Image, ImageDraw, ImageFont
 
         cfg = get_settings().display
-        font = ImageFont.truetype(cfg.font_path, cfg.font_size)
-
         image = Image.new("1", (cfg.width, cfg.height))
         draw = ImageDraw.Draw(image)
         draw.rectangle((0, 0, cfg.width, cfg.height))
-        draw.text(
-            (cfg.text_x_offset, cfg.text_y_temp),
-            f"T: {reading.temperature}",
-            font=font,
-            fill=255,
-        )
-        draw.text(
-            (cfg.text_x_offset, cfg.text_y_humidity),
-            f"H: {reading.humidity}",
-            font=font,
-            fill=255,
-        )
+
+        # Yellow zone: Header (small font)
+        header_font = ImageFont.truetype(cfg.font_path, 12)
+        draw.text((0, 2), "ROOM CLIMATE", font=header_font, fill=255)
+
+        # Blue zone: Values (larger font)
+        value_font = ImageFont.truetype(cfg.font_path, 18)
+        draw.text((0, 22), f"{reading.temperature}C", font=value_font, fill=255)
+        draw.text((68, 22), f"{reading.humidity}%", font=value_font, fill=255)
+
+        # Labels below values
+        label_font = ImageFont.truetype(cfg.font_path, 10)
+        draw.text((0, 46), "temp", font=label_font, fill=255)
+        draw.text((68, 46), "humid", font=label_font, fill=255)
+
         self._oled.image(image)
         self._oled.show()

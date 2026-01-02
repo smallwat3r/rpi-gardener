@@ -87,7 +87,7 @@ class TestAlertEvent:
         message = format_alert_message(event)
 
         assert "Humidity" in message
-        assert "alert!" in message
+        assert "too humid" in message
         assert "75.0%" in message
         assert "65%" in message
         assert "12:00:00" in message
@@ -104,7 +104,7 @@ class TestAlertEvent:
         message = format_alert_message(event)
 
         assert "Humidity" in message
-        assert "resolved" in message
+        assert "back to normal" in message
         assert "50.0%" in message
         assert "12:00:00" in message
 

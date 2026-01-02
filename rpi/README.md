@@ -64,5 +64,5 @@ The web dashboard displays:
 - **Visual Alerts**: Warning badges appear when values exceed thresholds
   - Temperature: "Too hot" / "Too cold"
   - Humidity: "Too humid" / "Too dry"
-  - Moisture: "Needs water"
+  - Moisture: "Thirsty"
 - **Danger Zones**: Red-shaded areas on charts indicate out-of-range values

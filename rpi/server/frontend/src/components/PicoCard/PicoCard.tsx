@@ -73,7 +73,7 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
   return (
     <article class={styles.card} aria-labelledby="pico-card-header">
       <h2 id="pico-card-header" class={styles.header}>
-        Soil Moisture
+        🪴 Soil Moisture
       </h2>
       <div class={styles.body}>
         <p class={styles.lastUpdate}>
@@ -94,7 +94,7 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
                   <p class={styles.display} style={{ color: PLANT_COLOR }} aria-live="polite">
                     {plant.moisture}%
                   </p>
-                  {status === 'alert' && <WarningBadge>Needs water</WarningBadge>}
+                  {status === 'alert' && <WarningBadge>Thirsty</WarningBadge>}
                   <button
                     type="button"
                     class={styles.expandBtn}
@@ -120,7 +120,12 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
       </div>
 
       {openPlant && (
-        <Modal isOpen={true} onClose={closeModal} title={formatPlantLabel(openPlant.plant_id)} scrollable>
+        <Modal
+          isOpen={true}
+          onClose={closeModal}
+          title={formatPlantLabel(openPlant.plant_id)}
+          scrollable
+        >
           <LineChart
             data={data}
             series={getPlantSeries(openPlant.plant_id)}

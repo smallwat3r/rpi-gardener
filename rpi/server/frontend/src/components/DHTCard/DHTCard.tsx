@@ -108,7 +108,7 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
   return (
     <article class={styles.card} aria-labelledby="dht-card-header">
       <h2 id="dht-card-header" class={styles.header}>
-        Room Climate
+        🌡️ Room Climate
       </h2>
       <div class={styles.body}>
         <p class={styles.lastUpdate}>
@@ -182,7 +182,12 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
         </div>
       </div>
 
-      <Modal isOpen={openModal === 'temperature'} onClose={closeModal} title="Temperature" scrollable>
+      <Modal
+        isOpen={openModal === 'temperature'}
+        onClose={closeModal}
+        title="Temperature"
+        scrollable
+      >
         <LineChart
           data={data}
           series={TEMP_SERIES}

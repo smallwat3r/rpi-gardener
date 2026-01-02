@@ -26,33 +26,70 @@ from rpi.logging import get_logger
 
 logger = get_logger("lib.notifications")
 
-SENSOR_LABELS: dict[str | int, str] = {
-    MeasureName.TEMPERATURE: "Temperature",
-    MeasureName.HUMIDITY: "Humidity",
-    PlantId.PLANT_1: "Plant 1",
-    PlantId.PLANT_2: "Plant 2",
-    PlantId.PLANT_3: "Plant 3",
+SENSOR_LABELS: dict[str | int, tuple[str, str]] = {
+    # (label, emoji)
+    MeasureName.TEMPERATURE: ("Temperature", "🌡️"),
+    MeasureName.HUMIDITY: ("Humidity", "💧"),
+    PlantId.PLANT_1: ("Plant 1", "🪴"),
+    PlantId.PLANT_2: ("Plant 2", "🪴"),
+    PlantId.PLANT_3: ("Plant 3", "🪴"),
 }
+
+
+def get_sensor_info(sensor_name: str | int) -> tuple[str, str]:
+    """Get human-readable label and emoji for a sensor."""
+    if sensor_name in SENSOR_LABELS:
+        return SENSOR_LABELS[sensor_name]
+    if isinstance(sensor_name, int):
+        return (f"Plant {sensor_name}", "🪴")
+    return (str(sensor_name).replace("-", " ").title(), "📊")
 
 
 def get_sensor_label(sensor_name: str | int) -> str:
     """Get human-readable label for a sensor."""
-    if sensor_name in SENSOR_LABELS:
-        return SENSOR_LABELS[sensor_name]
-    if isinstance(sensor_name, int):
-        return f"Plant {sensor_name}"
-    return str(sensor_name).replace("-", " ").title()
+    return get_sensor_info(sensor_name)[0]
+
+
+def _get_alert_description(event: AlertEvent) -> str:
+    """Get a descriptive message for the alert based on sensor type and value."""
+    label, emoji = get_sensor_info(event.sensor_name)
+    is_below = event.threshold is not None and event.value < event.threshold
+
+    # Plant/moisture alerts (min threshold only)
+    if isinstance(event.sensor_name, int) or str(event.sensor_name).startswith(
+        "plant"
+    ):
+        if event.is_resolved:
+            return f"{emoji} {label} is watered"
+        return f"{emoji} {label} is thirsty"
+
+    # Temperature alerts
+    if event.sensor_name == MeasureName.TEMPERATURE:
+        if event.is_resolved:
+            return f"{emoji} {label} is back to normal"
+        return f"{emoji} {label} is too {'cold' if is_below else 'hot'}"
+
+    # Humidity alerts
+    if event.sensor_name == MeasureName.HUMIDITY:
+        if event.is_resolved:
+            return f"{emoji} {label} is back to normal"
+        return f"{emoji} {label} is too {'dry' if is_below else 'humid'}"
+
+    # Generic fallback
+    if event.is_resolved:
+        return f"{emoji} {label} is back to normal"
+    return f"{emoji} {label} alert"
 
 
 def format_alert_message(event: AlertEvent) -> str:
     """Format an alert event as a notification message."""
-    label = get_sensor_label(event.sensor_name)
+    description = _get_alert_description(event)
     time_str = event.recording_time.strftime("%H:%M:%S")
 
     if event.is_resolved:
-        return f"{label} resolved\n\nCurrent value: {event.value:.1f}{event.unit}\nTime: {time_str}"
+        return f"{description}\n\nCurrent value: {event.value:.1f}{event.unit}\nTime: {time_str}"
     return (
-        f"{label} alert!\n\n"
+        f"{description}!\n\n"
         f"Current value: {event.value:.1f}{event.unit}\n"
         f"Threshold: {event.threshold:.0f}{event.unit}\n"
         f"Time: {time_str}"
@@ -176,11 +213,10 @@ class SlackNotifier(AbstractNotifier):
     @override
     async def send(self, event: AlertEvent) -> None:
         """Send Slack notification."""
-        label = get_sensor_label(event.sensor_name)
+        title = _get_alert_description(event)
         time_str = event.recording_time.strftime("%H:%M:%S")
 
         if event.is_resolved:
-            title = f"{label} Resolved"
             fields = [
                 {
                     "type": "mrkdwn",
@@ -188,7 +224,6 @@ class SlackNotifier(AbstractNotifier):
                 },
             ]
         else:
-            title = f"{label} Alert"
             fields = [
                 {
                     "type": "mrkdwn",

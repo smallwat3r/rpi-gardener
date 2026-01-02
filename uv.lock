@@ -790,7 +790,9 @@ hardware = [
     { name = "adafruit-circuitpython-dht" },
     { name = "adafruit-circuitpython-ssd1306" },
     { name = "aioserial" },
+    { name = "mpremote" },
     { name = "pillow" },
+    { name = "rpi-gpio" },
 ]
 micropython = [
     { name = "mpremote" },
@@ -803,6 +805,7 @@ requires-dist = [
     { name = "adafruit-circuitpython-ssd1306", marker = "extra == 'hardware'" },
     { name = "aioserial", marker = "extra == 'hardware'" },
     { name = "aiosqlite" },
+    { name = "mpremote", marker = "extra == 'hardware'" },
     { name = "mpremote", marker = "extra == 'micropython'" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "pillow", marker = "extra == 'hardware'" },
@@ -812,6 +815,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24" },
     { name = "redis", specifier = ">=5.0" },
+    { name = "rpi-gpio", marker = "extra == 'hardware'" },
     { name = "rshell", marker = "extra == 'micropython'" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
     { name = "starlette" },
@@ -819,6 +823,12 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"] },
 ]
 provides-extras = ["hardware", "dev", "micropython"]
+
+[[package]]
+name = "rpi-gpio"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/0f/10b524a12b3445af1c607c27b2f5ed122ef55756e29942900e5c950735f2/RPi.GPIO-0.7.1.tar.gz", hash = "sha256:cd61c4b03c37b62bba4a5acfea9862749c33c618e0295e7e90aa4713fb373b70", size = 29090, upload-time = "2022-02-06T15:15:06.022Z" }
 
 [[package]]
 name = "rshell"

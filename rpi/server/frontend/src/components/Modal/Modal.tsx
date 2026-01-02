@@ -8,9 +8,11 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: ComponentChildren;
+  /** Enable horizontal scrolling for wide content like charts */
+  scrollable?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, scrollable = false }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<Element | null>(null);
 
@@ -75,7 +77,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             </button>
           </div>
         )}
-        <div class={styles.body}>{children}</div>
+        <div class={`${styles.body} ${scrollable ? styles.scrollable : ''}`}>{children}</div>
       </div>
     </div>,
     document.body,

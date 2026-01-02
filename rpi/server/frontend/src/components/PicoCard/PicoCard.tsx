@@ -120,7 +120,7 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
       </div>
 
       {openPlant && (
-        <Modal isOpen={true} onClose={closeModal} title={formatPlantLabel(openPlant.plant_id)}>
+        <Modal isOpen={true} onClose={closeModal} title={formatPlantLabel(openPlant.plant_id)} scrollable>
           <LineChart
             data={data}
             series={getPlantSeries(openPlant.plant_id)}

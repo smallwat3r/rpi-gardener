@@ -182,7 +182,7 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
         </div>
       </div>
 
-      <Modal isOpen={openModal === 'temperature'} onClose={closeModal} title="Temperature">
+      <Modal isOpen={openModal === 'temperature'} onClose={closeModal} title="Temperature" scrollable>
         <LineChart
           data={data}
           series={TEMP_SERIES}
@@ -194,7 +194,7 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
         />
       </Modal>
 
-      <Modal isOpen={openModal === 'humidity'} onClose={closeModal} title="Humidity">
+      <Modal isOpen={openModal === 'humidity'} onClose={closeModal} title="Humidity" scrollable>
         <LineChart
           data={data}
           series={HUMIDITY_SERIES}

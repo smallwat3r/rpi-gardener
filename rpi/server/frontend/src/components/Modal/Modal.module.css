@@ -152,5 +152,4 @@
   .scrollable::-webkit-scrollbar-thumb:active {
     background: var(--color-text);
   }
-
 }

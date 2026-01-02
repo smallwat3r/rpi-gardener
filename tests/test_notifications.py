@@ -290,9 +290,7 @@ class TestSlackNotifier:
 
     @pytest.mark.asyncio
     @patch("rpi.lib.notifications.requests.post")
-    async def test_no_retry_on_non_network_error(
-        self, mock_post, frozen_time
-    ):
+    async def test_no_retry_on_non_network_error(self, mock_post, frozen_time):
         mock_post.side_effect = ValueError("Bad data")
 
         event = make_alert_event(

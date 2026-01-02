@@ -111,6 +111,8 @@
 @media (max-width: 768px) {
   .overlay {
     padding: 0;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .content {
@@ -126,9 +128,7 @@
     padding: var(--spacing-md);
   }
 
-  /* Add scroll area below chart for easier touch scrolling */
   .scrollable {
-    padding-bottom: 60px;
     position: relative;
   }
 

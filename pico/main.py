@@ -118,5 +118,4 @@ def main():
         wdt.feed()
 
 
-if __name__ == "__main__":
-    main()
+main()

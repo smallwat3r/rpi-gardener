@@ -26,5 +26,9 @@ if [ -d /app/data ] && id appuser >/dev/null 2>&1; then
     chown -R appuser:appgroup /app/data
 fi
 
+# Sync main.py to Pico and start it
+echo "Syncing Pico..."
+/pico-sync.sh
+
 echo "Starting application..."
 exec "$@"

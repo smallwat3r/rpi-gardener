@@ -19,6 +19,7 @@ hardware = [
     "pillow",
     "aioserial",
     "RPi.GPIO",
+    "mpremote",
 ]
 dev = [
     "pytest>=8.0",

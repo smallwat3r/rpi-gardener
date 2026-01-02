@@ -36,11 +36,13 @@ RUN groupadd --gid 1000 appgroup \
 WORKDIR /app
 COPY --from=python-builder /opt/venv /opt/venv
 COPY --chown=appuser:appgroup rpi/ ./rpi/
+COPY --chown=appuser:appgroup pico/main.py ./pico/main.py
 COPY --from=frontend-builder --chown=appuser:appgroup /static/dist ./rpi/server/static/dist
 COPY --chown=root:root docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY --chown=root:root docker/entrypoint.sh /entrypoint.sh
+COPY --chown=root:root docker/pico-sync.sh /pico-sync.sh
 COPY --chown=root:root docker/crontab /etc/cron.d/db-cleanup
-RUN chmod 755 /entrypoint.sh \
+RUN chmod 755 /entrypoint.sh /pico-sync.sh \
     && chmod 644 /etc/cron.d/db-cleanup \
     && mkdir -p /app/data \
     && chown appuser:appgroup /app/data

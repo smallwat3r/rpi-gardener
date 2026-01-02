@@ -1,7 +1,10 @@
 import type { DashboardData, Thresholds } from '@/types';
 
-export async function fetchDashboardData(hours: number = 3): Promise<DashboardData> {
-  const response = await fetch(`/api/dashboard?hours=${hours}`);
+export async function fetchDashboardData(
+  hours: number = 3,
+  signal?: AbortSignal,
+): Promise<DashboardData> {
+  const response = await fetch(`/api/dashboard?hours=${hours}`, { signal });
   if (!response.ok) {
     throw new Error(`Failed to fetch dashboard data: ${response.statusText}`);
   }

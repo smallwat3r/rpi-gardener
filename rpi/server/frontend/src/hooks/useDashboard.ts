@@ -19,11 +19,13 @@ export function useDashboard(initialHours: number = 24) {
   const lastDhtEpoch = useRef<number | null>(null);
   const lastPicoEpoch = useRef<number | null>(null);
   const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      abortControllerRef.current?.abort();
     };
   }, []);
 
@@ -43,16 +45,23 @@ export function useDashboard(initialHours: number = 24) {
 
   const loadData = useCallback(async () => {
     if (!mountedRef.current) return;
+
+    // Cancel any in-flight request
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchDashboardData(hours);
+      const result = await fetchDashboardData(hours, abortControllerRef.current.signal);
       if (!mountedRef.current) return;
       setData(result);
       lastDhtEpoch.current = result.latest?.epoch ?? null;
       lastPicoEpoch.current = result.pico_latest[0]?.epoch ?? null;
     } catch (err) {
       if (!mountedRef.current) return;
+      // Ignore abort errors
+      if (err instanceof Error && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       if (mountedRef.current) {

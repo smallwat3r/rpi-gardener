@@ -125,18 +125,39 @@
 
   /* Add scroll area below chart for easier touch scrolling */
   .scrollable {
-    padding-bottom: 48px;
+    padding-bottom: 60px;
     position: relative;
+  }
+
+  /* Visible scrollbar for touch scrolling */
+  .scrollable::-webkit-scrollbar {
+    height: 24px;
+  }
+
+  .scrollable::-webkit-scrollbar-track {
+    background: var(--color-bg);
+    border-radius: 12px;
+    margin: 0 var(--spacing-sm);
+  }
+
+  .scrollable::-webkit-scrollbar-thumb {
+    background: var(--color-text-muted);
+    border-radius: 12px;
+    border: 6px solid var(--color-bg);
+  }
+
+  .scrollable::-webkit-scrollbar-thumb:active {
+    background: var(--color-text);
   }
 
   /* Scroll hint indicator */
   .scrollable::after {
-    content: "← swipe to scroll →";
+    content: "← drag bar to scroll →";
     display: block;
     text-align: center;
     color: var(--color-text-muted);
     font-size: var(--font-size-xs);
-    padding-top: var(--spacing-md);
-    opacity: 0.6;
+    padding-top: var(--spacing-sm);
+    opacity: 0.5;
   }
 }

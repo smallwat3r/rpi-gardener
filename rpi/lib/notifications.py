@@ -82,14 +82,12 @@ def _get_alert_description(event: AlertEvent) -> str:
 
 
 def format_alert_message(event: AlertEvent) -> str:
-    """Format an alert event as a notification message."""
-    description = _get_alert_description(event)
+    """Format an alert event as a notification message body."""
     time_str = event.recording_time.strftime("%H:%M:%S")
 
     if event.is_resolved:
-        return f"{description}\n\nCurrent value: {event.value:.1f}{event.unit}\nTime: {time_str}"
+        return f"Current value: {event.value:.1f}{event.unit}\nTime: {time_str}"
     return (
-        f"{description}!\n\n"
         f"Current value: {event.value:.1f}{event.unit}\n"
         f"Threshold: {event.threshold:.0f}{event.unit}\n"
         f"Time: {time_str}"

@@ -3,7 +3,9 @@
   flex-direction: column;
   gap: var(--spacing-md);
   max-width: 100%;
+  width: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .loading,
@@ -20,6 +22,7 @@
   padding-bottom: var(--spacing-md);
   border-bottom: 1px solid var(--color-border);
   min-width: 0;
+  max-width: 100%;
 }
 
 .section:last-of-type {
@@ -38,6 +41,7 @@
   display: flex;
   gap: var(--spacing-sm);
   min-width: 0;
+  max-width: 100%;
 }
 
 .grid {
@@ -45,6 +49,8 @@
   grid-template-columns: repeat(4, 1fr);
   gap: var(--spacing-sm);
   min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
 .field {
@@ -53,6 +59,8 @@
   gap: 2px;
   flex: 1;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .label {
@@ -66,12 +74,21 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text);
-  font-size: var(--font-size-sm);
+  font-size: 16px; /* Prevent zoom on iOS */
   outline: none;
   transition: border-color 0.15s;
   width: 100%;
   box-sizing: border-box;
   max-width: 100%;
+  min-width: 0;
+  -moz-appearance: textfield; /* Hide spinners on Firefox */
+}
+
+/* Hide number input spinners */
+.input::-webkit-outer-spin-button,
+.input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .input:focus {

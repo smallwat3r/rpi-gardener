@@ -85,8 +85,10 @@
 .body {
   padding: var(--spacing-lg);
   overflow: auto;
+  overflow-x: hidden;
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
 /* Scrollable variant for chart modals */

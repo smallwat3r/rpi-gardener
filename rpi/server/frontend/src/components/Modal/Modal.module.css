@@ -97,6 +97,13 @@
 
 .scrollable > * {
   min-width: 500px;
+  /* Allow horizontal scroll by dragging on chart */
+  touch-action: pan-x pan-y;
+}
+
+/* Ensure canvas inside scrollable area allows touch scrolling */
+.scrollable canvas {
+  touch-action: pan-x pan-y;
 }
 
 @media (max-width: 768px) {

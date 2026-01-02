@@ -164,13 +164,9 @@ Gmail App Password (not your account password).
 
     ls -la /dev/i2c-* /dev/gpiochip0 /dev/gpiomem /dev/ttyACM*
 
-**Pico on different serial port**: If the Pico appears as `/dev/ttyACM1`
-instead of `/dev/ttyACM0`, update `docker-compose.yml`:
-
-```yaml
-devices:
-  - /dev/ttyACM1:/dev/ttyACM0
-```
+**Pico on different serial port**: The app auto-detects `/dev/ttyACM0` or
+`/dev/ttyACM1`. You can also set `PICO_SERIAL_PORT` in `.env` to specify
+a custom port.
 
 ## Security
 

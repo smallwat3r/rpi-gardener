@@ -1,5 +1,6 @@
 """Centralized configuration for the RPi Gardener application."""
 
+import os
 import re
 from enum import IntEnum, StrEnum
 from functools import cached_property, lru_cache
@@ -111,6 +112,14 @@ def _validate_http_url_or_empty(v: str) -> str:
         return v
     HttpUrl(v)
     return v
+
+
+def _detect_pico_port() -> str | None:
+    """Auto-detect Pico serial port (ttyACM0 or ttyACM1)."""
+    for port in ("/dev/ttyACM0", "/dev/ttyACM1"):
+        if os.path.exists(port):
+            return port
+    return None
 
 
 _EmailOrEmpty = Annotated[str, AfterValidator(_validate_email_or_empty)]
@@ -322,8 +331,12 @@ class Settings(BaseSettings):
     @cached_property
     def pico(self) -> PicoSettings:
         """Get Pico settings as nested object."""
+        serial_port = self.pico_serial_port
+        # Auto-detect if set to "auto" or configured port doesn't exist
+        if serial_port == "auto" or not os.path.exists(serial_port):
+            serial_port = _detect_pico_port() or self.pico_serial_port
         return PicoSettings(
-            serial_port=self.pico_serial_port,
+            serial_port=serial_port,
             serial_baud=self.pico_serial_baud,
             serial_timeout_sec=self.pico_serial_timeout_sec,
         )

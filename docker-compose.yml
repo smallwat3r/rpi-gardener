@@ -36,8 +36,10 @@ services:
       - /dev/gpiomem:/dev/gpiomem
       - /dev/gpiochip0:/dev/gpiochip0
       - /dev/i2c-1:/dev/i2c-1
-      - /dev/ttyACM0:/dev/ttyACM0
+    device_cgroup_rules:
+      - 'c 166:* rmw'  # ttyACM devices
     volumes:
+      - /dev:/dev:ro
       - db_data:/app/data
       - socket:/tmp
       - static:/app/rpi/server/static

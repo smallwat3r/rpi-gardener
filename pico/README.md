@@ -85,18 +85,10 @@ on the RPi can restart it periodically:
 **Incorrect moisture readings**: Calibration values vary by sensor.
 Submerge sensor in water (100%) and dry air (0%) to determine min/max.
 
-**Serial port not found**: Ensure the Pico is connected via USB and check
-which device it's on:
+**Serial port not found**: Ensure the Pico is connected via USB. The app
+auto-detects `/dev/ttyACM0` or `/dev/ttyACM1`. Check available ports:
 
     ls /dev/ttyACM*
-
-If it's on `/dev/ttyACM1` instead of `/dev/ttyACM0`, update the device
-mapping in `docker-compose.yml`:
-
-```yaml
-devices:
-  - /dev/ttyACM1:/dev/ttyACM0
-```
 
 **mpremote can't connect (raw repl error)**: The Pico is busy running code.
 Unplug and replug the USB cable, then quickly run `mpremote` before `main.py`

@@ -2,7 +2,6 @@
 # Sync main.py to the Pico and start it
 # This script is run at container startup before services start
 
-PICO_DEVICE="/dev/ttyACM0"
 PICO_SCRIPT="/app/pico/main.py"
 MAX_RETRIES=3
 RETRY_DELAY=2
@@ -11,9 +10,18 @@ log() {
     echo "[pico-sync] $1"
 }
 
+# Detect Pico device (try ttyACM0 first, then ttyACM1)
+PICO_DEVICE=""
+for dev in /dev/ttyACM0 /dev/ttyACM1; do
+    if [ -c "$dev" ]; then
+        PICO_DEVICE="$dev"
+        break
+    fi
+done
+
 # Check if Pico is connected
-if [ ! -c "$PICO_DEVICE" ]; then
-    log "Pico not found at $PICO_DEVICE, skipping sync"
+if [ -z "$PICO_DEVICE" ]; then
+    log "Pico not found on ttyACM0 or ttyACM1, skipping sync"
     exit 0
 fi
 

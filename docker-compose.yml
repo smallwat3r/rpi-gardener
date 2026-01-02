@@ -18,7 +18,7 @@ services:
         apk add --no-cache openssl &&
         if [ ! -f /certs/server.crt ]; then
           echo 'Generating self-signed certificate...' &&
-          openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /certs/server.key -out /certs/server.crt -subj '/CN=rpi-gardener/O=Home/C=US' -addext 'subjectAltName=DNS:localhost,DNS:rpi-gardener,IP:127.0.0.1' &&
+          openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /certs/server.key -out /certs/server.crt -subj '/CN=gardener.local/O=Home/C=US' -addext 'subjectAltName=DNS:localhost,DNS:gardener.local,DNS:rpi-gardener,IP:127.0.0.1' &&
           chmod 644 /certs/server.crt &&
           chmod 600 /certs/server.key &&
           echo 'Certificate generated successfully';

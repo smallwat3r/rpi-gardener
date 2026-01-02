@@ -165,11 +165,22 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .checkboxGroup {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
   .actions {
     flex-direction: column-reverse;
   }
 
   .saveButton {
     width: 100%;
+  }
+}
+
+@media (max-width: 320px) {
+  .grid {
+    grid-template-columns: 1fr;
   }
 }

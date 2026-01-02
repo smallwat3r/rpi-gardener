@@ -100,9 +100,14 @@
 }
 
 @media (max-width: 768px) {
+  .overlay {
+    padding: var(--spacing-sm);
+  }
+
   .content {
-    width: 95%;
-    max-height: 85vh;
+    width: 100%;
+    max-width: calc(100vw - var(--spacing-md));
+    max-height: 90vh;
   }
 
   .body {

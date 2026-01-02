@@ -131,7 +131,7 @@ class GmailNotifier(AbstractNotifier):
                 server.starttls(context=context)
                 server.login(gmail.username, gmail.password.get_secret_value())
                 server.send_message(message)
-            logger.info("Sent email notification for %s", sensor_name)
+            logger.info("Sent email notification for %s", get_sensor_label(sensor_name))
 
         await with_retry(
             do_send,
@@ -145,10 +145,7 @@ class GmailNotifier(AbstractNotifier):
     @override
     async def send(self, event: AlertEvent) -> None:
         """Send email notification."""
-        base_subject = get_settings().notifications.gmail.subject
-        subject = (
-            f"{base_subject} - Resolved" if event.is_resolved else base_subject
-        )
+        subject = _get_alert_description(event)
         message = self._build_email(subject, format_alert_message(event))
         await self._send_email(message, event.sensor_name)
 
@@ -199,7 +196,7 @@ class SlackNotifier(AbstractNotifier):
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 if resp.status != 200:
                     raise OSError(f"Slack API returned status {resp.status}")
-            logger.info("Sent Slack notification for %s", sensor_name)
+            logger.info("Sent Slack notification for %s", get_sensor_label(sensor_name))
 
         await with_retry(
             do_send,

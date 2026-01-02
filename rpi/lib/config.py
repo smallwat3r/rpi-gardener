@@ -135,7 +135,6 @@ class GmailSettings(BaseModel):
     recipients: str = ""  # Comma-separated list, validated separately
     username: str = ""
     password: SecretStr = SecretStr("")
-    subject: str = "Sensor alert!"
 
 
 class SlackSettings(BaseModel):
@@ -266,7 +265,6 @@ class Settings(BaseSettings):
     gmail_recipients: str = ""  # Comma-separated list
     gmail_username: str = ""
     gmail_password: SecretStr = SecretStr("")
-    gmail_subject: str = "Sensor alert!"
     slack_webhook_url: _HttpUrlOrEmpty = ""
     email_max_retries: int = Field(default=3, ge=0)
     email_initial_backoff_sec: int = Field(default=2, ge=0)
@@ -320,7 +318,6 @@ class Settings(BaseSettings):
                 recipients=self.gmail_recipients,
                 username=self.gmail_username,
                 password=self.gmail_password,
-                subject=self.gmail_subject,
             ),
             slack=SlackSettings(webhook_url=self.slack_webhook_url),
             max_retries=self.email_max_retries,

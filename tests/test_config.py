@@ -71,7 +71,6 @@ class TestGmailSettings:
         assert settings.recipients == ""
         assert settings.username == ""
         assert settings.password.get_secret_value() == ""
-        assert settings.subject == "Sensor alert!"
 
 
 class TestSlackSettings:

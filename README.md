@@ -79,7 +79,6 @@ GMAIL_SENDER=
 GMAIL_RECIPIENTS=
 GMAIL_USERNAME=
 GMAIL_PASSWORD=
-GMAIL_SUBJECT=Sensor alert!
 
 # Slack (create webhook at https://api.slack.com/messaging/webhooks)
 SLACK_WEBHOOK_URL=

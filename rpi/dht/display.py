@@ -59,14 +59,14 @@ class Display:
         draw.text((header_x, 2), header_text, font=header_font, fill=255)
 
         # Blue zone: Values (larger font, spaced apart)
-        value_font = ImageFont.truetype(cfg.font_path, 18)
-        draw.text((0, 22), str(reading.temperature), font=value_font, fill=255)
-        draw.text((75, 22), str(reading.humidity), font=value_font, fill=255)
+        value_font = ImageFont.truetype(cfg.font_path, 16)
+        draw.text((0, 24), str(reading.temperature), font=value_font, fill=255)
+        draw.text((70, 24), str(reading.humidity), font=value_font, fill=255)
 
         # Labels below values
         label_font = ImageFont.truetype(cfg.font_path, 10)
         draw.text((0, 46), "temp", font=label_font, fill=255)
-        draw.text((75, 46), "humid", font=label_font, fill=255)
+        draw.text((70, 46), "humid", font=label_font, fill=255)
 
         self._oled.image(image)
         self._oled.show()

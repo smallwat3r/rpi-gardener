@@ -44,7 +44,7 @@ tests/
 
 # Project specific
 img/
-pico/
+pico/README.md
 nginx/
 
 # Docker

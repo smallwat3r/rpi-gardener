@@ -36,6 +36,7 @@ RUN groupadd --gid 1000 appgroup \
 WORKDIR /app
 COPY --from=python-builder /opt/venv /opt/venv
 COPY --chown=appuser:appgroup rpi/ ./rpi/
+RUN mkdir -p ./pico
 COPY --chown=appuser:appgroup pico/main.py ./pico/main.py
 COPY --from=frontend-builder --chown=appuser:appgroup /static/dist ./rpi/server/static/dist
 COPY --chown=root:root docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf

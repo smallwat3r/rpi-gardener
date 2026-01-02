@@ -26,11 +26,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /root/.cache \
     && find /var/log -type f -delete
 
-# Non-root user with hardware access
+# Non-root user with hardware access (GIDs must match host: gpio=993, i2c=994)
 RUN groupadd --gid 1000 appgroup \
     && groupadd --gid 993 gpio \
+    && groupadd --gid 994 i2c \
     && useradd --uid 1000 --gid appgroup --shell /usr/sbin/nologin --no-create-home appuser \
-    && usermod -aG dialout,i2c,gpio appuser 2>/dev/null || true
+    && usermod -aG dialout,i2c,gpio appuser
 
 WORKDIR /app
 COPY --from=python-builder /opt/venv /opt/venv

@@ -243,14 +243,11 @@ class TestSlackNotifier:
     """Tests for the Slack notification backend."""
 
     @pytest.mark.asyncio
-    @patch("rpi.lib.notifications.urllib.request.urlopen")
-    @patch("rpi.lib.notifications.urllib.request.Request")
-    async def test_successful_send(
-        self, mock_request, mock_urlopen, frozen_time
-    ):
+    @patch("rpi.lib.notifications.requests.post")
+    async def test_successful_send(self, mock_post, frozen_time):
         mock_response = MagicMock()
-        mock_response.status = 200
-        mock_urlopen.return_value.__enter__.return_value = mock_response
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
 
         event = make_alert_event(
             sensor_name="test",
@@ -263,21 +260,19 @@ class TestSlackNotifier:
         notifier = SlackNotifier()
         await notifier.send(event)
 
-        mock_request.assert_called_once()
-        mock_urlopen.assert_called_once()
+        mock_post.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("asyncio.sleep", new_callable=AsyncMock)
-    @patch("rpi.lib.notifications.urllib.request.urlopen")
-    @patch("rpi.lib.notifications.urllib.request.Request")
+    @patch("rpi.lib.notifications.requests.post")
     async def test_retry_on_network_error(
-        self, mock_request, mock_urlopen, mock_sleep, frozen_time
+        self, mock_post, mock_sleep, frozen_time
     ):
         mock_success = MagicMock()
-        mock_success.status = 200
-        mock_urlopen.side_effect = [
+        mock_success.raise_for_status = MagicMock()
+        mock_post.side_effect = [
             OSError("Network error"),
-            MagicMock(__enter__=MagicMock(return_value=mock_success)),
+            mock_success,
         ]
 
         event = make_alert_event(
@@ -291,15 +286,14 @@ class TestSlackNotifier:
         notifier = SlackNotifier()
         await notifier.send(event)
 
-        assert mock_urlopen.call_count == 2
+        assert mock_post.call_count == 2
 
     @pytest.mark.asyncio
-    @patch("rpi.lib.notifications.urllib.request.urlopen")
-    @patch("rpi.lib.notifications.urllib.request.Request")
+    @patch("rpi.lib.notifications.requests.post")
     async def test_no_retry_on_non_network_error(
-        self, mock_request, mock_urlopen, frozen_time
+        self, mock_post, frozen_time
     ):
-        mock_urlopen.side_effect = ValueError("Bad data")
+        mock_post.side_effect = ValueError("Bad data")
 
         event = make_alert_event(
             sensor_name="test",
@@ -312,7 +306,7 @@ class TestSlackNotifier:
         notifier = SlackNotifier()
         await notifier.send(event)
 
-        assert mock_urlopen.call_count == 1
+        assert mock_post.call_count == 1
 
     def test_build_payload(self, frozen_time):
         notifier = SlackNotifier()
@@ -331,14 +325,11 @@ class TestSlackNotifier:
         assert "65%" in result_fields[1]["text"]
 
     @pytest.mark.asyncio
-    @patch("rpi.lib.notifications.urllib.request.urlopen")
-    @patch("rpi.lib.notifications.urllib.request.Request")
-    async def test_send_resolved(
-        self, mock_request, mock_urlopen, frozen_time
-    ):
+    @patch("rpi.lib.notifications.requests.post")
+    async def test_send_resolved(self, mock_post, frozen_time):
         mock_response = MagicMock()
-        mock_response.status = 200
-        mock_urlopen.return_value.__enter__.return_value = mock_response
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
 
         event = make_alert_event(
             sensor_name="temperature",
@@ -351,7 +342,7 @@ class TestSlackNotifier:
         notifier = SlackNotifier()
         await notifier.send(event)
 
-        mock_urlopen.assert_called_once()
+        mock_post.assert_called_once()
 
 
 class TestCompositeNotifier:

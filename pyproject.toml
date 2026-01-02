@@ -8,6 +8,7 @@ dependencies = [
     "pydantic[email]>=2.0",
     "pydantic-settings>=2.0",
     "redis>=5.0",
+    "requests",
     "starlette",
     "uvicorn[standard]",
 ]
@@ -28,6 +29,7 @@ dev = [
     "ruff>=0.8",
     "pre-commit>=4.0",
     "types-redis",
+    "types-requests",
 ]
 micropython = [
     "mpremote",

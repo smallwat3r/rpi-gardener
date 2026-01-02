@@ -5,13 +5,13 @@ Supports Gmail and Slack notifications, or both simultaneously.
 """
 
 import asyncio
-import json
 import ssl
-import urllib.request
 from abc import ABC, abstractmethod
 from email.message import EmailMessage
 from smtplib import SMTP
 from typing import Any, override
+
+import requests
 
 from rpi.lib.alerts import AlertEvent
 from rpi.lib.config import (
@@ -183,21 +183,17 @@ class SlackNotifier(AbstractNotifier):
         self, payload: dict[str, Any], sensor_name: str | int
     ) -> None:
         """Send a Slack message with retry logic."""
-        data = json.dumps(payload).encode("utf-8")
         cfg = get_settings().notifications
         webhook_url = cfg.slack.webhook_url
         timeout = cfg.timeout_sec
 
         def do_send() -> None:
-            req = urllib.request.Request(
+            resp = requests.post(
                 webhook_url,
-                data=data,
-                headers={"Content-Type": "application/json"},
-                method="POST",
+                json=payload,
+                timeout=timeout,
             )
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                if resp.status != 200:
-                    raise OSError(f"Slack API returned status {resp.status}")
+            resp.raise_for_status()
             logger.info(
                 "Sent Slack notification for %s", get_sensor_label(sensor_name)
             )

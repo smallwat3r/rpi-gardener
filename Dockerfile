@@ -28,8 +28,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Non-root user with hardware access
 RUN groupadd --gid 1000 appgroup \
+    && groupadd --gid 993 gpio \
     && useradd --uid 1000 --gid appgroup --shell /usr/sbin/nologin --no-create-home appuser \
-    && usermod -aG dialout,i2c appuser 2>/dev/null || true
+    && usermod -aG dialout,i2c,gpio appuser 2>/dev/null || true
 
 WORKDIR /app
 COPY --from=python-builder /opt/venv /opt/venv

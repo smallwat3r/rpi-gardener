@@ -18,6 +18,7 @@ hardware = [
     "adafruit-circuitpython-ssd1306",
     "pillow",
     "aioserial",
+    "RPi.GPIO",
 ]
 dev = [
     "pytest>=8.0",

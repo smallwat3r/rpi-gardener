@@ -37,9 +37,11 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 
 ### 2. Install Docker
 
-    curl -fsSL https://get.docker.com | sudo sh
+    sudo apt update
+    sudo apt install -y docker.io docker-compose docker-compose-plugin
+    sudo systemctl enable --now docker
     sudo usermod -aG docker $USER
-    # Log out and back in for group changes to take effect
+    sudo reboot  # reboot pi
 
 ### 3. Configure Environment
 

@@ -36,7 +36,7 @@ services:
       - /dev/gpiomem:/dev/gpiomem
       - /dev/gpiochip0:/dev/gpiochip0
       - /dev/i2c-1:/dev/i2c-1
-      - /dev/ttyACM1:/dev/ttyACM0
+      - /dev/ttyACM0:/dev/ttyACM0
     volumes:
       - db_data:/app/data
       - socket:/tmp

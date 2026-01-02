@@ -96,6 +96,12 @@
   color: var(--color-humidity);
 }
 
+@media (max-width: 480px) {
+  .charts {
+    gap: var(--spacing-sm);
+  }
+}
+
 @media (max-width: 360px) {
   .chartHeader {
     flex-direction: column;

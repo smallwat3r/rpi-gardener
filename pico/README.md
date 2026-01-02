@@ -13,18 +13,39 @@ board, to read values from capacitive soil moisture sensors (v1.2).
 
 Connect the Pico to the RPi via USB cable.
 
-From the RPi, install the requirements:
+From the RPi, install the MicroPython tooling:
 
     make mpdeps
 
-Use `mpremote` to connect to the Pico and install the `ssd1306` lib:
+### First-time setup
 
-    mpremote a0
-    mpremote mip install ssd1306
+1. Install MicroPython on the Pico if not already done:
+   - Hold BOOTSEL button while plugging in USB
+   - Download the `.uf2` file from https://micropython.org/download/RPI_PICO/
+   - Copy it to the mounted drive
 
-Copy `main.py` to the Pico:
+2. Install the `ssd1306` display library:
 
-    mpremote cp pico/main.py :main.py
+       uv run mpremote mip install ssd1306
+
+3. Copy `main.py` to the Pico:
+
+       uv run mpremote cp pico/main.py :main.py
+
+4. Restart the Pico to start the script:
+
+       uv run mpremote soft-reset
+
+5. Verify it's working (should see JSON output every 2 seconds):
+
+       cat /dev/ttyACM0
+
+   Example output:
+
+       {"plant-1": 45.2, "plant-2": 67.8, "plant-3": 52.1}
+
+The script auto-runs on boot, so unplugging and replugging the Pico will
+restart it automatically.
 
 ## Configuration
 
@@ -65,4 +86,18 @@ on the RPi can restart it periodically:
 Submerge sensor in water (100%) and dry air (0%) to determine min/max.
 
 **Serial port not found**: Ensure the Pico is connected via USB and check
-that `/dev/ttyACM0` exists on the RPi.
+which device it's on:
+
+    ls /dev/ttyACM*
+
+If it's on `/dev/ttyACM1` instead of `/dev/ttyACM0`, update the device
+mapping in `docker-compose.yml`:
+
+```yaml
+devices:
+  - /dev/ttyACM1:/dev/ttyACM0
+```
+
+**mpremote can't connect (raw repl error)**: The Pico is busy running code.
+Unplug and replug the USB cable, then quickly run `mpremote` before `main.py`
+starts.

@@ -162,7 +162,15 @@ Gmail App Password (not your account password).
 
 **Container won't start**: Check that I2C is enabled and devices exist:
 
-    ls -la /dev/i2c-* /dev/gpiomem /dev/ttyACM0
+    ls -la /dev/i2c-* /dev/gpiochip0 /dev/gpiomem /dev/ttyACM*
+
+**Pico on different serial port**: If the Pico appears as `/dev/ttyACM1`
+instead of `/dev/ttyACM0`, update `docker-compose.yml`:
+
+```yaml
+devices:
+  - /dev/ttyACM1:/dev/ttyACM0
+```
 
 ## Security
 

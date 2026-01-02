@@ -60,8 +60,8 @@ class Display:
 
         # Blue zone: Values (larger font, spaced apart)
         value_font = ImageFont.truetype(cfg.font_path, 18)
-        draw.text((0, 22), f"{reading.temperature}C", font=value_font, fill=255)
-        draw.text((75, 22), f"{reading.humidity}%", font=value_font, fill=255)
+        draw.text((0, 22), str(reading.temperature), font=value_font, fill=255)
+        draw.text((75, 22), str(reading.humidity), font=value_font, fill=255)
 
         # Labels below values
         label_font = ImageFont.truetype(cfg.font_path, 10)

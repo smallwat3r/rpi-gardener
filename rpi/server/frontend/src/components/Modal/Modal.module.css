@@ -122,4 +122,21 @@
   .body {
     padding: var(--spacing-md);
   }
+
+  /* Add scroll area below chart for easier touch scrolling */
+  .scrollable {
+    padding-bottom: 48px;
+    position: relative;
+  }
+
+  /* Scroll hint indicator */
+  .scrollable::after {
+    content: "← swipe to scroll →";
+    display: block;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    padding-top: var(--spacing-md);
+    opacity: 0.6;
+  }
 }

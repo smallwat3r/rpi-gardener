@@ -153,14 +153,4 @@
     background: var(--color-text);
   }
 
-  /* Scroll hint indicator */
-  .scrollable::after {
-    content: "← drag bar to scroll →";
-    display: block;
-    text-align: center;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-xs);
-    padding-top: var(--spacing-sm);
-    opacity: 0.5;
-  }
 }

@@ -161,7 +161,7 @@
 }
 
 .saveButton {
-  padding: var(--spacing-xs) var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-lg);
   background: var(--color-primary);
   border: none;
   border-radius: var(--radius-sm);

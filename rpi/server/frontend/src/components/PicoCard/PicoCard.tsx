@@ -26,6 +26,11 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
 
   const data = useMemo(() => chartData as unknown as Record<string, number>[], [chartData]);
 
+  const sortedLatest = useMemo(
+    () => [...latest].sort((a, b) => Number(a.plant_id) - Number(b.plant_id)),
+    [latest],
+  );
+
   const getMoistureStatus = (plantId: number | string, moisture: number): 'ok' | 'alert' => {
     if (!thresholds) return 'ok';
     const minThreshold = thresholds.moisture[plantId] ?? 30;
@@ -80,7 +85,7 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
           Last update: <time>{latest[0]?.recording_time}</time> UTC
         </p>
         <div class={styles.charts}>
-          {latest.map((plant) => {
+          {sortedLatest.map((plant) => {
             const status = getMoistureStatus(plant.plant_id, plant.moisture);
             const label = formatPlantLabel(plant.plant_id);
             return (

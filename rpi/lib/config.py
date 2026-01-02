@@ -273,7 +273,7 @@ class Settings(BaseSettings):
     email_timeout_sec: int = Field(default=30, ge=1)
 
     # Pico
-    pico_serial_port: str = "/dev/ttyACM0"
+    pico_serial_port: str = "auto"
     pico_serial_baud: int = Field(default=115200, gt=0)
     pico_serial_timeout_sec: float = Field(default=30.0, gt=0)
 

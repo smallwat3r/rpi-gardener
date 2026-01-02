@@ -75,6 +75,13 @@ mprestart:  ## Restart main.py script on the Pico
 up:  ## Start Docker services (RPi production)
 	docker compose up -d --build
 
+.PHONY: up-rebuild
+up-rebuild:  ## Rebuild prod Docker (clears static volume for fresh FE)
+	docker compose down
+	docker volume rm -f rpi-gardener-static
+	docker compose build --no-cache
+	docker compose up -d
+
 .PHONY: dev
 dev:  ## Start Docker services (local development, no hardware)
 	docker compose -f docker-compose.dev.yml up -d --build

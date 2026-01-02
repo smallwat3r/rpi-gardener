@@ -45,23 +45,28 @@ class Display:
         from PIL import Image, ImageDraw, ImageFont
 
         cfg = get_settings().display
+        bold_font_path = cfg.font_path.replace(".ttf", "-Bold.ttf")
         image = Image.new("1", (cfg.width, cfg.height))
         draw = ImageDraw.Draw(image)
         draw.rectangle((0, 0, cfg.width, cfg.height))
 
-        # Yellow zone: Header (small font)
-        header_font = ImageFont.truetype(cfg.font_path, 12)
-        draw.text((0, 2), "ROOM CLIMATE", font=header_font, fill=255)
+        # Yellow zone: Header (bold, centered)
+        header_font = ImageFont.truetype(bold_font_path, 12)
+        header_text = "ROOM CLIMATE"
+        header_bbox = draw.textbbox((0, 0), header_text, font=header_font)
+        header_width = header_bbox[2] - header_bbox[0]
+        header_x = (cfg.width - header_width) // 2
+        draw.text((header_x, 2), header_text, font=header_font, fill=255)
 
-        # Blue zone: Values (larger font)
+        # Blue zone: Values (larger font, spaced apart)
         value_font = ImageFont.truetype(cfg.font_path, 18)
         draw.text((0, 22), f"{reading.temperature}C", font=value_font, fill=255)
-        draw.text((68, 22), f"{reading.humidity}%", font=value_font, fill=255)
+        draw.text((75, 22), f"{reading.humidity}%", font=value_font, fill=255)
 
         # Labels below values
         label_font = ImageFont.truetype(cfg.font_path, 10)
         draw.text((0, 46), "temp", font=label_font, fill=255)
-        draw.text((68, 46), "humid", font=label_font, fill=255)
+        draw.text((75, 46), "humid", font=label_font, fill=255)
 
         self._oled.image(image)
         self._oled.show()

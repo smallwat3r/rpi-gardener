@@ -50,32 +50,6 @@ def get_sensor_label(sensor_name: str | int) -> str:
     return get_sensor_info(sensor_name)[0]
 
 
-def _get_alert_description(event: AlertEvent) -> str:
-    """Get a descriptive message for the alert based on sensor type and value."""
-    label, emoji = get_sensor_info(event.sensor_name)
-    is_below = event.threshold is not None and event.value < event.threshold
-
-    if event.is_resolved:
-        return f"{emoji} {label} is back to normal"
-
-    # Plant/moisture alerts (min threshold only)
-    if isinstance(event.sensor_name, int) or str(event.sensor_name).startswith(
-        "plant"
-    ):
-        return f"{emoji} {label} is thirsty"
-
-    # Temperature alerts
-    if event.sensor_name == MeasureName.TEMPERATURE:
-        return f"{emoji} {label} is too {'cold' if is_below else 'hot'}"
-
-    # Humidity alerts
-    if event.sensor_name == MeasureName.HUMIDITY:
-        return f"{emoji} {label} is too {'dry' if is_below else 'humid'}"
-
-    # Generic fallback
-    return f"{emoji} {label} alert"
-
-
 def _get_condition_text(event: AlertEvent) -> str:
     """Get a short condition text based on sensor type and value."""
     is_below = event.threshold is not None and event.value < event.threshold
@@ -95,6 +69,13 @@ def _get_condition_text(event: AlertEvent) -> str:
         return "is too dry" if is_below else "is too humid"
 
     return "alert"
+
+
+def _get_alert_description(event: AlertEvent) -> str:
+    """Get a descriptive message for the alert based on sensor type and value."""
+    label, emoji = get_sensor_info(event.sensor_name)
+    condition = _get_condition_text(event)
+    return f"{emoji} {label} {condition}"
 
 
 def format_alert_message(event: AlertEvent) -> str:

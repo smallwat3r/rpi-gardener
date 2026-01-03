@@ -55,39 +55,62 @@ def _get_alert_description(event: AlertEvent) -> str:
     label, emoji = get_sensor_info(event.sensor_name)
     is_below = event.threshold is not None and event.value < event.threshold
 
+    if event.is_resolved:
+        return f"{emoji} {label} is back to normal"
+
     # Plant/moisture alerts (min threshold only)
     if isinstance(event.sensor_name, int) or str(event.sensor_name).startswith(
         "plant"
     ):
-        if event.is_resolved:
-            return f"{emoji} {label} is watered"
         return f"{emoji} {label} is thirsty"
 
     # Temperature alerts
     if event.sensor_name == MeasureName.TEMPERATURE:
-        if event.is_resolved:
-            return f"{emoji} {label} is back to normal"
         return f"{emoji} {label} is too {'cold' if is_below else 'hot'}"
 
     # Humidity alerts
     if event.sensor_name == MeasureName.HUMIDITY:
-        if event.is_resolved:
-            return f"{emoji} {label} is back to normal"
         return f"{emoji} {label} is too {'dry' if is_below else 'humid'}"
 
     # Generic fallback
-    if event.is_resolved:
-        return f"{emoji} {label} is back to normal"
     return f"{emoji} {label} alert"
+
+
+def _get_condition_text(event: AlertEvent) -> str:
+    """Get a short condition text based on sensor type and value."""
+    is_below = event.threshold is not None and event.value < event.threshold
+
+    if event.is_resolved:
+        return "is back to normal"
+
+    if isinstance(event.sensor_name, int) or str(event.sensor_name).startswith(
+        "plant"
+    ):
+        return "is thirsty"
+
+    if event.sensor_name == MeasureName.TEMPERATURE:
+        return "is too cold" if is_below else "is too hot"
+
+    if event.sensor_name == MeasureName.HUMIDITY:
+        return "is too dry" if is_below else "is too humid"
+
+    return "alert"
 
 
 def format_alert_message(event: AlertEvent) -> str:
     """Format an alert event as a notification message body."""
     time_str = event.recording_time.strftime("%H:%M:%S")
+    label = get_sensor_label(event.sensor_name)
+    condition = _get_condition_text(event)
 
     if event.is_resolved:
-        return f"Current value: {event.value:.1f}{event.unit}\nTime: {time_str}"
+        return (
+            f"{label} {condition}\n"
+            f"Current value: {event.value:.1f}{event.unit}\n"
+            f"Time: {time_str}"
+        )
     return (
+        f"{label} {condition}\n"
         f"Current value: {event.value:.1f}{event.unit}\n"
         f"Threshold: {event.threshold:.0f}{event.unit}\n"
         f"Time: {time_str}"

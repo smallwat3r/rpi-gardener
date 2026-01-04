@@ -292,10 +292,7 @@ export const LineChart = memo(function LineChart({
   }, [data, series, yAxes, showArea, colorAxis, thresholds]);
 
   return (
-    <div
-      class={styles.wrapper}
-      style={height ? { height: `${height}px` } : undefined}
-    >
+    <div class={styles.wrapper} style={height ? { height: `${height}px` } : undefined}>
       <div ref={containerRef} class={styles.container} />
       {loading && (
         <div class={styles.loadingOverlay}>

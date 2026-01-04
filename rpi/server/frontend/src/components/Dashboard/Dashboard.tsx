@@ -73,7 +73,12 @@ export function Dashboard({ onSettingsClick, thresholdVersion }: DashboardProps)
           thresholds={thresholds}
           loading={loading}
         />
-        <PicoCard latest={data.pico_latest} chartData={data.pico_data} thresholds={thresholds} loading={loading} />
+        <PicoCard
+          latest={data.pico_latest}
+          chartData={data.pico_data}
+          thresholds={thresholds}
+          loading={loading}
+        />
       </div>
     </div>
   );

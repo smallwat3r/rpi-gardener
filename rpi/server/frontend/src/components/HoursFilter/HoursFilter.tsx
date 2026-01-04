@@ -3,6 +3,7 @@ import styles from './HoursFilter.module.css';
 interface HoursFilterProps {
   value: number;
   onChange: (hours: number) => void;
+  disabled?: boolean;
 }
 
 const TIMEFRAMES = [
@@ -14,15 +15,17 @@ const TIMEFRAMES = [
   { hours: 168, label: '7d' },
 ];
 
-export function HoursFilter({ value, onChange }: HoursFilterProps) {
+export function HoursFilter({ value, onChange, disabled = false }: HoursFilterProps) {
   return (
-    <div class={styles.container}>
+    <div class={`${styles.container} ${disabled ? styles.disabled : ''}`}>
       {TIMEFRAMES.map(({ hours, label }) => (
         <button
           key={hours}
           type="button"
           class={`${styles.button} ${value === hours ? styles.active : ''}`}
           onClick={() => onChange(hours)}
+          disabled={disabled}
+          aria-disabled={disabled}
         >
           {label}
         </button>

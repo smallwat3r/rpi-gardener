@@ -13,6 +13,7 @@ interface DHTCardProps {
   stats: DHTStats | null;
   chartData: DHTReading[];
   thresholds: Thresholds | null;
+  loading?: boolean;
 }
 
 const TEMP_SERIES: SeriesConfig[] = [
@@ -36,7 +37,7 @@ function getValueStatus(value: number, min: number, max: number): AlertStatus {
   return 'ok';
 }
 
-export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) {
+export function DHTCard({ latest, stats, chartData, thresholds, loading = false }: DHTCardProps) {
   const [openModal, setOpenModal] = useState<ModalChart>(null);
 
   const closeModal = useCallback(() => setOpenModal(null), []);
@@ -145,6 +146,7 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
               thresholds={tempThresholds}
               colorAxis={false}
               showArea={false}
+              loading={loading}
             />
           </section>
           <section class={styles.chartSection} aria-label="Humidity readings">
@@ -177,6 +179,7 @@ export function DHTCard({ latest, stats, chartData, thresholds }: DHTCardProps) 
               thresholds={humidityThresholds}
               colorAxis={false}
               showArea={false}
+              loading={loading}
             />
           </section>
         </div>

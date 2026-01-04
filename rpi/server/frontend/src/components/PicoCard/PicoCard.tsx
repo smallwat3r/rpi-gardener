@@ -17,9 +17,10 @@ interface PicoCardProps {
   latest: PicoReading[];
   chartData: PicoChartDataPoint[];
   thresholds: Thresholds | null;
+  loading?: boolean;
 }
 
-export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
+export function PicoCard({ latest, chartData, thresholds, loading = false }: PicoCardProps) {
   const [openPlantId, setOpenPlantId] = useState<number | string | null>(null);
 
   const closeModal = useCallback(() => setOpenPlantId(null), []);
@@ -117,6 +118,7 @@ export function PicoCard({ latest, chartData, thresholds }: PicoCardProps) {
                   colorAxis={false}
                   showArea={false}
                   height={110}
+                  loading={loading}
                 />
               </section>
             );

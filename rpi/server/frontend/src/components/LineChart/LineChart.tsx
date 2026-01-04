@@ -49,6 +49,7 @@ interface LineChartProps {
   colorAxis?: boolean;
   thresholds?: ThresholdLine[];
   height?: number;
+  loading?: boolean;
 }
 
 export const LineChart = memo(function LineChart({
@@ -59,6 +60,7 @@ export const LineChart = memo(function LineChart({
   colorAxis = true,
   thresholds = [],
   height,
+  loading = false,
 }: LineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
@@ -291,9 +293,15 @@ export const LineChart = memo(function LineChart({
 
   return (
     <div
-      ref={containerRef}
-      class={styles.container}
+      class={styles.wrapper}
       style={height ? { height: `${height}px` } : undefined}
-    />
+    >
+      <div ref={containerRef} class={styles.container} />
+      {loading && (
+        <div class={styles.loadingOverlay}>
+          <div class={styles.spinner} />
+        </div>
+      )}
+    </div>
   );
 });

@@ -47,3 +47,12 @@
   background-color: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
 }
+
+.container.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+}

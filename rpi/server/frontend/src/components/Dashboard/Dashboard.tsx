@@ -37,7 +37,7 @@ export function Dashboard({ onSettingsClick, thresholdVersion }: DashboardProps)
   return (
     <div class={styles.container}>
       <header class={styles.header}>
-        <HoursFilter value={hours} onChange={setHours} />
+        <HoursFilter value={hours} onChange={setHours} disabled={loading} />
         {onSettingsClick && (
           <button
             type="button"
@@ -71,8 +71,9 @@ export function Dashboard({ onSettingsClick, thresholdVersion }: DashboardProps)
           stats={data.stats}
           chartData={data.data}
           thresholds={thresholds}
+          loading={loading}
         />
-        <PicoCard latest={data.pico_latest} chartData={data.pico_data} thresholds={thresholds} />
+        <PicoCard latest={data.pico_latest} chartData={data.pico_data} thresholds={thresholds} loading={loading} />
       </div>
     </div>
   );

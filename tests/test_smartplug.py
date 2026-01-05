@@ -1,37 +1,14 @@
 """Tests for the smart plug integration."""
 
-from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from rpi.lib.alerts import AlertEvent, Namespace
+from rpi.lib.alerts import Namespace
 from rpi.lib.config import MeasureName, Unit
 from rpi.lib.smartplug import SmartPlugController, get_smartplug_controller
-from rpi.smartplug.service import is_low_humidity_alert
-
-
-def make_alert_event(
-    sensor_name="humidity",
-    value=35.0,
-    unit=Unit.PERCENT,
-    threshold=40,
-    recording_time=None,
-    namespace=Namespace.DHT,
-    is_resolved=False,
-):
-    """Create an AlertEvent for testing."""
-    if recording_time is None:
-        recording_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
-    return AlertEvent(
-        namespace=namespace,
-        sensor_name=sensor_name,
-        value=value,
-        unit=unit,
-        threshold=threshold if not is_resolved else None,
-        recording_time=recording_time,
-        is_resolved=is_resolved,
-    )
+from rpi.smartplug.service import _is_low_humidity_alert
+from tests.conftest import make_alert_event
 
 
 class TestIsLowHumidityAlert:
@@ -45,7 +22,7 @@ class TestIsLowHumidityAlert:
             value=35.0,
             threshold=40,
         )
-        assert is_low_humidity_alert(event) is True
+        assert _is_low_humidity_alert(event) is True
 
     def test_returns_true_for_resolved_humidity_alert(self):
         """Resolved humidity alerts should trigger turn-off."""
@@ -55,7 +32,7 @@ class TestIsLowHumidityAlert:
             value=45.0,
             is_resolved=True,
         )
-        assert is_low_humidity_alert(event) is True
+        assert _is_low_humidity_alert(event) is True
 
     def test_returns_false_for_high_humidity_alert(self):
         """High humidity alerts (MAX threshold) should not trigger humidifier."""
@@ -65,7 +42,7 @@ class TestIsLowHumidityAlert:
             value=75.0,
             threshold=65,  # value > threshold = MAX violation
         )
-        assert is_low_humidity_alert(event) is False
+        assert _is_low_humidity_alert(event) is False
 
     def test_returns_false_for_temperature_alert(self):
         """Temperature alerts should not trigger humidifier."""
@@ -76,7 +53,7 @@ class TestIsLowHumidityAlert:
             unit=Unit.CELSIUS,
             threshold=25,
         )
-        assert is_low_humidity_alert(event) is False
+        assert _is_low_humidity_alert(event) is False
 
     def test_returns_false_for_pico_moisture_alert(self):
         """Plant moisture alerts should not trigger humidifier."""
@@ -86,7 +63,7 @@ class TestIsLowHumidityAlert:
             value=20.0,
             threshold=30,
         )
-        assert is_low_humidity_alert(event) is False
+        assert _is_low_humidity_alert(event) is False
 
 
 class TestSmartPlugController:

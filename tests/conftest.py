@@ -21,8 +21,31 @@ sys.modules["PIL.ImageFont"] = MagicMock()
 
 import rpi.lib.config as config
 from rpi.dht.models import Measure, Reading, State
-from rpi.lib.alerts import AlertTracker, Namespace
+from rpi.lib.alerts import AlertEvent, AlertTracker, Namespace
 from rpi.lib.config import Settings, Unit
+
+
+def make_alert_event(
+    sensor_name: str | int = "temperature",
+    value: float = 30.5,
+    unit: Unit | str = Unit.CELSIUS,
+    threshold: float = 25,
+    recording_time: datetime | None = None,
+    namespace: Namespace = Namespace.DHT,
+    is_resolved: bool = False,
+) -> AlertEvent:
+    """Create an AlertEvent for testing."""
+    if recording_time is None:
+        recording_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
+    return AlertEvent(
+        namespace=namespace,
+        sensor_name=sensor_name,
+        value=value,
+        unit=unit,  # type: ignore[arg-type]
+        threshold=threshold if not is_resolved else None,
+        recording_time=recording_time,
+        is_resolved=is_resolved,
+    )
 
 
 def set_settings(settings: Settings | None) -> None:

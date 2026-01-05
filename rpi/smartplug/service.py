@@ -20,30 +20,14 @@ from rpi.logging import configure, get_logger
 logger = get_logger("smartplug.service")
 
 
-def is_low_humidity_alert(event: AlertEvent) -> bool:
-    """Check if this is a low humidity alert from DHT sensor.
-
-    We only act on MIN humidity threshold alerts (humidity too low)
-    since we're controlling a humidifier.
-    """
-    # Must be from DHT namespace (not plant moisture from Pico)
-    if event.namespace != Namespace.DHT:
-        return False
-
-    # Must be humidity sensor
-    if event.sensor_name != MeasureName.HUMIDITY:
-        return False
-
-    # For resolved alerts, always return True (we need to turn off)
-    if event.is_resolved:
-        return True
-
-    # For active alerts, only act if value is below threshold (MIN violation)
-    # This filters out MAX humidity alerts (too humid)
-    if event.threshold is not None:
-        return event.value < event.threshold
-
-    return False
+def _is_low_humidity_alert(event: AlertEvent) -> bool:
+    """Check if this is a low humidity alert from DHT sensor."""
+    is_humidity = (
+        event.namespace == Namespace.DHT
+        and event.sensor_name == MeasureName.HUMIDITY
+    )
+    is_low = event.threshold is not None and event.value < event.threshold
+    return is_humidity and (event.is_resolved or is_low)
 
 
 async def _handle_humidity_event(
@@ -81,7 +65,7 @@ async def run() -> None:
                 try:
                     event = AlertEvent.from_dict(data)
 
-                    if not is_low_humidity_alert(event):
+                    if not _is_low_humidity_alert(event):
                         continue
 
                     await _handle_humidity_event(event, controller)

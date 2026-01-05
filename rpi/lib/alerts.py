@@ -144,21 +144,18 @@ class AlertTracker:
 
         is_resolved = new == AlertState.OK
 
+        base_args = (
+            check.namespace.value,
+            check.sensor_name,
+            check.value,
+            check.unit,
+        )
         if is_resolved:
-            logger.info(
-                "[%s] %s returned to normal: %.1f%s",
-                check.namespace.value,
-                check.sensor_name,
-                check.value,
-                check.unit,
-            )
+            logger.info("[%s] %s returned to normal: %.1f%s", *base_args)
         else:
             logger.info(
                 "[%s] %s crossed threshold: %.1f%s (threshold: %.0f)",
-                check.namespace.value,
-                check.sensor_name,
-                check.value,
-                check.unit,
+                *base_args,
                 check.threshold,
             )
 

@@ -101,6 +101,8 @@ def format_alert_message(event: AlertEvent) -> str:
 class AbstractNotifier(ABC):
     """Abstract base class for notification backends."""
 
+    _name: str
+
     @abstractmethod
     async def send(self, event: AlertEvent) -> None:
         """Send a notification for the given alert event."""
@@ -108,6 +110,8 @@ class AbstractNotifier(ABC):
 
 class GmailNotifier(AbstractNotifier):
     """Gmail notification backend."""
+
+    _name = "Email"
 
     def _build_email(self, subject: str, body: str) -> EmailMessage:
         """Build an email message with the given subject and body."""
@@ -139,7 +143,7 @@ class GmailNotifier(AbstractNotifier):
 
         await with_retry(
             do_send,
-            name="Email",
+            name=self._name,
             logger=logger,
             max_retries=cfg.max_retries,
             initial_backoff_sec=cfg.initial_backoff_sec,
@@ -156,6 +160,8 @@ class GmailNotifier(AbstractNotifier):
 
 class SlackNotifier(AbstractNotifier):
     """Slack webhook notification backend."""
+
+    _name = "Slack"
 
     def _build_payload(
         self,
@@ -202,7 +208,7 @@ class SlackNotifier(AbstractNotifier):
 
         await with_retry(
             do_send,
-            name="Slack",
+            name=self._name,
             logger=logger,
             max_retries=cfg.max_retries,
             initial_backoff_sec=cfg.initial_backoff_sec,

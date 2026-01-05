@@ -11,6 +11,7 @@ from rpi.lib.notifications import (
     GmailNotifier,
     NoOpNotifier,
     SlackNotifier,
+    format_alert_html,
     format_alert_message,
     get_notifier,
     get_sensor_label,
@@ -107,6 +108,42 @@ class TestAlertEvent:
         assert "back to normal" in message
         assert "50.0%" in message
         assert "12:00:00" in message
+
+    def test_format_alert_html(self, frozen_time):
+        event = make_alert_event(
+            sensor_name="humidity",
+            value=75.0,
+            unit="%",
+            threshold=65,
+            recording_time=frozen_time,
+        )
+
+        html = format_alert_html(event)
+
+        assert "<!DOCTYPE html>" in html
+        assert "Humidity" in html
+        assert "too humid" in html
+        assert "75.0%" in html
+        assert "65%" in html
+        assert "#ef4444" in html  # Alert color (red)
+        assert "Alert" in html
+
+    def test_format_resolved_html(self, frozen_time):
+        event = make_alert_event(
+            sensor_name="humidity",
+            value=50.0,
+            unit="%",
+            recording_time=frozen_time,
+            is_resolved=True,
+        )
+
+        html = format_alert_html(event)
+
+        assert "<!DOCTYPE html>" in html
+        assert "Humidity" in html
+        assert "back to normal" in html
+        assert "#22c55e" in html  # Resolved color (green)
+        assert "Resolved" in html
 
     def test_label_from_sensor_labels(self, frozen_time):
         event = make_alert_event(
@@ -211,12 +248,16 @@ class TestGmailNotifier:
         )
 
         notifier = GmailNotifier()
-        message = notifier._build_email(
-            "Test Subject", format_alert_message(event)
-        )
+        body_text = format_alert_message(event)
+        body_html = format_alert_html(event)
+        message = notifier._build_email("Test Subject", body_text, body_html)
 
         assert message["Subject"] == "Test Subject"
-        assert format_alert_message(event) in message.get_content()
+        # Check multipart structure
+        parts = list(message.iter_parts())
+        assert len(parts) == 2
+        assert parts[0].get_content_type() == "text/plain"
+        assert parts[1].get_content_type() == "text/html"
 
     @pytest.mark.asyncio
     @patch("rpi.lib.notifications.SMTP")

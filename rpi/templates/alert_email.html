@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ label }} {{ condition }}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: {{ accent_color }}; padding: 24px; text-align: center;">
+              <div style="font-size: 48px; line-height: 1;">{{ emoji }}</div>
+              <h1 style="margin: 12px 0 4px; color: #ffffff; font-size: 22px; font-weight: 600;">
+                {{ label }} {{ condition }}
+              </h1>
+              <span style="display: inline-block; background-color: {{ status_bg }}; color: {{ accent_color }}; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
+                {{ status_text }}
+              </span>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                <tr style="background-color: #f9fafb;">
+                  <td style="padding: 12px 16px; color: #6b7280; font-size: 14px;">
+                    Current Value
+                  </td>
+                  <td style="padding: 12px 16px; text-align: right; font-weight: 600; font-size: 18px; color: {{ accent_color }};">
+                    {{ current_value }}
+                  </td>
+                </tr>
+                {% if threshold %}
+                <tr>
+                  <td style="padding: 12px 16px; color: #6b7280; font-size: 14px;">
+                    Threshold
+                  </td>
+                  <td style="padding: 12px 16px; text-align: right; font-size: 14px;">
+                    {{ threshold }}
+                  </td>
+                </tr>
+                {% endif %}
+                <tr>
+                  <td style="padding: 12px 16px; color: #6b7280; font-size: 14px;">
+                    Time
+                  </td>
+                  <td style="padding: 12px 16px; text-align: right; font-size: 14px;">
+                    {{ time }}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 16px 24px; background-color: #f9fafb; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                RPi Gardener &middot; {{ date }}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

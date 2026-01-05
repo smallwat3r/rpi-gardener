@@ -8,10 +8,12 @@ import asyncio
 import ssl
 from abc import ABC, abstractmethod
 from email.message import EmailMessage
+from pathlib import Path
 from smtplib import SMTP
 from typing import Any, override
 
 import requests
+from jinja2 import Environment, FileSystemLoader
 
 from rpi.lib.alerts import AlertEvent
 from rpi.lib.config import (
@@ -25,6 +27,12 @@ from rpi.lib.retry import with_retry
 from rpi.logging import get_logger
 
 logger = get_logger("lib.notifications")
+
+_TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+_jinja_env = Environment(
+    loader=FileSystemLoader(_TEMPLATES_DIR),
+    autoescape=True,
+)
 
 SENSOR_LABELS: dict[str | int, tuple[str, str]] = {
     # (label, emoji)
@@ -95,6 +103,37 @@ def format_alert_message(event: AlertEvent) -> str:
     return "\n".join(lines)
 
 
+def format_alert_html(event: AlertEvent) -> str:
+    """Format an alert event as an HTML notification message body."""
+    label, emoji = get_sensor_info(event.sensor_name)
+    condition = _get_condition_text(event)
+
+    if event.is_resolved:
+        accent_color = "#22c55e"
+        status_text = "Resolved"
+        status_bg = "#dcfce7"
+    else:
+        accent_color = "#ef4444"
+        status_text = "Alert"
+        status_bg = "#fee2e2"
+
+    template = _jinja_env.get_template("alert_email.html")
+    return template.render(
+        label=label,
+        emoji=emoji,
+        condition=condition,
+        accent_color=accent_color,
+        status_text=status_text,
+        status_bg=status_bg,
+        current_value=f"{event.value:.1f}{event.unit}",
+        threshold=f"{event.threshold:.0f}{event.unit}"
+        if event.threshold
+        else None,
+        time=event.recording_time.strftime("%H:%M:%S"),
+        date=event.recording_time.strftime("%B %d, %Y"),
+    )
+
+
 class AbstractNotifier(ABC):
     """Abstract base class for notification backends."""
 
@@ -110,14 +149,17 @@ class GmailNotifier(AbstractNotifier):
 
     _name = "Email"
 
-    def _build_email(self, subject: str, body: str) -> EmailMessage:
-        """Build an email message with the given subject and body."""
+    def _build_email(
+        self, subject: str, body_text: str, body_html: str
+    ) -> EmailMessage:
+        """Build a multipart email with plain text and HTML content."""
         gmail = get_settings().notifications.gmail
         msg = EmailMessage()
         msg.add_header("From", gmail.sender)
         msg.add_header("To", gmail.recipients)
         msg.add_header("Subject", subject)
-        msg.set_content(body)
+        msg.set_content(body_text)
+        msg.add_alternative(body_html, subtype="html")
         return msg
 
     async def _send_email(
@@ -151,7 +193,9 @@ class GmailNotifier(AbstractNotifier):
     async def send(self, event: AlertEvent) -> None:
         """Send email notification."""
         subject = _get_alert_description(event)
-        message = self._build_email(subject, format_alert_message(event))
+        body_text = format_alert_message(event)
+        body_html = format_alert_html(event)
+        message = self._build_email(subject, body_text, body_html)
         await self._send_email(message, event.sensor_name)
 
 

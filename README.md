@@ -195,4 +195,4 @@ This project is designed for local home networks:
 | Sensor 2  | AOUT   | 27   |
 | Sensor 3  | AOUT   | 28   |
 
-![wiring](./img/wiring.png)
+![wiring](./img/wiring.jpg)

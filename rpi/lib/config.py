@@ -232,6 +232,15 @@ class EventBusSettings(BaseModel):
     redis_url: str = "redis://localhost:6379/0"
 
 
+class SmartPlugSettings(BaseModel):
+    """TP-Link Kasa smart plug settings for humidity control."""
+
+    model_config = ConfigDict(frozen=True)
+
+    enabled: bool = False
+    host: str = ""  # IP address or hostname of the Kasa device
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
@@ -280,6 +289,10 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
+
+    # Smart plug (Kasa)
+    smartplug_enabled: _BoolFromStr = False
+    smartplug_host: str = ""
 
     @cached_property
     def thresholds(self) -> ThresholdSettings:
@@ -357,6 +370,14 @@ class Settings(BaseSettings):
     def eventbus(self) -> EventBusSettings:
         """Get event bus settings."""
         return EventBusSettings(redis_url=self.redis_url)
+
+    @cached_property
+    def smartplug(self) -> SmartPlugSettings:
+        """Get smart plug settings."""
+        return SmartPlugSettings(
+            enabled=self.smartplug_enabled,
+            host=self.smartplug_host,
+        )
 
     @model_validator(mode="after")
     def validate_settings(self) -> Self:

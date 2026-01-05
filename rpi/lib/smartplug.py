@@ -1,0 +1,140 @@
+"""TP-Link Kasa smart plug control module.
+
+Provides async interface to control Kasa smart plugs with retry logic
+and proper error handling.
+"""
+
+from typing import Protocol
+
+from kasa import Device, Discover
+
+from rpi.lib.config import get_settings
+from rpi.lib.retry import with_retry
+from rpi.logging import get_logger
+
+logger = get_logger("lib.smartplug")
+
+
+class SmartPlugProtocol(Protocol):
+    """Protocol defining the smart plug controller interface."""
+
+    @property
+    def is_connected(self) -> bool: ...
+    async def connect(self) -> None: ...
+    async def turn_on(self) -> bool: ...
+    async def turn_off(self) -> bool: ...
+    async def close(self) -> None: ...
+
+
+class SmartPlugController:
+    """Controller for TP-Link Kasa smart plug devices."""
+
+    def __init__(self, host: str) -> None:
+        self._host = host
+        self._device: Device | None = None
+
+    async def connect(self) -> None:
+        """Connect to the smart plug device."""
+        self._device = await Discover.discover_single(self._host)
+        if self._device is None:
+            raise ConnectionError(f"Device not found at {self._host}")
+        await self._device.update()
+        logger.info(
+            "Connected to smart plug at %s (is_on=%s)",
+            self._host,
+            self._device.is_on,
+        )
+
+    async def turn_on(self) -> bool:
+        """Turn on the smart plug. Returns True if successful."""
+        if self._device is None:
+            logger.warning("Cannot turn on: plug not connected")
+            return False
+
+        async def do_turn_on() -> None:
+            assert self._device is not None
+            await self._device.turn_on()
+            await self._device.update()
+
+        success = await with_retry(
+            do_turn_on,
+            name="SmartPlug turn_on",
+            logger=logger,
+            max_retries=3,
+            initial_backoff_sec=2.0,
+            retryable_exceptions=(OSError, TimeoutError),
+        )
+
+        if success:
+            logger.info("Smart plug turned ON")
+        return success
+
+    async def turn_off(self) -> bool:
+        """Turn off the smart plug. Returns True if successful."""
+        if self._device is None:
+            logger.warning("Cannot turn off: plug not connected")
+            return False
+
+        async def do_turn_off() -> None:
+            assert self._device is not None
+            await self._device.turn_off()
+            await self._device.update()
+
+        success = await with_retry(
+            do_turn_off,
+            name="SmartPlug turn_off",
+            logger=logger,
+            max_retries=3,
+            initial_backoff_sec=2.0,
+            retryable_exceptions=(OSError, TimeoutError),
+        )
+
+        if success:
+            logger.info("Smart plug turned OFF")
+        return success
+
+    @property
+    def is_connected(self) -> bool:
+        """Check if connected to the plug."""
+        return self._device is not None
+
+    async def close(self) -> None:
+        """Close the connection to the smart plug."""
+        if self._device is not None:
+            await self._device.disconnect()
+            self._device = None
+            logger.info("Disconnected from smart plug")
+
+
+async def get_smartplug_controller() -> SmartPlugProtocol | None:
+    """Create and connect a smart plug controller if enabled.
+
+    Returns None if disabled or connection fails.
+    Uses mock controller when MOCK_SENSORS=1.
+    """
+    settings = get_settings()
+    cfg = settings.smartplug
+
+    if not cfg.enabled:
+        logger.debug("Smart plug control is disabled")
+        return None
+
+    if not cfg.host:
+        logger.warning("Smart plug enabled but SMARTPLUG_HOST not configured")
+        return None
+
+    if settings.mock_sensors:
+        from rpi.lib.mock import MockSmartPlugController
+
+        logger.info("Using mock smart plug controller")
+        controller: SmartPlugProtocol = MockSmartPlugController(host=cfg.host)
+        await controller.connect()
+        return controller
+
+    real_controller = SmartPlugController(host=cfg.host)
+    try:
+        await real_controller.connect()
+        return real_controller
+    except Exception:
+        logger.exception("Failed to connect to smart plug at %s", cfg.host)
+        return None

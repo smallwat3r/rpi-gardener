@@ -8,8 +8,8 @@ Services communicate via Redis pub/sub:
 
 ```
 DHT Polling ──┐                  ┌── Web Server (WebSocket)
-              ├── Redis ─────────┤
-Pico Reader ──┘                  └── Notification Service (Gmail/Slack)
+              ├── Redis ─────────┼── Notification Service (Gmail/Slack)
+Pico Reader ──┘                  └── Smart Plug Service (Kasa)
 ```
 
 ## Services
@@ -42,6 +42,14 @@ Subscribes to alert events and sends notifications via Gmail/Slack.
 Runs independently of the web server.
 
     python -m rpi.notifications
+
+### Smart Plug Service (`smartplug/`)
+
+Controls a TP-Link Kasa smart plug based on humidity alerts.
+Turns on a humidifier when humidity drops below the threshold,
+and turns it off when humidity recovers.
+
+    python -m rpi.smartplug
 
 ## Endpoints
 

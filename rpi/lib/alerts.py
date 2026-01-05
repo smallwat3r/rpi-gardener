@@ -139,12 +139,20 @@ class AlertTracker:
         callback: AlertCallback | None,
     ) -> None:
         """Log and invoke callback for state transitions."""
-        entered_alert = (
-            new == AlertState.IN_ALERT and previous == AlertState.OK
-        )
-        resolved = new == AlertState.OK and previous == AlertState.IN_ALERT
+        if previous == new:
+            return
 
-        if entered_alert:
+        is_resolved = new == AlertState.OK
+
+        if is_resolved:
+            logger.info(
+                "[%s] %s returned to normal: %.1f%s",
+                check.namespace.value,
+                check.sensor_name,
+                check.value,
+                check.unit,
+            )
+        else:
             logger.info(
                 "[%s] %s crossed threshold: %.1f%s (threshold: %.0f)",
                 check.namespace.value,
@@ -153,38 +161,19 @@ class AlertTracker:
                 check.unit,
                 check.threshold,
             )
-            if callback:
-                callback(
-                    AlertEvent(
-                        namespace=check.namespace,
-                        sensor_name=check.sensor_name,
-                        value=check.value,
-                        unit=check.unit,
-                        threshold=check.threshold,
-                        recording_time=check.recording_time,
-                        is_resolved=False,
-                    )
+
+        if callback:
+            callback(
+                AlertEvent(
+                    namespace=check.namespace,
+                    sensor_name=check.sensor_name,
+                    value=check.value,
+                    unit=check.unit,
+                    threshold=None if is_resolved else check.threshold,
+                    recording_time=check.recording_time,
+                    is_resolved=is_resolved,
                 )
-        elif resolved:
-            logger.info(
-                "[%s] %s returned to normal: %.1f%s",
-                check.namespace.value,
-                check.sensor_name,
-                check.value,
-                check.unit,
             )
-            if callback:
-                callback(
-                    AlertEvent(
-                        namespace=check.namespace,
-                        sensor_name=check.sensor_name,
-                        value=check.value,
-                        unit=check.unit,
-                        threshold=None,
-                        recording_time=check.recording_time,
-                        is_resolved=True,
-                    )
-                )
 
     def check(
         self,

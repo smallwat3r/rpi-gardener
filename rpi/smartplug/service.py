@@ -10,8 +10,6 @@ smart plug to turn a humidifier on/off based on humidity levels.
 import asyncio
 import signal
 from contextlib import suppress
-from datetime import datetime
-from typing import Any
 
 from rpi.lib.alerts import AlertEvent, Namespace
 from rpi.lib.config import MeasureName, get_settings
@@ -20,21 +18,6 @@ from rpi.lib.smartplug import SmartPlugProtocol, get_smartplug_controller
 from rpi.logging import configure, get_logger
 
 logger = get_logger("smartplug.service")
-
-
-def _parse_alert_event(data: dict[str, Any]) -> AlertEvent:
-    """Parse alert event data from the event bus."""
-    return AlertEvent(
-        namespace=Namespace(data["namespace"]),
-        sensor_name=data["sensor_name"],
-        value=data["value"],
-        unit=data["unit"],
-        threshold=data["threshold"],
-        recording_time=datetime.strptime(
-            data["recording_time"], "%Y-%m-%d %H:%M:%S"
-        ),
-        is_resolved=data["is_resolved"],
-    )
 
 
 def is_low_humidity_alert(event: AlertEvent) -> bool:
@@ -96,7 +79,7 @@ async def run() -> None:
             logger.info("Smart plug service started")
             async for _topic, data in subscriber.receive():
                 try:
-                    event = _parse_alert_event(data)
+                    event = AlertEvent.from_dict(data)
 
                     if not is_low_humidity_alert(event):
                         continue

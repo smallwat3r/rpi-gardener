@@ -53,6 +53,21 @@ class AlertEvent:
     recording_time: datetime
     is_resolved: bool = False
 
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> "AlertEvent":
+        """Parse an AlertEvent from event bus data."""
+        return cls(
+            namespace=Namespace(str(data["namespace"])),
+            sensor_name=data["sensor_name"],  # type: ignore[arg-type]
+            value=float(data["value"]),  # type: ignore[arg-type]
+            unit=str(data["unit"]),  # type: ignore[arg-type]
+            threshold=float(data["threshold"]) if data["threshold"] else None,  # type: ignore[arg-type]
+            recording_time=datetime.strptime(
+                str(data["recording_time"]), "%Y-%m-%d %H:%M:%S"
+            ),
+            is_resolved=bool(data["is_resolved"]),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class _ThresholdCheck:

@@ -7,30 +7,13 @@ via configured backends (Gmail, Slack, etc.).
 import asyncio
 import signal
 from contextlib import suppress
-from datetime import datetime
-from typing import Any
 
-from rpi.lib.alerts import AlertEvent, Namespace
+from rpi.lib.alerts import AlertEvent
 from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.lib.notifications import get_notifier, get_sensor_label
 from rpi.logging import configure, get_logger
 
 logger = get_logger("notifications.service")
-
-
-def _parse_alert_event(data: dict[str, Any]) -> AlertEvent:
-    """Parse alert event data from the event bus."""
-    return AlertEvent(
-        namespace=Namespace(data["namespace"]),
-        sensor_name=data["sensor_name"],
-        value=data["value"],
-        unit=data["unit"],
-        threshold=data["threshold"],
-        recording_time=datetime.strptime(
-            data["recording_time"], "%Y-%m-%d %H:%M:%S"
-        ),
-        is_resolved=data["is_resolved"],
-    )
 
 
 async def run() -> None:
@@ -39,7 +22,7 @@ async def run() -> None:
         logger.info("Notification service started")
         async for _topic, data in subscriber.receive():
             try:
-                event = _parse_alert_event(data)
+                event = AlertEvent.from_dict(data)
                 label = get_sensor_label(event.sensor_name)
                 event_type = "resolution" if event.is_resolved else "alert"
                 logger.info("Processing %s for %s", event_type, label)

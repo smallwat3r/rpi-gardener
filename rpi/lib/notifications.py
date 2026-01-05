@@ -80,22 +80,19 @@ def _get_alert_description(event: AlertEvent) -> str:
 
 def format_alert_message(event: AlertEvent) -> str:
     """Format an alert event as a notification message body."""
-    time_str = event.recording_time.strftime("%H:%M:%S")
     label = get_sensor_label(event.sensor_name)
     condition = _get_condition_text(event)
+    time_str = event.recording_time.strftime("%H:%M:%S")
 
-    if event.is_resolved:
-        return (
-            f"{label} {condition}\n"
-            f"Current value: {event.value:.1f}{event.unit}\n"
-            f"Time: {time_str}"
-        )
-    return (
-        f"{label} {condition}\n"
-        f"Current value: {event.value:.1f}{event.unit}\n"
-        f"Threshold: {event.threshold:.0f}{event.unit}\n"
-        f"Time: {time_str}"
-    )
+    lines = [
+        f"{label} {condition}",
+        f"Current value: {event.value:.1f}{event.unit}",
+    ]
+    if event.threshold is not None:
+        lines.append(f"Threshold: {event.threshold:.0f}{event.unit}")
+    lines.append(f"Time: {time_str}")
+
+    return "\n".join(lines)
 
 
 class AbstractNotifier(ABC):

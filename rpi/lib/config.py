@@ -336,7 +336,7 @@ class Settings(BaseSettings):
     # LCD 1602A display
     enable_lcd: _BoolFromStr = False
     lcd_i2c_address: _HexInt = Field(default=0x27, ge=0x00, le=0x7F)
-    lcd_scroll_delay_sec: float = Field(default=0.3, gt=0)
+    lcd_scroll_delay_sec: float = Field(default=0.7, gt=0)
 
     @cached_property
     def thresholds(self) -> ThresholdSettings:

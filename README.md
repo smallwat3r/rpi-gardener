@@ -26,8 +26,8 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - Raspberry Pi 4 with Docker installed
 - Raspberry Pi Pico (connected via USB for soil moisture sensors)
 - DHT22 temperature/humidity sensor
-- SSD1306 OLED display (128x64)
-- Capacitive soil moisture sensors (v1.2)
+- 2x SSD1306 OLED displays (128x64) - one for Pico, one optional for RPi
+- 3x capacitive soil moisture sensors (v1.2)
 - 1602A LCD with I2C backpack (optional, for alert display)
 - TP-Link Kasa smart plug (optional, for automatic humidity control)
 

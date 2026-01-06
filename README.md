@@ -27,6 +27,7 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - DHT22 temperature/humidity sensor
 - SSD1306 OLED display (128x64)
 - Capacitive soil moisture sensors (v1.2)
+- TP-Link Kasa smart plug (optional, for automatic humidity control)
 
 ## Quick Start
 

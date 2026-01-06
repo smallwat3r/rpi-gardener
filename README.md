@@ -5,7 +5,7 @@ Monitor your plant environment with a Raspberry Pi 4 and Raspberry Pi Pico.
 Tracks temperature, humidity (DHT22 sensor), and soil moisture (capacitive
 sensors) with a real-time web dashboard, OLED displays, and email alerts.
 
-![setup](./img/setup.jpeg)
+![setup](./img/setup.jpg)
 ![dashboard](./img/dashboard.png)
 
 ## Features

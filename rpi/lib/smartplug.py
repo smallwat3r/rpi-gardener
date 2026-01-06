@@ -4,7 +4,7 @@ Provides async interface to control Kasa smart plugs with retry logic
 and proper error handling.
 """
 
-from typing import Protocol
+from typing import Protocol, Self
 
 from kasa import Device, Discover
 
@@ -24,6 +24,8 @@ class SmartPlugProtocol(Protocol):
     async def turn_on(self) -> bool: ...
     async def turn_off(self) -> bool: ...
     async def close(self) -> None: ...
+    async def __aenter__(self) -> Self: ...
+    async def __aexit__(self, *_: object) -> None: ...
 
 
 class SmartPlugController:
@@ -105,12 +107,21 @@ class SmartPlugController:
             self._device = None
             logger.info("Disconnected from smart plug")
 
+    async def __aenter__(self) -> Self:
+        """Async context manager entry."""
+        await self.connect()
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        """Async context manager exit."""
+        await self.close()
+
 
 async def get_smartplug_controller() -> SmartPlugProtocol | None:
-    """Create and connect a smart plug controller if enabled.
+    """Create a smart plug controller if enabled.
 
-    Returns None if disabled or connection fails.
-    Uses mock controller when MOCK_SENSORS=1.
+    Returns None if disabled or not configured.
+    Use as context manager: async with await get_smartplug_controller() as ctrl:
     """
     settings = get_settings()
     cfg = settings.smartplug
@@ -127,14 +138,6 @@ async def get_smartplug_controller() -> SmartPlugProtocol | None:
         from rpi.lib.mock import MockSmartPlugController
 
         logger.info("Using mock smart plug controller")
-        controller: SmartPlugProtocol = MockSmartPlugController(host=cfg.host)
-        await controller.connect()
-        return controller
+        return MockSmartPlugController(host=cfg.host)
 
-    real_controller = SmartPlugController(host=cfg.host)
-    try:
-        await real_controller.connect()
-        return real_controller
-    except Exception:
-        logger.exception("Failed to connect to smart plug at %s", cfg.host)
-        return None
+    return SmartPlugController(host=cfg.host)

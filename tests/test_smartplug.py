@@ -185,7 +185,10 @@ class TestGetSmartPlugController:
 
         assert result is not None
         assert isinstance(result, MockSmartPlugController)
-        assert result.is_connected is True
+
+        # Controller connects via context manager
+        async with result:
+            assert result.is_connected is True
 
     @pytest.mark.asyncio
     async def test_returns_none_when_disabled(self):
@@ -213,7 +216,7 @@ class TestGetSmartPlugController:
 
     @pytest.mark.asyncio
     async def test_returns_controller_when_configured(self):
-        """Returns connected controller when properly configured."""
+        """Returns controller when properly configured."""
         from rpi.lib.config import Settings
         from tests.conftest import set_settings
 
@@ -232,11 +235,13 @@ class TestGetSmartPlugController:
             result = await get_smartplug_controller()
 
             assert result is not None
-            assert result.is_connected is True
+            # Controller connects via context manager
+            async with result:
+                assert result.is_connected is True
 
     @pytest.mark.asyncio
-    async def test_returns_none_on_connection_failure(self):
-        """Returns None when connection fails."""
+    async def test_connection_failure_raises_in_context(self):
+        """Connection failure is raised when entering context."""
         from rpi.lib.config import Settings
         from tests.conftest import set_settings
 
@@ -250,5 +255,8 @@ class TestGetSmartPlugController:
             side_effect=OSError("Connection failed"),
         ):
             result = await get_smartplug_controller()
+            assert result is not None
 
-            assert result is None
+            with pytest.raises(OSError, match="Connection failed"):
+                async with result:
+                    pass

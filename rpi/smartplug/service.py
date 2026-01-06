@@ -58,24 +58,18 @@ async def run() -> None:
         logger.warning("Smart plug controller not available, service exiting")
         return
 
-    try:
-        async with EventSubscriber(topics=[Topic.ALERT]) as subscriber:
-            logger.info("Smart plug service started")
-            async for _topic, data in subscriber.receive():
-                try:
-                    event = AlertEvent.from_dict(data)
-
-                    if not _is_low_humidity_alert(event):
-                        continue
-
-                    await _handle_humidity_event(event, controller)
-
-                except (KeyError, ValueError, TypeError):
-                    logger.exception("Failed to parse alert event")
-                except Exception:
-                    logger.exception("Failed to handle humidity event")
-    finally:
-        await controller.close()
+    async with controller, EventSubscriber(topics=[Topic.ALERT]) as subscriber:
+        logger.info("Smart plug service started")
+        async for _topic, data in subscriber.receive():
+            try:
+                event = AlertEvent.from_dict(data)
+                if not _is_low_humidity_alert(event):
+                    continue
+                await _handle_humidity_event(event, controller)
+            except (KeyError, ValueError, TypeError):
+                logger.exception("Failed to parse alert event")
+            except Exception:
+                logger.exception("Failed to handle humidity event")
 
     logger.info("Smart plug service stopped")
 

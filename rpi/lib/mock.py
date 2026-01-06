@@ -9,6 +9,7 @@ consistent data patterns between seeded and live mock data.
 """
 
 import random
+from typing import Self
 
 from rpi.lib.config import PlantId
 
@@ -156,3 +157,12 @@ class MockSmartPlugController:
 
         logger = get_logger("lib.smartplug")
         logger.info("Mock smart plug disconnected")
+
+    async def __aenter__(self) -> Self:
+        """Async context manager entry."""
+        await self.connect()
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        """Async context manager exit."""
+        await self.close()

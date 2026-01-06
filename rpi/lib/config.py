@@ -228,11 +228,7 @@ class DisplaySettings(BaseModel):
 
     width: int = 128
     height: int = 64
-    font_size: int = 17
     font_path: str = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
-    text_x_offset: int = 23
-    text_y_temp: int = 0
-    text_y_humidity: int = 20
 
 
 class PollingSettings(BaseModel):

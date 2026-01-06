@@ -7,7 +7,21 @@ board, to read values from capacitive soil moisture sensors (v1.2).
 
 - Reads moisture levels from up to 3 capacitive soil sensors
 - Sends readings to the RPi via USB serial (no WiFi required)
-- Displays readings on an SSD1306 OLED display
+- Displays readings on an SSD1306 OLED display (128x64)
+
+### OLED Display
+
+The Pico shows soil moisture readings on a 128x64 SSD1306 OLED display
+connected via I2C (GPIO 0/1). The display is optional - if not connected,
+readings are still sent via USB serial.
+
+Example display:
+```
+  SOIL MOISTURE
+P1:  45.2%
+P2:  67.8%
+P3:  52.1%
+```
 
 ## Installation
 

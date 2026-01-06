@@ -11,7 +11,6 @@ from datetime import UTC, datetime
 from typing import Protocol, override
 
 from rpi.dht.audit import audit_reading
-from rpi.dht.display import DisplayProtocol
 from rpi.dht.models import Measure, Reading
 from rpi.lib.alerts import AlertTracker, Namespace, create_alert_publisher
 from rpi.lib.config import DHT22_BOUNDS, MeasureName, Unit
@@ -41,13 +40,11 @@ class DHTPollingService(PollingService[Reading]):
     def __init__(
         self,
         sensor: DHTSensor,
-        display: DisplayProtocol,
         publisher: EventPublisher,
         alert_tracker: AlertTracker,
     ) -> None:
         super().__init__(name="DHT22")
         self._dht = sensor
-        self._display = display
         self._publisher = publisher
         self._alert_tracker = alert_tracker
         self._reading = Reading(
@@ -64,12 +61,10 @@ class DHTPollingService(PollingService[Reading]):
         self._alert_tracker.register_callback(
             Namespace.DHT, create_alert_publisher(self._publisher)
         )
-        self._display.clear()
 
     @override
     async def cleanup(self) -> None:
-        """Clean up DHT22 sensor, display, event publisher, and database."""
-        self._display.clear()
+        """Clean up DHT22 sensor, event publisher, and database."""
         self._dht.exit()
         self._publisher.close()
         await close_db()
@@ -90,7 +85,6 @@ class DHTPollingService(PollingService[Reading]):
             str(self._reading.temperature),
             str(self._reading.humidity),
         )
-        self._display.render_reading(self._reading)
         return self._reading
 
     @override
@@ -159,27 +153,13 @@ def _create_sensor() -> DHTSensor:
     return DHT22(D17)  # type: ignore[no-any-return]
 
 
-def _create_display() -> DisplayProtocol:
-    """Create display based on configuration."""
-    from rpi.lib.config import get_settings
-
-    if get_settings().mock_sensors:
-        from rpi.lib.mock import MockDisplay
-
-        return MockDisplay()
-    from rpi.dht.display import Display
-
-    return Display()
-
-
 def main() -> None:
     """Main entry point for the polling service."""
     configure()
     sensor = _create_sensor()
-    display = _create_display()
     publisher = EventPublisher()
     alert_tracker = AlertTracker()
-    service = DHTPollingService(sensor, display, publisher, alert_tracker)
+    service = DHTPollingService(sensor, publisher, alert_tracker)
     service.run()
 
 

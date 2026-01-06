@@ -142,15 +142,6 @@ def mock_sensor():
 
 
 @pytest.fixture
-def mock_display():
-    """Create a mock display."""
-    display = MagicMock()
-    display.clear = MagicMock()
-    display.render_reading = MagicMock()
-    return display
-
-
-@pytest.fixture
 def dht_audit_events(alert_tracker):
     """Capture DHT audit events published to the event bus.
 

@@ -101,7 +101,17 @@ def _parse_bool(v: Any) -> bool:
     return bool(v)
 
 
+def _parse_hex_int(v: Any) -> int:
+    """Parse integer from string, supporting hex format (0x...)."""
+    if isinstance(v, int):
+        return v
+    if isinstance(v, str):
+        return int(v, 0)  # base 0 auto-detects hex/octal/decimal
+    return int(v)
+
+
 _BoolFromStr = Annotated[bool, BeforeValidator(_parse_bool)]
+_HexInt = Annotated[int, BeforeValidator(_parse_hex_int)]
 
 
 def _validate_email_or_empty(v: str) -> str:
@@ -258,6 +268,26 @@ class HumidifierSettings(BaseModel):
     host: str = ""  # IP address or hostname of the Kasa smart plug
 
 
+class OLEDSettings(BaseModel):
+    """OLED display service settings."""
+
+    model_config = ConfigDict(frozen=True)
+
+    enabled: bool = False
+
+
+class LCDSettings(BaseModel):
+    """LCD 1602A display settings for alert display."""
+
+    model_config = ConfigDict(frozen=True)
+
+    enabled: bool = False
+    i2c_address: int = 0x27  # Common addresses: 0x27 or 0x3F
+    cols: int = 16
+    rows: int = 2
+    scroll_delay_sec: float = 0.3  # Delay between scroll steps
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
@@ -310,6 +340,14 @@ class Settings(BaseSettings):
     # Humidifier (Kasa smart plug)
     enable_humidifier: _BoolFromStr = False
     humidifier_host: str = ""
+
+    # OLED display (SSD1306)
+    enable_oled: _BoolFromStr = False
+
+    # LCD 1602A display
+    enable_lcd: _BoolFromStr = False
+    lcd_i2c_address: _HexInt = Field(default=0x27, ge=0x00, le=0x7F)
+    lcd_scroll_delay_sec: float = Field(default=0.7, gt=0)
 
     @cached_property
     def thresholds(self) -> ThresholdSettings:
@@ -394,6 +432,20 @@ class Settings(BaseSettings):
         return HumidifierSettings(
             enabled=self.enable_humidifier,
             host=self.humidifier_host,
+        )
+
+    @cached_property
+    def oled(self) -> OLEDSettings:
+        """Get OLED display settings."""
+        return OLEDSettings(enabled=self.enable_oled)
+
+    @cached_property
+    def lcd(self) -> LCDSettings:
+        """Get LCD display settings."""
+        return LCDSettings(
+            enabled=self.enable_lcd,
+            i2c_address=self.lcd_i2c_address,
+            scroll_delay_sec=self.lcd_scroll_delay_sec,
         )
 
     @cached_property

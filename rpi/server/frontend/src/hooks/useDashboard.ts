@@ -74,35 +74,41 @@ export function useDashboard(initialHours: number = 24) {
     loadData();
   }, [loadData]);
 
-  const handleDhtLatest = useCallback((reading: DHTReading | null) => {
-    if (!reading || reading.epoch === lastDhtEpoch.current) return;
-    lastDhtEpoch.current = reading.epoch;
-    setData((prev) => {
-      if (!prev) return prev;
-      // Filter by time period to respect configured hours
-      const cutoff = Date.now() - hours * 60 * 60 * 1000;
-      const newChartData = [reading, ...prev.data].filter((r) => r.epoch >= cutoff);
-      return { ...prev, latest: reading, data: newChartData };
-    });
-  }, [hours]);
-
-  const handlePicoLatest = useCallback((picoReadings: PicoReading[] | null) => {
-    if (!picoReadings?.length || picoReadings[0].epoch === lastPicoEpoch.current) return;
-    lastPicoEpoch.current = picoReadings[0].epoch;
-    setData((prev) => {
-      if (!prev) return prev;
-
-      const newPicoChartPoint: PicoChartDataPoint = { epoch: picoReadings[0].epoch };
-      picoReadings.forEach((r) => {
-        newPicoChartPoint[r.plant_id] = r.moisture;
+  const handleDhtLatest = useCallback(
+    (reading: DHTReading | null) => {
+      if (!reading || reading.epoch === lastDhtEpoch.current) return;
+      lastDhtEpoch.current = reading.epoch;
+      setData((prev) => {
+        if (!prev) return prev;
+        // Filter by time period to respect configured hours
+        const cutoff = Date.now() - hours * 60 * 60 * 1000;
+        const newChartData = [reading, ...prev.data].filter((r) => r.epoch >= cutoff);
+        return { ...prev, latest: reading, data: newChartData };
       });
+    },
+    [hours],
+  );
 
-      // Filter by time period to respect configured hours
-      const cutoff = Date.now() - hours * 60 * 60 * 1000;
-      const newPicoData = [newPicoChartPoint, ...prev.pico_data].filter((r) => r.epoch >= cutoff);
-      return { ...prev, pico_latest: picoReadings, pico_data: newPicoData };
-    });
-  }, [hours]);
+  const handlePicoLatest = useCallback(
+    (picoReadings: PicoReading[] | null) => {
+      if (!picoReadings?.length || picoReadings[0].epoch === lastPicoEpoch.current) return;
+      lastPicoEpoch.current = picoReadings[0].epoch;
+      setData((prev) => {
+        if (!prev) return prev;
+
+        const newPicoChartPoint: PicoChartDataPoint = { epoch: picoReadings[0].epoch };
+        picoReadings.forEach((r) => {
+          newPicoChartPoint[r.plant_id] = r.moisture;
+        });
+
+        // Filter by time period to respect configured hours
+        const cutoff = Date.now() - hours * 60 * 60 * 1000;
+        const newPicoData = [newPicoChartPoint, ...prev.pico_data].filter((r) => r.epoch >= cutoff);
+        return { ...prev, pico_latest: picoReadings, pico_data: newPicoData };
+      });
+    },
+    [hours],
+  );
 
   const stats = useMemo<DHTStats | null>(() => {
     if (!data?.data.length) return null;

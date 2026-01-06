@@ -124,3 +124,9 @@
   letter-spacing: 0.02em;
   line-height: 1;
 }
+
+.humidifierIcon {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}

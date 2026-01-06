@@ -1,12 +1,16 @@
 """Application factory for the web server."""
 
 import asyncio
+import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
+from typing import Any
 
+import redis.asyncio as aioredis
 from starlette.applications import Starlette
 from starlette.routing import Route, WebSocketRoute
 
+from rpi.lib.config import get_settings
 from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.logging import configure, get_logger
 
@@ -23,6 +27,9 @@ from .websockets import (
 
 _logger = get_logger("server.entrypoint")
 
+# Redis key for storing last humidifier state
+HUMIDIFIER_STATE_KEY = "humidifier:last_state"
+
 # Map event bus topics to WebSocket endpoints
 _TOPIC_TO_ENDPOINT = {
     Topic.DHT_READING: "/dht/latest",
@@ -31,11 +38,23 @@ _TOPIC_TO_ENDPOINT = {
 }
 
 
+async def _store_humidifier_state(data: dict[str, Any]) -> None:
+    """Store humidifier state in Redis for retrieval on WebSocket connect."""
+    try:
+        async with aioredis.from_url(get_settings().redis_url) as client:
+            await client.set(HUMIDIFIER_STATE_KEY, json.dumps(data))
+    except (aioredis.RedisError, OSError) as e:
+        _logger.warning("Failed to store humidifier state: %s", e)
+
+
 async def _event_subscriber_task(subscriber: EventSubscriber) -> None:
     """Background task that receives events and broadcasts to WebSocket clients."""
     async for topic, data in subscriber.receive():
         endpoint = _TOPIC_TO_ENDPOINT.get(topic)
         if endpoint:
+            # Store humidifier state for retrieval on WebSocket connect
+            if topic == Topic.HUMIDIFIER_STATE:
+                await _store_humidifier_state(data)
             count = await connection_manager.broadcast(endpoint, data)
             _logger.debug("Broadcast %s to %d clients", topic, count)
 

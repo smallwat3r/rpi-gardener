@@ -5,11 +5,14 @@ The event subscriber (in entrypoint.py) broadcasts new readings to clients.
 """
 
 import asyncio
+import json
 from contextlib import suppress
 from typing import Any
 
+import redis.asyncio as aioredis
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
+from rpi.lib.config import get_settings
 from rpi.lib.db import get_latest_dht_data, get_latest_pico_data
 from rpi.logging import get_logger
 
@@ -172,9 +175,25 @@ async def ws_pico_latest(websocket: WebSocket) -> None:
     await _maintain_connection(websocket, "/pico/latest", initial_data)
 
 
+async def _get_last_humidifier_state() -> dict[str, Any] | None:
+    """Fetch the last stored humidifier state from Redis."""
+    from .entrypoint import HUMIDIFIER_STATE_KEY
+
+    try:
+        async with aioredis.from_url(get_settings().redis_url) as client:
+            data = await client.get(HUMIDIFIER_STATE_KEY)
+            if data:
+                result: dict[str, Any] = json.loads(data)
+                return result
+    except (aioredis.RedisError, OSError, json.JSONDecodeError) as e:
+        _logger.warning("Failed to fetch humidifier state: %s", e)
+    return None
+
+
 async def ws_humidifier_state(websocket: WebSocket) -> None:
     """Stream humidifier on/off state changes.
 
-    No initial data (state is ephemeral), just receives updates via event bus.
+    Sends last known state on connect, then receives updates via event bus.
     """
-    await _maintain_connection(websocket, "/humidifier/state")
+    initial_data = await _get_last_humidifier_state()
+    await _maintain_connection(websocket, "/humidifier/state", initial_data)

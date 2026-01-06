@@ -74,6 +74,48 @@ services:
       redis:
         condition: service_healthy
 
+  humidifier:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file:
+      - .env
+    environment:
+      - MOCK_SENSORS=1
+      - REDIS_URL=redis://redis:6379/0
+    command: python -m rpi.humidifier
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  lcd:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file:
+      - .env
+    environment:
+      - MOCK_SENSORS=1
+      - REDIS_URL=redis://redis:6379/0
+    command: python -m rpi.lcd
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  oled:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file:
+      - .env
+    environment:
+      - MOCK_SENSORS=1
+      - REDIS_URL=redis://redis:6379/0
+    command: python -m rpi.oled
+    depends_on:
+      redis:
+        condition: service_healthy
+
   nginx:
     image: nginx:alpine
     ports:

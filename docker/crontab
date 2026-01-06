@@ -5,4 +5,4 @@ PYTHONPATH=/app
 DB_PATH=/app/data/dht.sqlite3
 
 # Database cleanup - runs daily at 3am
-0 3 * * * root cd /app && /opt/venv/bin/python -m rpi.db_cleanup >> /proc/1/fd/1 2>> /proc/1/fd/2
+0 3 * * * root cd /app && /opt/venv/bin/python -m rpi.cron.db_cleanup >> /proc/1/fd/1 2>> /proc/1/fd/2

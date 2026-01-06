@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from rpi.db_cleanup import cleanup
+from rpi.cron.db_cleanup import cleanup
 
 
 @asynccontextmanager
@@ -23,7 +23,7 @@ class TestDatabaseCleanup:
         """Cleanup should skip when database file doesn't exist."""
         db_file = tmp_path / "nonexistent.sqlite3"
 
-        with patch("rpi.db_cleanup.get_settings") as mock_settings:
+        with patch("rpi.cron.db_cleanup.get_settings") as mock_settings:
             mock_settings.return_value.db_path = str(db_file)
 
             # Should not raise, just log and return
@@ -48,9 +48,9 @@ class TestDatabaseCleanup:
         mock_db.__aexit__ = AsyncMock(return_value=None)
 
         with (
-            patch("rpi.db_cleanup.datetime") as mock_dt,
-            patch("rpi.db_cleanup.get_settings") as mock_settings,
-            patch("rpi.db_cleanup.Database", return_value=mock_db),
+            patch("rpi.cron.db_cleanup.datetime") as mock_dt,
+            patch("rpi.cron.db_cleanup.get_settings") as mock_settings,
+            patch("rpi.cron.db_cleanup.Database", return_value=mock_db),
         ):
             mock_dt.now.return_value = frozen_time
             mock_settings.return_value.db_path = str(db_file)
@@ -91,9 +91,9 @@ class TestDatabaseCleanup:
         mock_db.__aexit__ = AsyncMock(return_value=None)
 
         with (
-            patch("rpi.db_cleanup.datetime") as mock_dt,
-            patch("rpi.db_cleanup.get_settings") as mock_settings,
-            patch("rpi.db_cleanup.Database", return_value=mock_db),
+            patch("rpi.cron.db_cleanup.datetime") as mock_dt,
+            patch("rpi.cron.db_cleanup.get_settings") as mock_settings,
+            patch("rpi.cron.db_cleanup.Database", return_value=mock_db),
         ):
             mock_dt.now.return_value = frozen_time
             mock_settings.return_value.db_path = str(db_file)

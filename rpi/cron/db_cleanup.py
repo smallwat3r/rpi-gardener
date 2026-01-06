@@ -2,7 +2,7 @@
 
 Deletes records older than the configured retention period.
 
-Run via cron, e.g.: 0 3 * * * python -m rpi.db_cleanup
+Run via cron, e.g.: 0 3 * * * python -m rpi.cron.db_cleanup
 """
 
 import asyncio

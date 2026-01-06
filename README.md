@@ -109,6 +109,7 @@ See [pico/README.md](./pico/README.md) for Pico installation instructions.
 
 ```bash
 make up          # Start all services
+make up-rebuild  # Rebuild (clears static volume for fresh FE)
 make down        # Stop services
 make logs        # View all logs
 make logs-app    # View app container logs

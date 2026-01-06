@@ -180,9 +180,15 @@ class MockLCDDisplay:
 class MockSmartPlugController:
     """Mock smart plug controller that logs actions instead of controlling hardware."""
 
-    def __init__(self, host: str) -> None:
+    def __init__(self, host: str, *, turn_off_on_close: bool = False) -> None:
         self._host = host
         self._is_on = False
+        self._turn_off_on_close = turn_off_on_close
+
+    @property
+    def turn_off_on_close(self) -> bool:
+        """Whether to turn off the plug when closing."""
+        return self._turn_off_on_close
 
     async def connect(self) -> None:
         """Simulate connection."""
@@ -219,6 +225,11 @@ class MockSmartPlugController:
         from rpi.logging import get_logger
 
         logger = get_logger("lib.smartplug")
+        if self._turn_off_on_close:
+            logger.info(
+                "Turning off mock smart plug before disconnect (safety)"
+            )
+            await self.turn_off()
         logger.info("Mock smart plug disconnected")
 
     async def __aenter__(self) -> Self:

@@ -41,6 +41,12 @@ export interface Thresholds {
   moisture: Record<string, number>;
 }
 
+export interface HumidifierState {
+  type: string;
+  is_on: boolean;
+  recording_time: string;
+}
+
 export interface AdminSettings {
   thresholds: {
     temperature: { min: number; max: number };

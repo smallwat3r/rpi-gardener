@@ -170,3 +170,11 @@ async def ws_pico_latest(websocket: WebSocket) -> None:
     """
     initial_data = await get_latest_pico_data()
     await _maintain_connection(websocket, "/pico/latest", initial_data)
+
+
+async def ws_humidifier_state(websocket: WebSocket) -> None:
+    """Stream humidifier on/off state changes.
+
+    No initial data (state is ephemeral), just receives updates via event bus.
+    """
+    await _maintain_connection(websocket, "/humidifier/state")

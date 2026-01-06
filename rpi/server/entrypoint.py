@@ -17,6 +17,7 @@ from .api.thresholds import get_thresholds
 from .websockets import (
     connection_manager,
     ws_dht_latest,
+    ws_humidifier_state,
     ws_pico_latest,
 )
 
@@ -26,6 +27,7 @@ _logger = get_logger("server.entrypoint")
 _TOPIC_TO_ENDPOINT = {
     Topic.DHT_READING: "/dht/latest",
     Topic.PICO_READING: "/pico/latest",
+    Topic.HUMIDIFIER_STATE: "/humidifier/state",
 }
 
 
@@ -76,6 +78,7 @@ def create_app() -> Starlette:
         Route("/api/admin/settings", update_admin_settings, methods=["PUT"]),
         WebSocketRoute("/dht/latest", ws_dht_latest),
         WebSocketRoute("/pico/latest", ws_pico_latest),
+        WebSocketRoute("/humidifier/state", ws_humidifier_state),
     ]
 
     return Starlette(routes=routes, lifespan=lifespan)

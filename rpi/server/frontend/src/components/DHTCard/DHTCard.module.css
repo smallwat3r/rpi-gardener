@@ -109,3 +109,18 @@
     gap: var(--spacing-xs);
   }
 }
+
+.humidifierBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background-color: #22c55e;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}

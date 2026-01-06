@@ -14,6 +14,7 @@ interface DHTCardProps {
   chartData: DHTReading[];
   thresholds: Thresholds | null;
   loading?: boolean;
+  humidifierIsOn?: boolean | null;
 }
 
 const TEMP_SERIES: SeriesConfig[] = [
@@ -37,7 +38,14 @@ function getValueStatus(value: number, min: number, max: number): AlertStatus {
   return 'ok';
 }
 
-export function DHTCard({ latest, stats, chartData, thresholds, loading = false }: DHTCardProps) {
+export function DHTCard({
+  latest,
+  stats,
+  chartData,
+  thresholds,
+  loading = false,
+  humidifierIsOn,
+}: DHTCardProps) {
   const [openModal, setOpenModal] = useState<ModalChart>(null);
 
   const closeModal = useCallback(() => setOpenModal(null), []);
@@ -157,6 +165,7 @@ export function DHTCard({ latest, stats, chartData, thresholds, loading = false 
               </p>
               {humidityStatus === 'too_high' && <WarningBadge>Too humid</WarningBadge>}
               {humidityStatus === 'too_low' && <WarningBadge>Too dry</WarningBadge>}
+              {humidifierIsOn && <span class={styles.humidifierBadge}>Humidifier ON</span>}
               <StatDisplay
                 avg={stats.avg_humidity}
                 min={stats.min_humidity}

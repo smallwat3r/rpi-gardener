@@ -5,11 +5,19 @@ to turn a humidifier on/off based on humidity levels.
 
 - Humidifier turns ON when humidity is too LOW (alert triggered)
 - Humidifier turns OFF when humidity recovers (alert resolved)
+- Humidifier turns OFF on service shutdown (safety measure)
 """
+
+from datetime import UTC, datetime
 
 from rpi.lib.alerts import AlertEvent, Namespace
 from rpi.lib.config import MeasureName, get_settings
-from rpi.lib.eventbus import EventSubscriber, Topic
+from rpi.lib.eventbus import (
+    EventPublisher,
+    EventSubscriber,
+    HumidifierStateEvent,
+    Topic,
+)
 from rpi.lib.service import run_service
 from rpi.lib.smartplug import SmartPlugProtocol, create_smartplug_controller
 from rpi.logging import get_logger
@@ -28,7 +36,9 @@ def _is_low_humidity_alert(event: AlertEvent) -> bool:
 
 
 async def _handle_humidity_event(
-    event: AlertEvent, controller: SmartPlugProtocol
+    event: AlertEvent,
+    controller: SmartPlugProtocol,
+    publisher: EventPublisher,
 ) -> None:
     """Handle a humidity alert by controlling the humidifier."""
     if event.is_resolved:
@@ -36,7 +46,8 @@ async def _handle_humidity_event(
             "Humidity recovered to %.1f%% - turning OFF humidifier",
             event.value,
         )
-        await controller.turn_off()
+        success = await controller.turn_off()
+        is_on = False
     else:
         logger.info(
             "Humidity too low at %.1f%% (threshold: %.0f%%) - "
@@ -44,7 +55,13 @@ async def _handle_humidity_event(
             event.value,
             event.threshold,
         )
-        await controller.turn_on()
+        success = await controller.turn_on()
+        is_on = True
+
+    if success:
+        publisher.publish(
+            HumidifierStateEvent(is_on=is_on, recording_time=datetime.now(UTC))
+        )
 
 
 async def run() -> None:
@@ -55,18 +72,23 @@ async def run() -> None:
         logger.warning("HUMIDIFIER_HOST not configured, service exiting")
         return
 
-    controller = create_smartplug_controller(cfg.host)
+    # turn_off_on_close ensures humidifier is OFF when service stops
+    controller = create_smartplug_controller(cfg.host, turn_off_on_close=True)
 
-    async with controller, EventSubscriber(topics=[Topic.ALERT]) as subscriber:
-        logger.info("Humidifier service started")
-        async for _topic, data in subscriber.receive():
-            try:
-                event = AlertEvent.from_dict(data)
-            except (KeyError, ValueError, TypeError):
-                logger.exception("Failed to parse alert event")
-                continue
-            if _is_low_humidity_alert(event):
-                await _handle_humidity_event(event, controller)
+    with EventPublisher() as publisher:
+        async with (
+            controller,
+            EventSubscriber(topics=[Topic.ALERT]) as subscriber,
+        ):
+            logger.info("Humidifier service started")
+            async for _topic, data in subscriber.receive():
+                try:
+                    event = AlertEvent.from_dict(data)
+                except (KeyError, ValueError, TypeError):
+                    logger.exception("Failed to parse alert event")
+                    continue
+                if _is_low_humidity_alert(event):
+                    await _handle_humidity_event(event, controller, publisher)
 
     logger.info("Humidifier service stopped")
 

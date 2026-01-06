@@ -3,6 +3,7 @@ import { DHTCard } from '@/components/DHTCard';
 import { HoursFilter } from '@/components/HoursFilter';
 import { PicoCard } from '@/components/PicoCard';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useHumidifierStatus } from '@/hooks/useHumidifierStatus';
 import styles from './Dashboard.module.css';
 
 interface DashboardProps {
@@ -12,6 +13,7 @@ interface DashboardProps {
 
 export function Dashboard({ onSettingsClick, thresholdVersion }: DashboardProps) {
   const { data, thresholds, loading, error, hours, setHours, refreshThresholds } = useDashboard();
+  const { isOn: humidifierIsOn } = useHumidifierStatus();
   const isFirstRender = useRef(true);
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export function Dashboard({ onSettingsClick, thresholdVersion }: DashboardProps)
           chartData={data.data}
           thresholds={thresholds}
           loading={loading}
+          humidifierIsOn={humidifierIsOn}
         />
         <PicoCard
           latest={data.pico_latest}

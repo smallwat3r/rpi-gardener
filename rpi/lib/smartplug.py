@@ -20,6 +20,8 @@ class SmartPlugProtocol(Protocol):
 
     @property
     def is_connected(self) -> bool: ...
+    @property
+    def turn_off_on_close(self) -> bool: ...
     async def connect(self) -> None: ...
     async def turn_on(self) -> bool: ...
     async def turn_off(self) -> bool: ...
@@ -31,9 +33,15 @@ class SmartPlugProtocol(Protocol):
 class SmartPlugController:
     """Controller for TP-Link Kasa smart plug devices."""
 
-    def __init__(self, host: str) -> None:
+    def __init__(self, host: str, *, turn_off_on_close: bool = False) -> None:
         self._host = host
         self._device: Device | None = None
+        self._turn_off_on_close = turn_off_on_close
+
+    @property
+    def turn_off_on_close(self) -> bool:
+        """Whether to turn off the plug when closing the connection."""
+        return self._turn_off_on_close
 
     async def connect(self) -> None:
         """Connect to the smart plug device."""
@@ -118,8 +126,16 @@ class SmartPlugController:
         return self._device is not None
 
     async def close(self) -> None:
-        """Close the connection to the smart plug."""
+        """Close the connection to the smart plug.
+
+        If turn_off_on_close was set, turns off the plug before disconnecting.
+        """
         if self._device is not None:
+            if self._turn_off_on_close:
+                logger.info(
+                    "Turning off smart plug before disconnect (safety)"
+                )
+                await self.turn_off()
             await self._device.disconnect()
             self._device = None
             logger.info("Disconnected from smart plug")
@@ -134,8 +150,17 @@ class SmartPlugController:
         await self.close()
 
 
-def create_smartplug_controller(host: str) -> SmartPlugProtocol:
+def create_smartplug_controller(
+    host: str,
+    *,
+    turn_off_on_close: bool = False,
+) -> SmartPlugProtocol:
     """Create a smart plug controller for the given host.
+
+    Args:
+        host: IP address or hostname of the smart plug.
+        turn_off_on_close: If True, turn off the plug when closing.
+            Use this for safety-critical devices like humidifiers.
 
     Use as context manager: async with create_smartplug_controller(host) as ctrl:
     """
@@ -145,6 +170,8 @@ def create_smartplug_controller(host: str) -> SmartPlugProtocol:
         from rpi.lib.mock import MockSmartPlugController
 
         logger.info("Using mock smart plug controller for %s", host)
-        return MockSmartPlugController(host=host)
+        return MockSmartPlugController(
+            host=host, turn_off_on_close=turn_off_on_close
+        )
 
-    return SmartPlugController(host=host)
+    return SmartPlugController(host=host, turn_off_on_close=turn_off_on_close)

@@ -162,6 +162,46 @@ class TestSmartPlugController:
         assert controller.is_connected is False
         mock_device.disconnect.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_close_turns_off_when_turn_off_on_close_enabled(self):
+        """Close turns off the plug when turn_off_on_close=True."""
+        mock_device = AsyncMock()
+
+        controller = SmartPlugController(
+            host="192.168.1.100", turn_off_on_close=True
+        )
+        controller._device = mock_device
+
+        await controller.close()
+
+        mock_device.turn_off.assert_called_once()
+        mock_device.disconnect.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_close_does_not_turn_off_by_default(self):
+        """Close does not turn off the plug by default."""
+        mock_device = AsyncMock()
+
+        controller = SmartPlugController(host="192.168.1.100")
+        controller._device = mock_device
+
+        await controller.close()
+
+        mock_device.turn_off.assert_not_called()
+        mock_device.disconnect.assert_called_once()
+
+    def test_turn_off_on_close_property(self):
+        """Property returns the configured value."""
+        controller_off = SmartPlugController(
+            host="192.168.1.100", turn_off_on_close=False
+        )
+        controller_on = SmartPlugController(
+            host="192.168.1.100", turn_off_on_close=True
+        )
+
+        assert controller_off.turn_off_on_close is False
+        assert controller_on.turn_off_on_close is True
+
 
 class TestCreateSmartPlugController:
     """Tests for the factory function."""
@@ -224,3 +264,29 @@ class TestCreateSmartPlugController:
             with pytest.raises(ConnectionError, match="Failed to connect"):
                 async with result:
                     pass
+
+    def test_passes_turn_off_on_close_to_controller(self):
+        """Factory passes turn_off_on_close parameter to controller."""
+        from rpi.lib.config import Settings
+        from tests.conftest import set_settings
+
+        set_settings(Settings(mock_sensors=False))
+
+        controller = create_smartplug_controller(
+            "192.168.1.100", turn_off_on_close=True
+        )
+
+        assert controller.turn_off_on_close is True
+
+    def test_passes_turn_off_on_close_to_mock_controller(self):
+        """Factory passes turn_off_on_close parameter to mock controller."""
+        from rpi.lib.config import Settings
+        from tests.conftest import set_settings
+
+        set_settings(Settings(mock_sensors=True))
+
+        controller = create_smartplug_controller(
+            "192.168.1.100", turn_off_on_close=True
+        )
+
+        assert controller.turn_off_on_close is True

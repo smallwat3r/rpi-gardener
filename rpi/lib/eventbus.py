@@ -27,6 +27,7 @@ class Topic(StrEnum):
     DHT_READING = "dht.reading"
     PICO_READING = "pico.reading"
     ALERT = "alert"
+    HUMIDIFIER_STATE = "humidifier.state"
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,8 +123,34 @@ class AlertEventPayload(_Event):
         }
 
 
+@dataclass(frozen=True, slots=True)
+class HumidifierStateEvent(_Event):
+    """Humidifier on/off state change event."""
+
+    is_on: bool
+    recording_time: datetime
+
+    @property
+    def topic(self) -> Topic:
+        return Topic.HUMIDIFIER_STATE
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "type": self.topic,
+            "is_on": self.is_on,
+            "recording_time": self.recording_time.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
+        }
+
+
 # Type alias for any concrete event type
-type _AnyEvent = DHTReadingEvent | PicoReadingEvent | AlertEventPayload
+type _AnyEvent = (
+    DHTReadingEvent
+    | PicoReadingEvent
+    | AlertEventPayload
+    | HumidifierStateEvent
+)
 
 
 class EventPublisher:
@@ -172,6 +199,15 @@ class EventPublisher:
             self._client.close()
             self._client = None
         logger.info("Event publisher closed")
+
+    def __enter__(self) -> Self:
+        """Context manager entry."""
+        self.connect()
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        """Context manager exit."""
+        self.close()
 
 
 class EventSubscriber:

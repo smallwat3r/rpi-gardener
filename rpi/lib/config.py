@@ -101,7 +101,17 @@ def _parse_bool(v: Any) -> bool:
     return bool(v)
 
 
+def _parse_hex_int(v: Any) -> int:
+    """Parse integer from string, supporting hex format (0x...)."""
+    if isinstance(v, int):
+        return v
+    if isinstance(v, str):
+        return int(v, 0)  # base 0 auto-detects hex/octal/decimal
+    return int(v)
+
+
 _BoolFromStr = Annotated[bool, BeforeValidator(_parse_bool)]
+_HexInt = Annotated[int, BeforeValidator(_parse_hex_int)]
 
 
 def _validate_email_or_empty(v: str) -> str:
@@ -325,7 +335,7 @@ class Settings(BaseSettings):
 
     # LCD 1602A display
     enable_lcd: _BoolFromStr = False
-    lcd_i2c_address: int = Field(default=0x27, ge=0x00, le=0x7F)
+    lcd_i2c_address: _HexInt = Field(default=0x27, ge=0x00, le=0x7F)
     lcd_scroll_delay_sec: float = Field(default=0.3, gt=0)
 
     @cached_property

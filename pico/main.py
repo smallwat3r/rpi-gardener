@@ -66,7 +66,7 @@ class Display(SSD1306_I2C):
         # Blue zone: Plant readings
         y_pos = DISPLAY_VALUES_START_Y
         for plant in plants:
-            pct = readings[plant.name]
+            pct = readings[plant.name]["pct"]
             self.text(f"P{plant.id}: {pct:5.1f}%", 0, y_pos)
             y_pos += DISPLAY_VALUES_LINE_HEIGHT
         self.show()
@@ -75,8 +75,8 @@ class Display(SSD1306_I2C):
 def read_moisture(plant):
     """Read moisture level from a plant sensor, clamped to 0-100%."""
     raw = plant.pin.read_u16()
-    reading = round((plant.cal.max - raw) * 100 / plant.cal.diff, 2)
-    return max(0, min(100, reading))
+    pct = round((plant.cal.max - raw) * 100 / plant.cal.diff, 2)
+    return {"pct": max(0, min(100, pct)), "raw": raw}
 
 
 def init_display():
@@ -102,7 +102,7 @@ def main():
     """Main loop for reading sensors and sending data via USB serial."""
     display = init_display()
     wdt = WDT(timeout=8000)
-    readings = {plant.name: 0 for plant in plants}
+    readings = {plant.name: {"pct": 0, "raw": 0} for plant in plants}
 
     while True:
         for plant in plants:

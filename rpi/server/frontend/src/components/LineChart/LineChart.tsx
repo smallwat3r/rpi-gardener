@@ -212,7 +212,7 @@ export const LineChart = memo(function LineChart({
             })(),
           },
         }),
-        data: data.map((d) => [d.epoch, d[s.dataKey]]),
+        data: data.map((d) => [d.epoch, d[s.dataKey] ?? null]),
       };
     });
 
@@ -242,8 +242,8 @@ export const LineChart = memo(function LineChart({
           const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
           let html = `<div style="font-weight:600;margin-bottom:8px;color:#9ca3af">${dateStr} ${timeStr} UTC</div>`;
           items.forEach((item) => {
-            const value =
-              typeof item.value[1] === 'number' ? item.value[1].toFixed(1) : item.value[1];
+            if (item.value[1] == null) return;
+            const value = item.value[1].toFixed(1);
             html += `<div style="display:flex;align-items:center;gap:8px;margin:4px 0">
               <span style="width:10px;height:10px;border-radius:50%;background:${item.color}"></span>
               <span style="flex:1">${item.seriesName}</span>

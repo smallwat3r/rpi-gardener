@@ -167,20 +167,22 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
 
             if self._is_spike(reading.plant_id, reading.moisture):
                 self._logger.warning(
-                    "Spike rejected for plant-%d: %.1f%% (last: %.1f%%, threshold: %.1f%%)",
+                    "Spike detected for plant-%d: %.1f%% (last: %.1f%%, threshold: %.1f%%, raw: %d)",
                     reading.plant_id,
                     reading.moisture,
                     self._last_readings[reading.plant_id],
                     self._spike_threshold,
+                    reading.raw,
                 )
-                continue
+                reading.is_anomaly = True
 
             self._update_last_reading(reading.plant_id, reading.moisture)
             readings.append(reading)
 
         if readings:
             summary = ", ".join(
-                f"plant-{r.plant_id}: {r.moisture}%" for r in readings
+                f"plant-{r.plant_id}: {r.moisture}% (raw={r.raw})"
+                for r in readings
             )
             self._logger.info("Read %s", summary)
             return readings
@@ -192,6 +194,8 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         thresholds = await get_effective_thresholds()
 
         for reading in readings:
+            if reading.is_anomaly:
+                continue
             self._alert_tracker.check(
                 namespace=Namespace.PICO,
                 sensor_name=reading.plant_id,

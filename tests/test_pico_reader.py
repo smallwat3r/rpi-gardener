@@ -320,12 +320,12 @@ class TestPicoPollingServiceAudit:
         assert pico_audit_events[1].is_resolved is True
 
 
-class TestSpikeRejection:
-    """Tests for spike rejection in PicoPollingService.
+class TestSpikeDetection:
+    """Tests for spike detection in PicoPollingService.
 
-    Only spikes to 100% are rejected, as this typically indicates a sensor
-    malfunction. Large increases below 100% are allowed to support legitimate
-    recovery after watering.
+    Spikes to 100% are detected and marked (is_anomaly=True) but still recorded.
+    This allows data visibility while suppressing alerts for suspected sensor
+    errors. Large increases below 100% are normal (watering recovery).
     """
 
     @pytest.fixture
@@ -350,8 +350,8 @@ class TestSpikeRejection:
         return PicoPollingService(mock_source, mock_publisher, alert_tracker)
 
     @pytest.mark.asyncio
-    async def test_spike_to_100_rejected(self, service, mock_source, caplog):
-        """Sudden jump to 100% should be rejected as sensor error."""
+    async def test_spike_to_100_marked(self, service, mock_source, caplog):
+        """Sudden jump to 100% should be marked as spike but still recorded."""
         with patch("rpi.pico.reader.datetime") as mock_dt:
             from datetime import UTC, datetime
 
@@ -364,18 +364,21 @@ class TestSpikeRejection:
             result = await service.poll()
             assert len(result) == 1
             assert result[0].moisture == 50.0
+            assert result[0].is_anomaly is False
 
-            # Spike to 100% should be rejected (sensor error)
+            # Spike to 100% should be marked but still returned
             mock_source.readline.return_value = '{"plant-1": 100.0}'
             result = await service.poll()
-            assert result is None
-            assert "Spike rejected" in caplog.text
+            assert len(result) == 1
+            assert result[0].moisture == 100.0
+            assert result[0].is_anomaly is True
+            assert "Spike detected" in caplog.text
 
     @pytest.mark.asyncio
-    async def test_large_increase_below_100_accepted(
+    async def test_large_increase_below_100_not_spike(
         self, service, mock_source
     ):
-        """Large increases below 100% should be accepted (watering recovery)."""
+        """Large increases below 100% should not be marked as spike."""
         with patch("rpi.pico.reader.datetime") as mock_dt:
             from datetime import UTC, datetime
 
@@ -387,12 +390,14 @@ class TestSpikeRejection:
             mock_source.readline.return_value = '{"plant-1": 25.0}'
             result = await service.poll()
             assert result[0].moisture == 25.0
+            assert result[0].is_anomaly is False
 
-            # After watering - large jump to 80% should be accepted
+            # After watering - large jump to 80% should not be a spike
             mock_source.readline.return_value = '{"plant-1": 80.0}'
             result = await service.poll()
             assert len(result) == 1
             assert result[0].moisture == 80.0
+            assert result[0].is_anomaly is False
 
     @pytest.mark.asyncio
     async def test_gradual_rise_to_100_accepted(self, service, mock_source):

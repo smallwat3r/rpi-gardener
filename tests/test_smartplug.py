@@ -218,6 +218,6 @@ class TestCreateSmartPlugController:
         ):
             result = create_smartplug_controller("192.168.1.100")
 
-            with pytest.raises(OSError, match="Connection failed"):
+            with pytest.raises(ConnectionError, match="Failed to connect"):
                 async with result:
                     pass

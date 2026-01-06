@@ -62,13 +62,11 @@ async def run() -> None:
         async for _topic, data in subscriber.receive():
             try:
                 event = AlertEvent.from_dict(data)
-                if not _is_low_humidity_alert(event):
-                    continue
-                await _handle_humidity_event(event, controller)
             except (KeyError, ValueError, TypeError):
                 logger.exception("Failed to parse alert event")
-            except Exception:
-                logger.exception("Failed to handle humidity event")
+                continue
+            if _is_low_humidity_alert(event):
+                await _handle_humidity_event(event, controller)
 
     logger.info("Humidifier service stopped")
 

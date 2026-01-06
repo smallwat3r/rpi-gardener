@@ -37,14 +37,29 @@ class SmartPlugController:
 
     async def connect(self) -> None:
         """Connect to the smart plug device."""
-        self._device = await Discover.discover_single(self._host)
-        if self._device is None:
-            raise ConnectionError(f"Device not found at {self._host}")
-        await self._device.update()
+
+        async def do_connect() -> None:
+            self._device = await Discover.discover_single(self._host)
+            if self._device is None:
+                raise ConnectionError(f"Device not found at {self._host}")
+            await self._device.update()
+
+        success = await with_retry(
+            do_connect,
+            name="SmartPlug connect",
+            logger=logger,
+            max_retries=3,
+            initial_backoff_sec=2.0,
+            retryable_exceptions=(OSError, TimeoutError, ConnectionError),
+        )
+
+        if not success:
+            raise ConnectionError(f"Failed to connect to device at {self._host}")
+
         logger.info(
             "Connected to smart plug at %s (is_on=%s)",
             self._host,
-            self._device.is_on,
+            self._device.is_on,  # type: ignore[union-attr]
         )
 
     async def turn_on(self) -> bool:

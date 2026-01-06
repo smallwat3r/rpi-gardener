@@ -62,6 +62,14 @@ _HYSTERESIS_TEMPERATURE = 1  # °C
 _HYSTERESIS_HUMIDITY = 3  # %
 _HYSTERESIS_MOISTURE = 3  # %
 
+# Spike rejection: max allowed jump to 100% between consecutive readings
+# Jumps to 100% larger than this are rejected as sensor errors
+_SPIKE_THRESHOLD_MOISTURE = 20.0  # %
+
+# Alert confirmation: consecutive readings required to confirm state change
+# Prevents transient sensor errors from triggering alerts
+_ALERT_CONFIRMATION_COUNT = 3
+
 # DHT22 sensor physical bounds
 DHT22_BOUNDS = {
     MeasureName.TEMPERATURE: (-40, 80),
@@ -192,6 +200,15 @@ class PicoSettings(BaseModel):
     moisture_min: float = 0.0
     moisture_max: float = 100.0
     plant_id_max_length: int = 64
+    spike_threshold: float = _SPIKE_THRESHOLD_MOISTURE
+
+
+class AlertSettings(BaseModel):
+    """Alert behavior settings."""
+
+    model_config = ConfigDict(frozen=True)
+
+    confirmation_count: int = _ALERT_CONFIRMATION_COUNT
 
 
 class DisplaySettings(BaseModel):
@@ -378,6 +395,11 @@ class Settings(BaseSettings):
             enabled=self.humidifier_enabled,
             host=self.humidifier_host,
         )
+
+    @cached_property
+    def alerts(self) -> AlertSettings:
+        """Get alert behavior settings."""
+        return AlertSettings()
 
     @model_validator(mode="after")
     def validate_settings(self) -> Self:

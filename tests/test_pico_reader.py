@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from rpi.lib.alerts import AlertState, Namespace
+from rpi.lib.alerts import AlertState, AlertTracker, Namespace
 from rpi.lib.config import PlantId, ThresholdSettings, ThresholdType
 from rpi.pico.models import MoistureReading, ValidationError
 
@@ -318,3 +318,226 @@ class TestPicoPollingServiceAudit:
         )
         assert len(pico_audit_events) == 2
         assert pico_audit_events[1].is_resolved is True
+
+
+class TestSpikeRejection:
+    """Tests for spike rejection in PicoPollingService.
+
+    Only spikes to 100% are rejected, as this typically indicates a sensor
+    malfunction. Large increases below 100% are allowed to support legitimate
+    recovery after watering.
+    """
+
+    @pytest.fixture
+    def mock_source(self):
+        source = MagicMock()
+        source.readline = AsyncMock()
+        source.close = MagicMock()
+        return source
+
+    @pytest.fixture
+    def mock_publisher(self):
+        publisher = MagicMock()
+        publisher.connect = MagicMock()
+        publisher.publish = MagicMock()
+        publisher.close = MagicMock()
+        return publisher
+
+    @pytest.fixture
+    def service(self, mock_source, mock_publisher, alert_tracker):
+        from rpi.pico.reader import PicoPollingService
+
+        return PicoPollingService(mock_source, mock_publisher, alert_tracker)
+
+    @pytest.mark.asyncio
+    async def test_spike_to_100_rejected(self, service, mock_source, caplog):
+        """Sudden jump to 100% should be rejected as sensor error."""
+        with patch("rpi.pico.reader.datetime") as mock_dt:
+            from datetime import UTC, datetime
+
+            mock_dt.now.return_value = datetime(
+                2024, 6, 15, 12, 0, 0, tzinfo=UTC
+            )
+
+            # First reading establishes baseline
+            mock_source.readline.return_value = '{"plant-1": 50.0}'
+            result = await service.poll()
+            assert len(result) == 1
+            assert result[0].moisture == 50.0
+
+            # Spike to 100% should be rejected (sensor error)
+            mock_source.readline.return_value = '{"plant-1": 100.0}'
+            result = await service.poll()
+            assert result is None
+            assert "Spike rejected" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_large_increase_below_100_accepted(
+        self, service, mock_source
+    ):
+        """Large increases below 100% should be accepted (watering recovery)."""
+        with patch("rpi.pico.reader.datetime") as mock_dt:
+            from datetime import UTC, datetime
+
+            mock_dt.now.return_value = datetime(
+                2024, 6, 15, 12, 0, 0, tzinfo=UTC
+            )
+
+            # Dry soil
+            mock_source.readline.return_value = '{"plant-1": 25.0}'
+            result = await service.poll()
+            assert result[0].moisture == 25.0
+
+            # After watering - large jump to 80% should be accepted
+            mock_source.readline.return_value = '{"plant-1": 80.0}'
+            result = await service.poll()
+            assert len(result) == 1
+            assert result[0].moisture == 80.0
+
+    @pytest.mark.asyncio
+    async def test_gradual_rise_to_100_accepted(self, service, mock_source):
+        """Gradual rise to 100% within threshold should be accepted."""
+        with patch("rpi.pico.reader.datetime") as mock_dt:
+            from datetime import UTC, datetime
+
+            mock_dt.now.return_value = datetime(
+                2024, 6, 15, 12, 0, 0, tzinfo=UTC
+            )
+
+            # Already high moisture
+            mock_source.readline.return_value = '{"plant-1": 85.0}'
+            result = await service.poll()
+            assert result[0].moisture == 85.0
+
+            # Rise to 100% (within 20% threshold)
+            mock_source.readline.return_value = '{"plant-1": 100.0}'
+            result = await service.poll()
+            assert len(result) == 1
+            assert result[0].moisture == 100.0
+
+    @pytest.mark.asyncio
+    async def test_first_reading_never_spike(self, service, mock_source):
+        """First reading for a plant should never be considered a spike."""
+        with patch("rpi.pico.reader.datetime") as mock_dt:
+            from datetime import UTC, datetime
+
+            mock_dt.now.return_value = datetime(
+                2024, 6, 15, 12, 0, 0, tzinfo=UTC
+            )
+
+            # Even 100% as first reading should be accepted
+            mock_source.readline.return_value = '{"plant-1": 100.0}'
+            result = await service.poll()
+            assert len(result) == 1
+            assert result[0].moisture == 100.0
+
+
+class TestConfirmationWindow:
+    """Tests for alert confirmation window in AlertTracker."""
+
+    @pytest.fixture
+    def tracker_with_confirmation(self):
+        """AlertTracker requiring 3 consecutive readings to confirm."""
+        return AlertTracker(confirmation_count=3)
+
+    @pytest.fixture
+    def pico_events_with_confirmation(self, tracker_with_confirmation):
+        from rpi.lib.alerts import AlertEvent
+
+        events: list[AlertEvent] = []
+
+        def capture_event(event: AlertEvent) -> None:
+            events.append(event)
+
+        tracker_with_confirmation.register_callback(
+            Namespace.PICO, capture_event
+        )
+        return events
+
+    def test_single_reading_no_alert(
+        self,
+        tracker_with_confirmation,
+        pico_events_with_confirmation,
+        frozen_time,
+    ):
+        """Single reading below threshold should not trigger alert."""
+        tracker_with_confirmation.check(
+            namespace=Namespace.PICO,
+            sensor_name=1,
+            value=20.0,  # Below threshold
+            unit="%",
+            threshold=30,
+            threshold_type=ThresholdType.MIN,
+            hysteresis=3,
+            recording_time=frozen_time,
+        )
+        assert len(pico_events_with_confirmation) == 0
+
+    def test_confirmation_after_three_readings(
+        self,
+        tracker_with_confirmation,
+        pico_events_with_confirmation,
+        frozen_time,
+    ):
+        """Alert should trigger after 3 consecutive readings below threshold."""
+        for _ in range(3):
+            tracker_with_confirmation.check(
+                namespace=Namespace.PICO,
+                sensor_name=1,
+                value=20.0,  # Below threshold
+                unit="%",
+                threshold=30,
+                threshold_type=ThresholdType.MIN,
+                hysteresis=3,
+                recording_time=frozen_time,
+            )
+        assert len(pico_events_with_confirmation) == 1
+        assert pico_events_with_confirmation[0].value == 20.0
+
+    def test_counter_resets_on_normal_reading(
+        self,
+        tracker_with_confirmation,
+        pico_events_with_confirmation,
+        frozen_time,
+    ):
+        """Pending counter should reset when value returns to normal."""
+        # Two readings below threshold
+        for _ in range(2):
+            tracker_with_confirmation.check(
+                namespace=Namespace.PICO,
+                sensor_name=1,
+                value=20.0,
+                unit="%",
+                threshold=30,
+                threshold_type=ThresholdType.MIN,
+                hysteresis=3,
+                recording_time=frozen_time,
+            )
+        assert len(pico_events_with_confirmation) == 0
+
+        # Normal reading resets counter
+        tracker_with_confirmation.check(
+            namespace=Namespace.PICO,
+            sensor_name=1,
+            value=50.0,  # Above threshold
+            unit="%",
+            threshold=30,
+            threshold_type=ThresholdType.MIN,
+            hysteresis=3,
+            recording_time=frozen_time,
+        )
+
+        # Two more readings below threshold (not 3 total)
+        for _ in range(2):
+            tracker_with_confirmation.check(
+                namespace=Namespace.PICO,
+                sensor_name=1,
+                value=20.0,
+                unit="%",
+                threshold=30,
+                threshold_type=ThresholdType.MIN,
+                hysteresis=3,
+                recording_time=frozen_time,
+            )
+        # Still no alert because counter was reset
+        assert len(pico_events_with_confirmation) == 0

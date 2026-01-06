@@ -65,7 +65,11 @@ class SerialDataSource:
 
 
 class PicoPollingService(PollingService[list[MoistureReading]]):
-    """Polling service for Pico moisture sensors via USB serial."""
+    """Polling service for Pico moisture sensors via USB serial.
+
+    Includes spike rejection to filter out erroneous sensor readings that
+    jump too far from previous values (e.g., broken sensors returning 100%).
+    """
 
     def __init__(
         self,
@@ -77,6 +81,30 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         self._source = source
         self._publisher = publisher
         self._alert_tracker = alert_tracker
+        self._last_readings: dict[int, float] = {}
+        self._spike_threshold = get_settings().pico.spike_threshold
+
+    def _is_spike(self, plant_id: int, moisture: float) -> bool:
+        """Detect sudden jumps to 100% that indicate sensor errors.
+
+        Capacitive moisture sensors can malfunction and return 100% when
+        there's a connection issue or the sensor is damaged. We only reject
+        spikes toward 100% to avoid blocking legitimate recovery after
+        watering (which can cause large sudden increases).
+
+        Returns True if the reading jumps to 100% by more than the configured
+        spike threshold. First readings are never spikes.
+        """
+        if plant_id not in self._last_readings:
+            return False
+        if moisture < 100.0:
+            return False
+        delta = moisture - self._last_readings[plant_id]
+        return delta > self._spike_threshold
+
+    def _update_last_reading(self, plant_id: int, moisture: float) -> None:
+        """Update the last known reading for a plant."""
+        self._last_readings[plant_id] = moisture
 
     @override
     async def initialize(self) -> None:
@@ -133,9 +161,22 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         for key, value in data.items():
             try:
                 reading = MoistureReading.from_raw(key, value, recording_time)
-                readings.append(reading)
             except ValidationError as e:
                 self._logger.warning("Validation failed for %s: %s", key, e)
+                continue
+
+            if self._is_spike(reading.plant_id, reading.moisture):
+                self._logger.warning(
+                    "Spike rejected for plant-%d: %.1f%% (last: %.1f%%, threshold: %.1f%%)",
+                    reading.plant_id,
+                    reading.moisture,
+                    self._last_readings[reading.plant_id],
+                    self._spike_threshold,
+                )
+                continue
+
+            self._update_last_reading(reading.plant_id, reading.moisture)
+            readings.append(reading)
 
         if readings:
             summary = ", ".join(

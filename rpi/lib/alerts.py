@@ -5,6 +5,7 @@ across different namespaces (DHT, Pico) and triggers callbacks only on state
 transitions (to prevent notification spam).
 
 Uses hysteresis to prevent flapping when values oscillate around thresholds.
+Uses confirmation window to require consecutive readings before state change.
 
 Thread-safe: Uses locks to protect shared state when accessed from multiple
 polling services or async contexts.
@@ -16,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
 
-from rpi.lib.config import PlantIdValue, ThresholdType, Unit
+from rpi.lib.config import PlantIdValue, ThresholdType, Unit, get_settings
 from rpi.lib.eventbus import EventPublisher
 from rpi.logging import get_logger
 
@@ -105,16 +106,31 @@ class AlertTracker:
     transitions between states (not on every reading).
 
     Uses hysteresis to prevent flapping when values oscillate around thresholds.
+    Uses confirmation window to require N consecutive readings in a new state
+    before actually transitioning, preventing transient sensor errors from
+    triggering false alerts.
+
     Supports multiple namespaces (DHT, Pico) to keep sensor states organized.
 
     Thread-safe: All state mutations are protected by a lock.
     """
 
-    def __init__(self) -> None:
-        """Initialize the tracker with empty state."""
+    def __init__(self, confirmation_count: int | None = None) -> None:
+        """Initialize the tracker with empty state.
+
+        Args:
+            confirmation_count: Number of consecutive readings required to
+                confirm a state change. If None, uses config default.
+        """
         self._lock = threading.Lock()
         self._states: dict[_AlertKey, AlertState] = {}
         self._callbacks: dict[Namespace, AlertCallback] = {}
+        self._pending_counts: dict[_AlertKey, int] = {}
+        self._confirmation_count = (
+            confirmation_count
+            if confirmation_count is not None
+            else get_settings().alerts.confirmation_count
+        )
 
     def register_callback(
         self, namespace: Namespace, callback: AlertCallback
@@ -135,16 +151,45 @@ class AlertTracker:
         """Create a unique key for a sensor threshold in a namespace."""
         return (check.namespace, check.sensor_name, check.threshold_type)
 
+    def _wants_transition(
+        self, check: _ThresholdCheck, current: AlertState
+    ) -> AlertState | None:
+        """Determine if the reading wants to transition to a different state.
+
+        Returns the desired new state if a transition is warranted, or None
+        if the reading is consistent with the current state.
+        """
+        if current == AlertState.OK and check.is_violated():
+            return AlertState.IN_ALERT
+        if current == AlertState.IN_ALERT and check.has_recovered():
+            return AlertState.OK
+        return None
+
     def _compute_new_state(
-        self, check: _ThresholdCheck, previous: AlertState
+        self, check: _ThresholdCheck, key: _AlertKey, current: AlertState
     ) -> AlertState:
-        """Compute the new alert state based on current value and previous state."""
-        if previous == AlertState.OK:
-            return (
-                AlertState.IN_ALERT if check.is_violated() else AlertState.OK
-            )
-        # Currently IN_ALERT - only clear if recovered past hysteresis band
-        return AlertState.OK if check.has_recovered() else AlertState.IN_ALERT
+        """Compute the new alert state with confirmation window.
+
+        Requires multiple consecutive readings indicating a transition before
+        actually changing state. This prevents transient sensor errors from
+        triggering false alerts.
+        """
+        desired = self._wants_transition(check, current)
+
+        if desired is None:
+            # Reading is consistent with current state - reset pending counter
+            self._pending_counts.pop(key, None)
+            return current
+
+        # Reading wants to transition - increment pending counter
+        pending = self._pending_counts.get(key, 0) + 1
+        self._pending_counts[key] = pending
+
+        if pending >= self._confirmation_count:
+            self._pending_counts.pop(key, None)
+            return desired
+
+        return current
 
     def _handle_transition(
         self,
@@ -218,7 +263,7 @@ class AlertTracker:
 
         with self._lock:
             previous_state = self._states.get(key, AlertState.OK)
-            new_state = self._compute_new_state(check, previous_state)
+            new_state = self._compute_new_state(check, key, previous_state)
             self._states[key] = new_state
             callback = self._callbacks.get(namespace)
 
@@ -248,30 +293,39 @@ class AlertTracker:
                 if key[0] == namespace and key[1] == sensor_name
             )
 
+    def _key_matches(
+        self,
+        key: _AlertKey,
+        namespace: Namespace | None,
+        sensor_name: _SensorName | None,
+        threshold_type: ThresholdType | None,
+    ) -> bool:
+        """Check if a key matches the given filter criteria."""
+        if namespace is not None and key[0] != namespace:
+            return False
+        if sensor_name is not None and key[1] != sensor_name:
+            return False
+        return threshold_type is None or key[2] == threshold_type
+
     def reset(
         self,
         namespace: Namespace | None = None,
         sensor_name: _SensorName | None = None,
         threshold_type: ThresholdType | None = None,
     ) -> None:
-        """Reset alert state for specific threshold, sensor, namespace, or all."""
+        """Reset alert state and pending counts matching the filter criteria.
+
+        All parameters are optional filters. If all are None, clears everything.
+        """
         with self._lock:
-            if namespace is None:
-                self._states.clear()
-            elif sensor_name is None:
-                for k in [k for k in self._states if k[0] == namespace]:
-                    del self._states[k]
-            elif threshold_type is None:
-                for k in [
-                    k
-                    for k in self._states
-                    if k[0] == namespace and k[1] == sensor_name
-                ]:
-                    del self._states[k]
-            else:
-                self._states.pop(
-                    (namespace, sensor_name, threshold_type), None
-                )
+            to_delete = [
+                k
+                for k in self._states
+                if self._key_matches(k, namespace, sensor_name, threshold_type)
+            ]
+            for k in to_delete:
+                self._states.pop(k, None)
+                self._pending_counts.pop(k, None)
 
 
 def create_alert_publisher(publisher: EventPublisher) -> AlertCallback:

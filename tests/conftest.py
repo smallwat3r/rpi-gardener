@@ -62,8 +62,12 @@ def configure_caplog(caplog):
 
 @pytest.fixture
 def alert_tracker():
-    """Provide a fresh AlertTracker for each test."""
-    return AlertTracker()
+    """Provide a fresh AlertTracker for each test.
+
+    Uses confirmation_count=1 so tests see immediate state transitions.
+    Production uses the configured default (typically 3).
+    """
+    return AlertTracker(confirmation_count=1)
 
 
 @pytest.fixture(autouse=True)

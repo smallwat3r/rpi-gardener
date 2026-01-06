@@ -1,0 +1,1 @@
+"""Humidifier automation package."""

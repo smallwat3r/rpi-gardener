@@ -1,7 +1,7 @@
-"""Smart plug service that controls a humidifier based on humidity alerts.
+"""Humidifier service that controls humidity via a TP-Link Kasa smart plug.
 
-Subscribes to the event bus ALERT topic and controls a TP-Link Kasa
-smart plug to turn a humidifier on/off based on humidity levels.
+Subscribes to the event bus ALERT topic and controls a smart plug
+to turn a humidifier on/off based on humidity levels.
 
 - Humidifier turns ON when humidity is too LOW (alert triggered)
 - Humidifier turns OFF when humidity recovers (alert resolved)
@@ -17,7 +17,7 @@ from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.lib.smartplug import SmartPlugProtocol, get_smartplug_controller
 from rpi.logging import configure, get_logger
 
-logger = get_logger("smartplug.service")
+logger = get_logger("humidifier.service")
 
 
 def _is_low_humidity_alert(event: AlertEvent) -> bool:
@@ -33,7 +33,7 @@ def _is_low_humidity_alert(event: AlertEvent) -> bool:
 async def _handle_humidity_event(
     event: AlertEvent, controller: SmartPlugProtocol
 ) -> None:
-    """Handle a humidity alert by controlling the smart plug."""
+    """Handle a humidity alert by controlling the humidifier."""
     if event.is_resolved:
         logger.info(
             "Humidity recovered to %.1f%% - turning OFF humidifier",
@@ -51,15 +51,15 @@ async def _handle_humidity_event(
 
 
 async def run() -> None:
-    """Run the smart plug service."""
+    """Run the humidifier service."""
     controller = await get_smartplug_controller()
 
     if controller is None:
-        logger.warning("Smart plug controller not available, service exiting")
+        logger.warning("Humidifier controller not available, service exiting")
         return
 
     async with controller, EventSubscriber(topics=[Topic.ALERT]) as subscriber:
-        logger.info("Smart plug service started")
+        logger.info("Humidifier service started")
         async for _topic, data in subscriber.receive():
             try:
                 event = AlertEvent.from_dict(data)
@@ -71,15 +71,15 @@ async def run() -> None:
             except Exception:
                 logger.exception("Failed to handle humidity event")
 
-    logger.info("Smart plug service stopped")
+    logger.info("Humidifier service stopped")
 
 
 def main() -> None:
-    """Entry point for the smart plug service."""
+    """Entry point for the humidifier service."""
     configure()
 
-    if not get_settings().smartplug.enabled:
-        logger.info("Smart plug service is disabled, exiting")
+    if not get_settings().humidifier.enabled:
+        logger.info("Humidifier service is disabled, exiting")
         return
 
     loop = asyncio.new_event_loop()

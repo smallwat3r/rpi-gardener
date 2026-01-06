@@ -1,1 +1,0 @@
-"""Smart plug automation package."""

@@ -85,10 +85,10 @@ GMAIL_PASSWORD=
 # Slack (create webhook at https://api.slack.com/messaging/webhooks)
 SLACK_WEBHOOK_URL=
 
-# Smart plug (optional, TP-Link Kasa KP105)
+# Humidifier (optional, TP-Link Kasa smart plug)
 # Automatically controls a humidifier based on humidity alerts
-SMARTPLUG_ENABLED=0
-SMARTPLUG_HOST=192.168.1.100  # IP address of your Kasa plug
+HUMIDIFIER_ENABLED=0
+HUMIDIFIER_HOST=192.168.1.100  # IP address of your Kasa plug
 ```
 
 ### 4. Start Services

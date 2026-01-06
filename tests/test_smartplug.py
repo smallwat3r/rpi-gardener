@@ -4,10 +4,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from rpi.humidifier.service import _is_low_humidity_alert
 from rpi.lib.alerts import Namespace
 from rpi.lib.config import MeasureName, Unit
 from rpi.lib.smartplug import SmartPlugController, get_smartplug_controller
-from rpi.smartplug.service import _is_low_humidity_alert
 from tests.conftest import make_alert_event
 
 
@@ -175,8 +175,8 @@ class TestGetSmartPlugController:
 
         set_settings(
             Settings(
-                smartplug_enabled=True,
-                smartplug_host="192.168.1.100",
+                humidifier_enabled=True,
+                humidifier_host="192.168.1.100",
                 mock_sensors=True,
             )
         )
@@ -196,7 +196,7 @@ class TestGetSmartPlugController:
         from rpi.lib.config import Settings
         from tests.conftest import set_settings
 
-        set_settings(Settings(smartplug_enabled=False))
+        set_settings(Settings(humidifier_enabled=False))
 
         result = await get_smartplug_controller()
 
@@ -208,7 +208,7 @@ class TestGetSmartPlugController:
         from rpi.lib.config import Settings
         from tests.conftest import set_settings
 
-        set_settings(Settings(smartplug_enabled=True, smartplug_host=""))
+        set_settings(Settings(humidifier_enabled=True, humidifier_host=""))
 
         result = await get_smartplug_controller()
 
@@ -221,7 +221,7 @@ class TestGetSmartPlugController:
         from tests.conftest import set_settings
 
         set_settings(
-            Settings(smartplug_enabled=True, smartplug_host="192.168.1.100")
+            Settings(humidifier_enabled=True, humidifier_host="192.168.1.100")
         )
 
         mock_device = AsyncMock()
@@ -246,7 +246,7 @@ class TestGetSmartPlugController:
         from tests.conftest import set_settings
 
         set_settings(
-            Settings(smartplug_enabled=True, smartplug_host="192.168.1.100")
+            Settings(humidifier_enabled=True, humidifier_host="192.168.1.100")
         )
 
         with patch(

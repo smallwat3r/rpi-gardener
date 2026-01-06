@@ -23,6 +23,8 @@ hardware = [
     "aioserial",
     "RPi.GPIO",
     "mpremote",
+    "RPLCD",
+    "smbus2",
 ]
 dev = [
     "pytest>=8.0",

@@ -258,6 +258,18 @@ class HumidifierSettings(BaseModel):
     host: str = ""  # IP address or hostname of the Kasa smart plug
 
 
+class LCDSettings(BaseModel):
+    """LCD 1602A display settings for alert display."""
+
+    model_config = ConfigDict(frozen=True)
+
+    enabled: bool = False
+    i2c_address: int = 0x27  # Common addresses: 0x27 or 0x3F
+    cols: int = 16
+    rows: int = 2
+    scroll_delay_sec: float = 0.3  # Delay between scroll steps
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
@@ -310,6 +322,11 @@ class Settings(BaseSettings):
     # Humidifier (Kasa smart plug)
     enable_humidifier: _BoolFromStr = False
     humidifier_host: str = ""
+
+    # LCD 1602A display
+    enable_lcd: _BoolFromStr = False
+    lcd_i2c_address: int = Field(default=0x27, ge=0x00, le=0x7F)
+    lcd_scroll_delay_sec: float = Field(default=0.3, gt=0)
 
     @cached_property
     def thresholds(self) -> ThresholdSettings:
@@ -394,6 +411,15 @@ class Settings(BaseSettings):
         return HumidifierSettings(
             enabled=self.enable_humidifier,
             host=self.humidifier_host,
+        )
+
+    @cached_property
+    def lcd(self) -> LCDSettings:
+        """Get LCD display settings."""
+        return LCDSettings(
+            enabled=self.enable_lcd,
+            i2c_address=self.lcd_i2c_address,
+            scroll_delay_sec=self.lcd_scroll_delay_sec,
         )
 
     @cached_property

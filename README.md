@@ -16,6 +16,7 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - Visual alerts when sensor values exceed configured thresholds
 - Password-protected admin interface to manage settings
 - 128x64 OLED displays on both RPi and Pico
+- 16x2 LCD alert display with scrolling text
 - Notifications when thresholds are crossed and when alerts resolve
 - Smart plug automation (TP-Link Kasa) for humidity control
 - Docker deployment
@@ -27,6 +28,7 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - DHT22 temperature/humidity sensor
 - SSD1306 OLED display (128x64)
 - Capacitive soil moisture sensors (v1.2)
+- 1602A LCD with I2C backpack (optional, for alert display)
 - TP-Link Kasa smart plug (optional, for automatic humidity control)
 
 ## Quick Start
@@ -89,6 +91,12 @@ SLACK_WEBHOOK_URL=
 # Automatically controls a humidifier based on humidity alerts
 ENABLE_HUMIDIFIER=0
 HUMIDIFIER_HOST=192.168.1.100  # IP address of your Kasa plug
+
+# LCD 1602A alert display (optional)
+# Shows active alerts with scrolling text
+ENABLE_LCD=0
+LCD_I2C_ADDRESS=0x27           # Use 0x3F if 0x27 doesn't work
+LCD_SCROLL_DELAY_SEC=0.3       # Scroll speed (lower = faster)
 ```
 
 ### 4. Start Services
@@ -192,6 +200,12 @@ This project is designed for local home networks:
 | DHT22     | DATA | 17   |
 | OLED      | SDA  | 2    |
 | OLED      | SCL  | 3    |
+| LCD 1602A | SDA  | 2    |
+| LCD 1602A | SCL  | 3    |
+
+Note: OLED and LCD share the I2C bus (same SDA/SCL pins). They work together
+because they have different I2C addresses (OLED: 0x3C, LCD: 0x27).
+Run `i2cdetect -y 1` to verify both devices are detected.
 
 ### Raspberry Pi Pico
 

@@ -17,6 +17,7 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - Password-protected admin interface to manage settings
 - 128x64 OLED displays on both RPi and Pico
 - Notifications when thresholds are crossed and when alerts resolve
+- Smart plug automation (TP-Link Kasa) for humidity control
 - Docker deployment
 
 ## Requirements
@@ -26,6 +27,7 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - DHT22 temperature/humidity sensor
 - SSD1306 OLED display (128x64)
 - Capacitive soil moisture sensors (v1.2)
+- TP-Link Kasa smart plug (optional, for automatic humidity control)
 
 ## Quick Start
 
@@ -82,6 +84,11 @@ GMAIL_PASSWORD=
 
 # Slack (create webhook at https://api.slack.com/messaging/webhooks)
 SLACK_WEBHOOK_URL=
+
+# Humidifier (optional, TP-Link Kasa smart plug)
+# Automatically controls a humidifier based on humidity alerts
+HUMIDIFIER_ENABLED=0
+HUMIDIFIER_HOST=192.168.1.100  # IP address of your Kasa plug
 ```
 
 ### 4. Start Services

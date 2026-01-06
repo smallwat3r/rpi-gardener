@@ -9,6 +9,7 @@ consistent data patterns between seeded and live mock data.
 """
 
 import random
+from typing import Self
 
 from rpi.lib.config import PlantId
 
@@ -111,3 +112,57 @@ class MockDisplay:
 
     def render_reading(self, reading: object) -> None:
         """No-op."""
+
+
+class MockSmartPlugController:
+    """Mock smart plug controller that logs actions instead of controlling hardware."""
+
+    def __init__(self, host: str) -> None:
+        self._host = host
+        self._is_on = False
+
+    async def connect(self) -> None:
+        """Simulate connection."""
+        from rpi.logging import get_logger
+
+        logger = get_logger("lib.smartplug")
+        logger.info("Mock smart plug connected at %s", self._host)
+
+    async def turn_on(self) -> bool:
+        """Simulate turning on."""
+        from rpi.logging import get_logger
+
+        logger = get_logger("lib.smartplug")
+        self._is_on = True
+        logger.info("Mock smart plug turned ON")
+        return True
+
+    async def turn_off(self) -> bool:
+        """Simulate turning off."""
+        from rpi.logging import get_logger
+
+        logger = get_logger("lib.smartplug")
+        self._is_on = False
+        logger.info("Mock smart plug turned OFF")
+        return True
+
+    @property
+    def is_connected(self) -> bool:
+        """Always connected in mock mode."""
+        return True
+
+    async def close(self) -> None:
+        """Simulate disconnection."""
+        from rpi.logging import get_logger
+
+        logger = get_logger("lib.smartplug")
+        logger.info("Mock smart plug disconnected")
+
+    async def __aenter__(self) -> Self:
+        """Async context manager entry."""
+        await self.connect()
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        """Async context manager exit."""
+        await self.close()

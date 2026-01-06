@@ -1,11 +1,10 @@
 """Tests for the notification system."""
 
-from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from rpi.lib.alerts import AlertEvent, Namespace
+from rpi.lib.alerts import Namespace
 from rpi.lib.notifications import (
     CompositeNotifier,
     GmailNotifier,
@@ -16,31 +15,7 @@ from rpi.lib.notifications import (
     get_notifier,
     get_sensor_label,
 )
-
-
-def make_alert_event(
-    sensor_name="temperature",
-    value=30.5,
-    unit="c",
-    threshold=25,
-    recording_time=None,
-    namespace=Namespace.DHT,
-    is_resolved=False,
-):
-    """Create an AlertEvent for testing."""
-    from datetime import datetime
-
-    if recording_time is None:
-        recording_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
-    return AlertEvent(
-        namespace=namespace,
-        sensor_name=sensor_name,
-        value=value,
-        unit=unit,
-        threshold=threshold if not is_resolved else None,
-        recording_time=recording_time,
-        is_resolved=is_resolved,
-    )
+from tests.conftest import make_alert_event
 
 
 class TestAlertEvent:

@@ -87,7 +87,7 @@ SLACK_WEBHOOK_URL=
 
 # Humidifier (optional, TP-Link Kasa smart plug)
 # Automatically controls a humidifier based on humidity alerts
-HUMIDIFIER_ENABLED=0
+ENABLE_HUMIDIFIER=0
 HUMIDIFIER_HOST=192.168.1.100  # IP address of your Kasa plug
 ```
 

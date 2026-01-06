@@ -308,7 +308,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # Humidifier (Kasa smart plug)
-    humidifier_enabled: _BoolFromStr = False
+    enable_humidifier: _BoolFromStr = False
     humidifier_host: str = ""
 
     @cached_property
@@ -392,7 +392,7 @@ class Settings(BaseSettings):
     def humidifier(self) -> HumidifierSettings:
         """Get humidifier automation settings."""
         return HumidifierSettings(
-            enabled=self.humidifier_enabled,
+            enabled=self.enable_humidifier,
             host=self.humidifier_host,
         )
 

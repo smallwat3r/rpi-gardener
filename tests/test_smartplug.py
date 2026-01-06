@@ -211,10 +211,13 @@ class TestCreateSmartPlugController:
 
         set_settings(Settings(mock_sensors=False))
 
-        with patch(
-            "rpi.lib.smartplug.Discover.discover_single",
-            new_callable=AsyncMock,
-            side_effect=OSError("Connection failed"),
+        with (
+            patch(
+                "rpi.lib.smartplug.Discover.discover_single",
+                new_callable=AsyncMock,
+                side_effect=OSError("Connection failed"),
+            ),
+            patch("rpi.lib.retry.asyncio.sleep", new_callable=AsyncMock),
         ):
             result = create_smartplug_controller("192.168.1.100")
 

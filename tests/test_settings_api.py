@@ -149,15 +149,15 @@ class TestSettingsConversion:
 
         result = _request_to_db_settings(request)
 
-        assert result["threshold.temperature.min"] == "18"
-        assert result["threshold.temperature.max"] == "25"
-        assert result["threshold.humidity.min"] == "40"
-        assert result["threshold.humidity.max"] == "65"
-        assert result["threshold.moisture.default"] == "30"
-        assert result["threshold.moisture.1"] == "55"
-        assert result["notification.enabled"] == "1"
-        assert result["notification.backends"] == "gmail,slack"
-        assert result["cleanup.retention_days"] == "7"
+        assert result[SettingsKey.TEMP_MIN] == "18"
+        assert result[SettingsKey.TEMP_MAX] == "25"
+        assert result[SettingsKey.HUMIDITY_MIN] == "40"
+        assert result[SettingsKey.HUMIDITY_MAX] == "65"
+        assert result[SettingsKey.MOISTURE_DEFAULT] == "30"
+        assert result[SettingsKey.MOISTURE_1] == "55"
+        assert result[SettingsKey.NOTIFICATION_ENABLED] == "1"
+        assert result[SettingsKey.NOTIFICATION_BACKENDS] == "gmail,slack"
+        assert result[SettingsKey.RETENTION_DAYS] == "7"
 
     def test_request_to_db_settings_partial(self):
         """Should handle partial settings update."""
@@ -171,8 +171,8 @@ class TestSettingsConversion:
 
         result = _request_to_db_settings(request)
 
-        assert result["threshold.temperature.min"] == "20"
-        assert "threshold.temperature.max" not in result
+        assert result[SettingsKey.TEMP_MIN] == "20"
+        assert SettingsKey.TEMP_MAX not in result
 
     def test_db_settings_to_response_with_defaults(self):
         """Should use env defaults when DB settings are empty."""
@@ -191,11 +191,11 @@ class TestSettingsConversion:
     def test_db_settings_to_response_with_overrides(self):
         """Should use DB values when present."""
         db_settings: dict[SettingsKey, str] = {
-            "threshold.temperature.min": "20",
-            "threshold.temperature.max": "30",
-            "notification.enabled": "1",
-            "notification.backends": "slack",
-            "cleanup.retention_days": "14",
+            SettingsKey.TEMP_MIN: "20",
+            SettingsKey.TEMP_MAX: "30",
+            SettingsKey.NOTIFICATION_ENABLED: "1",
+            SettingsKey.NOTIFICATION_BACKENDS: "slack",
+            SettingsKey.RETENTION_DAYS: "14",
         }
 
         result = _db_settings_to_response(db_settings)

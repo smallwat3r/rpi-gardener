@@ -4,7 +4,7 @@ import os
 import re
 from enum import IntEnum, StrEnum
 from functools import cached_property, lru_cache
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, Self
 
 from pydantic import (
     AfterValidator,
@@ -76,20 +76,21 @@ DHT22_BOUNDS = {
     MeasureName.HUMIDITY: (0, 100),
 }
 
-# Valid DB settings keys for type safety
-type SettingsKey = Literal[
-    "threshold.temperature.min",
-    "threshold.temperature.max",
-    "threshold.humidity.min",
-    "threshold.humidity.max",
-    "threshold.moisture.default",
-    "threshold.moisture.1",
-    "threshold.moisture.2",
-    "threshold.moisture.3",
-    "notification.enabled",
-    "notification.backends",
-    "cleanup.retention_days",
-]
+
+class SettingsKey(StrEnum):
+    """Valid DB settings keys."""
+
+    TEMP_MIN = "threshold.temperature.min"
+    TEMP_MAX = "threshold.temperature.max"
+    HUMIDITY_MIN = "threshold.humidity.min"
+    HUMIDITY_MAX = "threshold.humidity.max"
+    MOISTURE_DEFAULT = "threshold.moisture.default"
+    MOISTURE_1 = "threshold.moisture.1"
+    MOISTURE_2 = "threshold.moisture.2"
+    MOISTURE_3 = "threshold.moisture.3"
+    NOTIFICATION_ENABLED = "notification.enabled"
+    NOTIFICATION_BACKENDS = "notification.backends"
+    RETENTION_DAYS = "cleanup.retention_days"
 
 
 def _parse_bool(v: Any) -> bool:
@@ -587,12 +588,12 @@ async def get_effective_thresholds() -> ThresholdSettings:
         return int(val) if val is not None else default
 
     min_moisture = get_int(
-        "threshold.moisture.default", env_settings.thresholds.min_moisture
+        SettingsKey.MOISTURE_DEFAULT, env_settings.thresholds.min_moisture
     )
     moisture_keys: dict[int, SettingsKey] = {
-        1: "threshold.moisture.1",
-        2: "threshold.moisture.2",
-        3: "threshold.moisture.3",
+        1: SettingsKey.MOISTURE_1,
+        2: SettingsKey.MOISTURE_2,
+        3: SettingsKey.MOISTURE_3,
     }
     plant_thresholds = {
         i: get_int(
@@ -604,18 +605,18 @@ async def get_effective_thresholds() -> ThresholdSettings:
 
     return ThresholdSettings(
         max_temperature=get_int(
-            "threshold.temperature.max",
+            SettingsKey.TEMP_MAX,
             env_settings.thresholds.max_temperature,
         ),
         min_temperature=get_int(
-            "threshold.temperature.min",
+            SettingsKey.TEMP_MIN,
             env_settings.thresholds.min_temperature,
         ),
         max_humidity=get_int(
-            "threshold.humidity.max", env_settings.thresholds.max_humidity
+            SettingsKey.HUMIDITY_MAX, env_settings.thresholds.max_humidity
         ),
         min_humidity=get_int(
-            "threshold.humidity.min", env_settings.thresholds.min_humidity
+            SettingsKey.HUMIDITY_MIN, env_settings.thresholds.min_humidity
         ),
         min_moisture=min_moisture,
         plant_moisture_thresholds=plant_thresholds,
@@ -629,14 +630,14 @@ async def get_effective_notifications() -> NotificationSettings:
     db_settings = await get_all_settings()
     env_settings = get_settings()
 
-    enabled_val = db_settings.get("notification.enabled")
+    enabled_val = db_settings.get(SettingsKey.NOTIFICATION_ENABLED)
     enabled = (
         enabled_val == "1"
         if enabled_val is not None
         else env_settings.notifications.enabled
     )
 
-    backends_val = db_settings.get("notification.backends")
+    backends_val = db_settings.get(SettingsKey.NOTIFICATION_BACKENDS)
     backends: list[NotificationBackend] = (
         [
             NotificationBackend(b.strip())

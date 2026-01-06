@@ -54,7 +54,9 @@ class SmartPlugController:
         )
 
         if not success:
-            raise ConnectionError(f"Failed to connect to device at {self._host}")
+            raise ConnectionError(
+                f"Failed to connect to device at {self._host}"
+            )
 
         logger.info(
             "Connected to smart plug at %s (is_on=%s)",

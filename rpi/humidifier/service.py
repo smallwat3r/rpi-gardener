@@ -74,7 +74,9 @@ async def run() -> None:
 def main() -> None:
     """Entry point for the humidifier service."""
     run_service(
-        run, enabled=lambda: get_settings().humidifier.enabled, name="humidifier"
+        run,
+        enabled=lambda: get_settings().humidifier.enabled,
+        name="humidifier",
     )
 
 

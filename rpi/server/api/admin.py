@@ -142,50 +142,50 @@ def _db_settings_to_response(
         "thresholds": {
             "temperature": {
                 "min": r.get_int(
-                    "threshold.temperature.min", s.thresholds.min_temperature
+                    SettingsKey.TEMP_MIN, s.thresholds.min_temperature
                 ),
                 "max": r.get_int(
-                    "threshold.temperature.max", s.thresholds.max_temperature
+                    SettingsKey.TEMP_MAX, s.thresholds.max_temperature
                 ),
             },
             "humidity": {
                 "min": r.get_int(
-                    "threshold.humidity.min", s.thresholds.min_humidity
+                    SettingsKey.HUMIDITY_MIN, s.thresholds.min_humidity
                 ),
                 "max": r.get_int(
-                    "threshold.humidity.max", s.thresholds.max_humidity
+                    SettingsKey.HUMIDITY_MAX, s.thresholds.max_humidity
                 ),
             },
             "moisture": {
                 "default": r.get_int(
-                    "threshold.moisture.default", default_moisture
+                    SettingsKey.MOISTURE_DEFAULT, default_moisture
                 ),
                 "1": r.get_int(
-                    "threshold.moisture.1",
+                    SettingsKey.MOISTURE_1,
                     plant_thresholds.get(1, default_moisture),
                 ),
                 "2": r.get_int(
-                    "threshold.moisture.2",
+                    SettingsKey.MOISTURE_2,
                     plant_thresholds.get(2, default_moisture),
                 ),
                 "3": r.get_int(
-                    "threshold.moisture.3",
+                    SettingsKey.MOISTURE_3,
                     plant_thresholds.get(3, default_moisture),
                 ),
             },
         },
         "notifications": {
             "enabled": r.get_bool(
-                "notification.enabled", s.notifications.enabled
+                SettingsKey.NOTIFICATION_ENABLED, s.notifications.enabled
             ),
             "backends": r.get_list(
-                "notification.backends",
+                SettingsKey.NOTIFICATION_BACKENDS,
                 [str(b) for b in s.notifications.backends],
             ),
         },
         "cleanup": {
             "retentionDays": r.get_int(
-                "cleanup.retention_days", s.cleanup.retention_days
+                SettingsKey.RETENTION_DAYS, s.cleanup.retention_days
             ),
         },
     }
@@ -199,14 +199,14 @@ def _request_to_db_settings(
 
     # Thresholds
     threshold_fields: list[tuple[SettingsKey, int | None]] = [
-        ("threshold.temperature.min", data.thresholds.temperature.min),
-        ("threshold.temperature.max", data.thresholds.temperature.max),
-        ("threshold.humidity.min", data.thresholds.humidity.min),
-        ("threshold.humidity.max", data.thresholds.humidity.max),
-        ("threshold.moisture.default", data.thresholds.moisture.default),
-        ("threshold.moisture.1", data.thresholds.moisture.plant_1),
-        ("threshold.moisture.2", data.thresholds.moisture.plant_2),
-        ("threshold.moisture.3", data.thresholds.moisture.plant_3),
+        (SettingsKey.TEMP_MIN, data.thresholds.temperature.min),
+        (SettingsKey.TEMP_MAX, data.thresholds.temperature.max),
+        (SettingsKey.HUMIDITY_MIN, data.thresholds.humidity.min),
+        (SettingsKey.HUMIDITY_MAX, data.thresholds.humidity.max),
+        (SettingsKey.MOISTURE_DEFAULT, data.thresholds.moisture.default),
+        (SettingsKey.MOISTURE_1, data.thresholds.moisture.plant_1),
+        (SettingsKey.MOISTURE_2, data.thresholds.moisture.plant_2),
+        (SettingsKey.MOISTURE_3, data.thresholds.moisture.plant_3),
     ]
     for key, field in threshold_fields:
         if field is not None:
@@ -214,15 +214,17 @@ def _request_to_db_settings(
 
     # Notifications
     if data.notifications.enabled is not None:
-        result["notification.enabled"] = (
+        result[SettingsKey.NOTIFICATION_ENABLED] = (
             "1" if data.notifications.enabled else "0"
         )
     if data.notifications.backends is not None:
-        result["notification.backends"] = ",".join(data.notifications.backends)
+        result[SettingsKey.NOTIFICATION_BACKENDS] = ",".join(
+            data.notifications.backends
+        )
 
     # Cleanup
     if data.cleanup.retentionDays is not None:
-        result["cleanup.retention_days"] = str(data.cleanup.retentionDays)
+        result[SettingsKey.RETENTION_DAYS] = str(data.cleanup.retentionDays)
 
     return result
 

@@ -1,6 +1,7 @@
 """Retry utilities with exponential backoff."""
 
 import asyncio
+import inspect
 from collections.abc import Awaitable, Callable
 from logging import Logger
 
@@ -37,7 +38,7 @@ async def with_retry(
         try:
             if run_in_thread:
                 await asyncio.to_thread(fn)
-            elif asyncio.iscoroutinefunction(fn):
+            elif inspect.iscoroutinefunction(fn):
                 await fn()
             else:
                 fn()

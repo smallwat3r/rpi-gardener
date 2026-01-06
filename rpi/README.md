@@ -10,7 +10,8 @@ Services communicate via Redis pub/sub:
 DHT Polling ──┐                  ┌── Web Server (WebSocket)
               │                  ├── Notification Service (Gmail/Slack)
               ├── Redis ─────────┼── Humidifier Service (Kasa smart plug)
-Pico Reader ──┘                  └── LCD Service (1602A alert display)
+Pico Reader ──┘                  ├── OLED Service (SSD1306 display)
+                                 └── LCD Service (1602A alert display)
 ```
 
 ## Services
@@ -51,6 +52,20 @@ Turns on when humidity drops below the threshold,
 and turns off when humidity recovers.
 
     python -m rpi.humidifier
+
+### OLED Service (`oled/`)
+
+Displays temperature and humidity readings on an SSD1306 OLED display (128x64).
+Subscribes to DHT reading events and renders the latest values.
+
+    python -m rpi.oled
+
+Example display:
+```
+  ROOM CLIMATE
+22.5°C    55.0%
+temp      humid
+```
 
 ### LCD Service (`lcd/`)
 

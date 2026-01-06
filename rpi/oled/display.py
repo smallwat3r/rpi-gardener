@@ -4,18 +4,23 @@ Provides a Display class for rendering temperature and humidity readings
 on an SSD1306 OLED display connected via I2C.
 """
 
-from typing import Protocol
+from typing import Protocol, Self
 
-from rpi.dht.models import Reading
-from rpi.lib.config import get_settings
+from rpi.lib.config import Unit, get_settings
 
 
 class DisplayProtocol(Protocol):
-    """Protocol for display interface."""
+    """Protocol for OLED display interface."""
 
     def clear(self) -> None: ...
 
-    def render_reading(self, reading: Reading) -> None: ...
+    def render(self, temperature: float, humidity: float) -> None: ...
+
+    def close(self) -> None: ...
+
+    def __enter__(self) -> Self: ...
+
+    def __exit__(self, *_: object) -> None: ...
 
 
 class Display:
@@ -35,8 +40,8 @@ class Display:
         self._oled.fill(0)
         self._oled.show()
 
-    def render_reading(self, reading: Reading) -> None:
-        """Render a reading on the display.
+    def render(self, temperature: float, humidity: float) -> None:
+        """Render temperature and humidity on the display.
 
         Layout optimized for yellow/blue SSD1306 displays:
         - Yellow zone (top 16px): Header
@@ -60,8 +65,10 @@ class Display:
 
         # Blue zone: Values (larger font, spaced apart)
         value_font = ImageFont.truetype(cfg.font_path, 16)
-        draw.text((0, 24), str(reading.temperature), font=value_font, fill=255)
-        draw.text((70, 24), str(reading.humidity), font=value_font, fill=255)
+        temp_str = f"{temperature}{Unit.CELSIUS}"
+        humid_str = f"{humidity}{Unit.PERCENT}"
+        draw.text((0, 24), temp_str, font=value_font, fill=255)
+        draw.text((70, 24), humid_str, font=value_font, fill=255)
 
         # Labels below values
         label_font = ImageFont.truetype(cfg.font_path, 10)
@@ -70,3 +77,15 @@ class Display:
 
         self._oled.image(image)
         self._oled.show()
+
+    def close(self) -> None:
+        """Close the display."""
+        self.clear()
+
+    def __enter__(self) -> Self:
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        """Exit context manager."""
+        self.close()

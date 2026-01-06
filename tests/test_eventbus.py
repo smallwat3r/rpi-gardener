@@ -284,3 +284,25 @@ class TestEventSubscriber:
         mock_pubsub.unsubscribe.assert_called_once()
         mock_pubsub.close.assert_called_once()
         mock_client.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("rpi.lib.eventbus.aioredis")
+    async def test_context_manager(self, mock_aioredis):
+        """Context manager connects on enter and closes on exit."""
+        mock_pubsub = MagicMock()
+        mock_pubsub.subscribe = AsyncMock()
+        mock_pubsub.unsubscribe = AsyncMock()
+        mock_pubsub.close = AsyncMock()
+        mock_client = MagicMock()
+        mock_client.pubsub.return_value = mock_pubsub
+        mock_client.close = AsyncMock()
+        mock_aioredis.from_url.return_value = mock_client
+
+        async with EventSubscriber(topics=[Topic.ALERT]) as subscriber:
+            mock_aioredis.from_url.assert_called_once()
+            mock_pubsub.subscribe.assert_called_once_with(Topic.ALERT)
+            assert subscriber is not None
+
+        mock_pubsub.unsubscribe.assert_called_once()
+        mock_pubsub.close.assert_called_once()
+        mock_client.close.assert_called_once()

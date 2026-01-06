@@ -4,7 +4,7 @@ Provides a Display class for rendering active alerts on a 16x2 character LCD
 connected via I2C (PCF8574 backpack).
 """
 
-from typing import Protocol
+from typing import Protocol, Self
 
 from rpi.lib.config import get_settings
 
@@ -21,6 +21,10 @@ class DisplayProtocol(Protocol):
     def scroll_step(self) -> None: ...
 
     def close(self) -> None: ...
+
+    def __enter__(self) -> Self: ...
+
+    def __exit__(self, *_: object) -> None: ...
 
 
 class Display:
@@ -111,3 +115,11 @@ class Display:
         """Close the LCD connection."""
         self.clear()
         self._lcd.close()
+
+    def __enter__(self) -> Self:
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        """Exit context manager."""
+        self.close()

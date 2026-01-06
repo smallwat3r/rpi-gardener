@@ -92,11 +92,15 @@ SLACK_WEBHOOK_URL=
 ENABLE_HUMIDIFIER=0
 HUMIDIFIER_HOST=192.168.1.100  # IP address of your Kasa plug
 
+# OLED display (optional, SSD1306 128x64)
+# Shows temperature and humidity readings
+ENABLE_OLED=0
+
 # LCD 1602A alert display (optional)
 # Shows active alerts with scrolling text
 ENABLE_LCD=0
 LCD_I2C_ADDRESS=0x27           # Use 0x3F if 0x27 doesn't work
-LCD_SCROLL_DELAY_SEC=0.3       # Scroll speed (lower = faster)
+LCD_SCROLL_DELAY_SEC=0.7       # Scroll speed (lower = faster)
 ```
 
 ### 4. Start Services

@@ -268,6 +268,14 @@ class HumidifierSettings(BaseModel):
     host: str = ""  # IP address or hostname of the Kasa smart plug
 
 
+class OLEDSettings(BaseModel):
+    """OLED display service settings."""
+
+    model_config = ConfigDict(frozen=True)
+
+    enabled: bool = False
+
+
 class LCDSettings(BaseModel):
     """LCD 1602A display settings for alert display."""
 
@@ -332,6 +340,9 @@ class Settings(BaseSettings):
     # Humidifier (Kasa smart plug)
     enable_humidifier: _BoolFromStr = False
     humidifier_host: str = ""
+
+    # OLED display (SSD1306)
+    enable_oled: _BoolFromStr = False
 
     # LCD 1602A display
     enable_lcd: _BoolFromStr = False
@@ -422,6 +433,11 @@ class Settings(BaseSettings):
             enabled=self.enable_humidifier,
             host=self.humidifier_host,
         )
+
+    @cached_property
+    def oled(self) -> OLEDSettings:
+        """Get OLED display settings."""
+        return OLEDSettings(enabled=self.enable_oled)
 
     @cached_property
     def lcd(self) -> LCDSettings:

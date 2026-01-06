@@ -103,31 +103,30 @@ async def _scroll_loop(
 
 async def run() -> None:
     """Run the LCD service."""
-    display = _create_display()
-    manager = AlertManager(display)
-    stop_event = asyncio.Event()
+    with _create_display() as display:
+        manager = AlertManager(display)
+        stop_event = asyncio.Event()
 
-    display.show_ok()
+        display.show_ok()
 
-    scroll_task = asyncio.create_task(
-        _scroll_loop(display, manager, stop_event)
-    )
+        scroll_task = asyncio.create_task(
+            _scroll_loop(display, manager, stop_event)
+        )
 
-    try:
-        async with EventSubscriber(topics=[Topic.ALERT]) as subscriber:
-            logger.info("LCD service started")
-            async for _topic, data in subscriber.receive():
-                try:
-                    event = AlertEvent.from_dict(data)
-                    manager.handle_event(event)
-                except (KeyError, ValueError, TypeError):
-                    logger.exception("Failed to parse alert event")
-    finally:
-        stop_event.set()
-        scroll_task.cancel()
-        with suppress(asyncio.CancelledError):
-            await scroll_task
-        display.close()
+        try:
+            async with EventSubscriber(topics=[Topic.ALERT]) as subscriber:
+                logger.info("LCD service started")
+                async for _topic, data in subscriber.receive():
+                    try:
+                        event = AlertEvent.from_dict(data)
+                        manager.handle_event(event)
+                    except (KeyError, ValueError, TypeError):
+                        logger.exception("Failed to parse alert event")
+        finally:
+            stop_event.set()
+            scroll_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await scroll_task
 
     logger.info("LCD service stopped")
 

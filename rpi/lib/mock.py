@@ -104,14 +104,34 @@ class MockPicoDataSource:
         """No-op for mock data source."""
 
 
-class MockDisplay:
-    """Mock OLED display that does nothing (for development without hardware)."""
+class MockOLEDDisplay:
+    """Mock OLED display that logs output for development."""
+
+    def __init__(self) -> None:
+        from rpi.logging import get_logger
+
+        self._logger = get_logger("lib.mock.oled")
+        self._logger.info("Mock OLED display initialized")
 
     def clear(self) -> None:
-        """No-op."""
+        """Clear the display."""
+        self._logger.debug("OLED cleared")
 
-    def render_reading(self, reading: object) -> None:
-        """No-op."""
+    def render(self, temperature: float, humidity: float) -> None:
+        """Render temperature and humidity."""
+        self._logger.info("OLED: %.1f C | %.1f %%", temperature, humidity)
+
+    def close(self) -> None:
+        """Close the display."""
+        self._logger.info("Mock OLED display closed")
+
+    def __enter__(self) -> Self:
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        """Exit context manager."""
+        self.close()
 
 
 class MockLCDDisplay:
@@ -147,6 +167,14 @@ class MockLCDDisplay:
     def close(self) -> None:
         """Close the display."""
         self._logger.info("Mock LCD display closed")
+
+    def __enter__(self) -> Self:
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        """Exit context manager."""
+        self.close()
 
 
 class MockSmartPlugController:

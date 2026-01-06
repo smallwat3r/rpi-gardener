@@ -22,13 +22,9 @@ class TestDHTPollingServiceAudit:
         return publisher
 
     @pytest.fixture
-    def service(
-        self, mock_sensor, mock_display, mock_publisher, alert_tracker
-    ):
+    def service(self, mock_sensor, mock_publisher, alert_tracker):
         """Create a DHTPollingService instance for testing."""
-        return DHTPollingService(
-            mock_sensor, mock_display, mock_publisher, alert_tracker
-        )
+        return DHTPollingService(mock_sensor, mock_publisher, alert_tracker)
 
     @pytest.mark.asyncio
     async def test_valid_reading_passes(self, service, sample_reading):
@@ -128,18 +124,14 @@ class TestDHTPollingServicePoll:
         return publisher
 
     @pytest.fixture
-    def service(
-        self, mock_sensor, mock_display, mock_publisher, alert_tracker
-    ):
+    def service(self, mock_sensor, mock_publisher, alert_tracker):
         """Create a DHTPollingService instance for testing."""
-        return DHTPollingService(
-            mock_sensor, mock_display, mock_publisher, alert_tracker
-        )
+        return DHTPollingService(mock_sensor, mock_publisher, alert_tracker)
 
     @pytest.mark.asyncio
     @patch("asyncio.to_thread")
     async def test_poll_updates_reading(
-        self, mock_to_thread, service, mock_display, frozen_time
+        self, mock_to_thread, service, frozen_time
     ):
         with patch("rpi.dht.polling.datetime") as mock_dt:
             mock_dt.now.return_value = frozen_time
@@ -152,7 +144,6 @@ class TestDHTPollingServicePoll:
             assert result.temperature.value == 25.5
             assert result.humidity.value == 60.0
             assert result.recording_time == frozen_time
-            mock_display.render_reading.assert_called_once()
 
 
 class TestDHTPollingServicePersist:
@@ -167,13 +158,9 @@ class TestDHTPollingServicePersist:
         return publisher
 
     @pytest.fixture
-    def service(
-        self, mock_sensor, mock_display, mock_publisher, alert_tracker
-    ):
+    def service(self, mock_sensor, mock_publisher, alert_tracker):
         """Create a DHTPollingService instance for testing."""
-        return DHTPollingService(
-            mock_sensor, mock_display, mock_publisher, alert_tracker
-        )
+        return DHTPollingService(mock_sensor, mock_publisher, alert_tracker)
 
     @pytest.mark.asyncio
     async def test_persist_inserts_reading(self, service, sample_reading):
@@ -211,13 +198,9 @@ class TestDHTPollingServiceErrorHandling:
         return publisher
 
     @pytest.fixture
-    def service(
-        self, mock_sensor, mock_display, mock_publisher, alert_tracker
-    ):
+    def service(self, mock_sensor, mock_publisher, alert_tracker):
         """Create a DHTPollingService instance for testing."""
-        return DHTPollingService(
-            mock_sensor, mock_display, mock_publisher, alert_tracker
-        )
+        return DHTPollingService(mock_sensor, mock_publisher, alert_tracker)
 
     def test_on_poll_error_handles_runtime_error(self, service, caplog):
         """RuntimeError from DHT should be logged as debug."""

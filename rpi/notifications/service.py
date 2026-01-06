@@ -4,14 +4,11 @@ Subscribes to the event bus ALERT topic and dispatches notifications
 via configured backends (Gmail, Slack, etc.).
 """
 
-import asyncio
-import signal
-from contextlib import suppress
-
 from rpi.lib.alerts import AlertEvent
 from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.lib.notifications import get_notifier, get_sensor_label
-from rpi.logging import configure, get_logger
+from rpi.lib.service import run_service
+from rpi.logging import get_logger
 
 logger = get_logger("notifications.service")
 
@@ -39,18 +36,7 @@ async def run() -> None:
 
 def main() -> None:
     """Entry point for the notification service."""
-    configure()
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    # Handle shutdown signals
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, loop.stop)
-
-    with suppress(KeyboardInterrupt):
-        loop.run_until_complete(run())
-    loop.close()
+    run_service(run, name="notifications")
 
 
 if __name__ == "__main__":

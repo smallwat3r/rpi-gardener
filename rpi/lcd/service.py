@@ -5,14 +5,14 @@ currently active alerts on a 16x2 character LCD.
 """
 
 import asyncio
-import signal
 from contextlib import suppress
 
 from rpi.lcd.display import DisplayProtocol
 from rpi.lib.alerts import AlertEvent, Namespace
 from rpi.lib.config import MeasureName, get_settings
 from rpi.lib.eventbus import EventSubscriber, Topic
-from rpi.logging import configure, get_logger
+from rpi.lib.service import run_service
+from rpi.logging import get_logger
 
 logger = get_logger("lcd.service")
 
@@ -133,21 +133,7 @@ async def run() -> None:
 
 def main() -> None:
     """Entry point for the LCD service."""
-    configure()
-
-    if not get_settings().lcd.enabled:
-        logger.info("LCD service is disabled, exiting")
-        return
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, loop.stop)
-
-    with suppress(KeyboardInterrupt):
-        loop.run_until_complete(run())
-    loop.close()
+    run_service(run, enabled=lambda: get_settings().lcd.enabled, name="lcd")
 
 
 if __name__ == "__main__":

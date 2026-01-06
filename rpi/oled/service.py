@@ -4,13 +4,10 @@ Subscribes to the event bus DHT_READING topic and renders the latest
 readings on an SSD1306 OLED display.
 """
 
-import asyncio
-import signal
-from contextlib import suppress
-
 from rpi.lib.config import get_settings
 from rpi.lib.eventbus import EventSubscriber, Topic
-from rpi.logging import configure, get_logger
+from rpi.lib.service import run_service
+from rpi.logging import get_logger
 from rpi.oled.display import DisplayProtocol
 
 logger = get_logger("oled.service")
@@ -50,21 +47,7 @@ async def run() -> None:
 
 def main() -> None:
     """Entry point for the OLED service."""
-    configure()
-
-    if not get_settings().oled.enabled:
-        logger.info("OLED service is disabled, exiting")
-        return
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, loop.stop)
-
-    with suppress(KeyboardInterrupt):
-        loop.run_until_complete(run())
-    loop.close()
+    run_service(run, enabled=lambda: get_settings().oled.enabled, name="oled")
 
 
 if __name__ == "__main__":

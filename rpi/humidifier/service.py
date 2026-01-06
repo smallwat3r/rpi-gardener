@@ -7,15 +7,12 @@ to turn a humidifier on/off based on humidity levels.
 - Humidifier turns OFF when humidity recovers (alert resolved)
 """
 
-import asyncio
-import signal
-from contextlib import suppress
-
 from rpi.lib.alerts import AlertEvent, Namespace
 from rpi.lib.config import MeasureName, get_settings
 from rpi.lib.eventbus import EventSubscriber, Topic
+from rpi.lib.service import run_service
 from rpi.lib.smartplug import SmartPlugProtocol, create_smartplug_controller
-from rpi.logging import configure, get_logger
+from rpi.logging import get_logger
 
 logger = get_logger("humidifier.service")
 
@@ -78,21 +75,9 @@ async def run() -> None:
 
 def main() -> None:
     """Entry point for the humidifier service."""
-    configure()
-
-    if not get_settings().humidifier.enabled:
-        logger.info("Humidifier service is disabled, exiting")
-        return
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, loop.stop)
-
-    with suppress(KeyboardInterrupt):
-        loop.run_until_complete(run())
-    loop.close()
+    run_service(
+        run, enabled=lambda: get_settings().humidifier.enabled, name="humidifier"
+    )
 
 
 if __name__ == "__main__":

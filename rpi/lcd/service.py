@@ -8,13 +8,26 @@ import asyncio
 import signal
 from contextlib import suppress
 
-from rpi.lcd.display import Display, DisplayProtocol
+from rpi.lcd.display import DisplayProtocol
 from rpi.lib.alerts import AlertEvent, Namespace
 from rpi.lib.config import MeasureName, get_settings
 from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.logging import configure, get_logger
 
 logger = get_logger("lcd.service")
+
+
+def _create_display() -> DisplayProtocol:
+    """Create display based on configuration."""
+    if get_settings().mock_sensors:
+        from rpi.lib.mock import MockLCDDisplay
+
+        logger.info("Using mock LCD display")
+        return MockLCDDisplay()
+
+    from rpi.lcd.display import Display
+
+    return Display()
 
 
 def _make_alert_key(event: AlertEvent) -> str:
@@ -90,7 +103,7 @@ async def _scroll_loop(
 
 async def run() -> None:
     """Run the LCD service."""
-    display = Display()
+    display = _create_display()
     manager = AlertManager(display)
     stop_event = asyncio.Event()
 

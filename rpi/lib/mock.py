@@ -114,6 +114,41 @@ class MockDisplay:
         """No-op."""
 
 
+class MockLCDDisplay:
+    """Mock LCD 1602A display that logs output for development."""
+
+    def __init__(self) -> None:
+        from rpi.logging import get_logger
+
+        self._logger = get_logger("lib.mock.lcd")
+        self._alerts: list[str] = []
+        self._logger.info("Mock LCD display initialized")
+
+    def clear(self) -> None:
+        """Clear the display."""
+        self._alerts = []
+        self._logger.debug("LCD cleared")
+
+    def show_ok(self) -> None:
+        """Display 'all ok' status."""
+        self._alerts = []
+        self._logger.info("LCD: STATUS - All OK")
+
+    def show_alerts(self, alerts: list[str]) -> None:
+        """Display alerts."""
+        self._alerts = alerts
+        self._logger.info(
+            "LCD: ALERTS: %d - %s", len(alerts), " | ".join(alerts)
+        )
+
+    def scroll_step(self) -> None:
+        """Advance scroll position (no-op for mock)."""
+
+    def close(self) -> None:
+        """Close the display."""
+        self._logger.info("Mock LCD display closed")
+
+
 class MockSmartPlugController:
     """Mock smart plug controller that logs actions instead of controlling hardware."""
 

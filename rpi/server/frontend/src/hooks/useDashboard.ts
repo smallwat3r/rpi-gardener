@@ -79,11 +79,12 @@ export function useDashboard(initialHours: number = 24) {
     lastDhtEpoch.current = reading.epoch;
     setData((prev) => {
       if (!prev) return prev;
-      // Maintain fixed array size to prevent memory growth
-      const newChartData = [reading, ...prev.data.slice(0, -1)];
+      // Filter by time period to respect configured hours
+      const cutoff = Date.now() - hours * 60 * 60 * 1000;
+      const newChartData = [reading, ...prev.data].filter((r) => r.epoch >= cutoff);
       return { ...prev, latest: reading, data: newChartData };
     });
-  }, []);
+  }, [hours]);
 
   const handlePicoLatest = useCallback((picoReadings: PicoReading[] | null) => {
     if (!picoReadings?.length || picoReadings[0].epoch === lastPicoEpoch.current) return;
@@ -96,10 +97,12 @@ export function useDashboard(initialHours: number = 24) {
         newPicoChartPoint[r.plant_id] = r.moisture;
       });
 
-      const newPicoData: PicoChartDataPoint[] = [newPicoChartPoint, ...prev.pico_data.slice(0, -1)];
+      // Filter by time period to respect configured hours
+      const cutoff = Date.now() - hours * 60 * 60 * 1000;
+      const newPicoData = [newPicoChartPoint, ...prev.pico_data].filter((r) => r.epoch >= cutoff);
       return { ...prev, pico_latest: picoReadings, pico_data: newPicoData };
     });
-  }, []);
+  }, [hours]);
 
   const stats = useMemo<DHTStats | null>(() => {
     if (!data?.data.length) return null;

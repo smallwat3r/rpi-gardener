@@ -11,7 +11,7 @@ from rpi.server.api.dashboard import get_dashboard
 class TestGetDashboard:
     """Tests for get_dashboard endpoint."""
 
-    def _make_request(self, query_params: dict | None = None):
+    def _make_request(self, query_params: dict[str, str] | None = None):
         """Create a mock Starlette request."""
         request = MagicMock()
         request.query_params = query_params or {}
@@ -50,13 +50,13 @@ class TestGetDashboard:
             response = await get_dashboard(self._make_request())
 
         assert response.status_code == 200
-        data = response.body.decode()
-        assert "hours" in data
-        assert "data" in data
-        assert "stats" in data
-        assert "latest" in data
-        assert "pico_data" in data
-        assert "pico_latest" in data
+        body = bytes(response.body)
+        assert b"hours" in body
+        assert b"data" in body
+        assert b"stats" in body
+        assert b"latest" in body
+        assert b"pico_data" in body
+        assert b"pico_latest" in body
 
     @pytest.mark.asyncio
     async def test_accepts_hours_parameter(self):
@@ -96,7 +96,9 @@ class TestGetDashboard:
     @pytest.mark.asyncio
     async def test_invalid_hours_returns_400(self):
         """Should return 400 for invalid hours parameter."""
-        response = await get_dashboard(self._make_request({"hours": "invalid"}))
+        response = await get_dashboard(
+            self._make_request({"hours": "invalid"})
+        )
 
         assert response.status_code == 400
         assert b"error" in response.body

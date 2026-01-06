@@ -152,7 +152,9 @@ class TestCheckDatabase:
         with patch("rpi.server.api.health.get_db") as mock_get_db:
             mock_db = AsyncMock()
             mock_db.fetchone = AsyncMock(return_value={"1": 1})
-            mock_get_db.return_value.__aenter__ = AsyncMock(return_value=mock_db)
+            mock_get_db.return_value.__aenter__ = AsyncMock(
+                return_value=mock_db
+            )
             mock_get_db.return_value.__aexit__ = AsyncMock(return_value=None)
 
             ok, status = await _check_database()
@@ -256,7 +258,9 @@ class TestCheckRedis:
         with patch("rpi.server.api.health.redis.from_url") as mock_redis:
             mock_client = AsyncMock()
             mock_client.ping = AsyncMock(return_value=True)
-            mock_redis.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_redis.return_value.__aenter__ = AsyncMock(
+                return_value=mock_client
+            )
             mock_redis.return_value.__aexit__ = AsyncMock(return_value=None)
 
             ok, status = await _check_redis()

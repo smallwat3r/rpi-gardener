@@ -14,7 +14,7 @@ from contextlib import suppress
 from rpi.lib.alerts import AlertEvent, Namespace
 from rpi.lib.config import MeasureName, get_settings
 from rpi.lib.eventbus import EventSubscriber, Topic
-from rpi.lib.smartplug import SmartPlugProtocol, get_smartplug_controller
+from rpi.lib.smartplug import SmartPlugProtocol, create_smartplug_controller
 from rpi.logging import configure, get_logger
 
 logger = get_logger("humidifier.service")
@@ -52,11 +52,13 @@ async def _handle_humidity_event(
 
 async def run() -> None:
     """Run the humidifier service."""
-    controller = await get_smartplug_controller()
+    cfg = get_settings().humidifier
 
-    if controller is None:
-        logger.warning("Humidifier controller not available, service exiting")
+    if not cfg.host:
+        logger.warning("HUMIDIFIER_HOST not configured, service exiting")
         return
+
+    controller = create_smartplug_controller(cfg.host)
 
     async with controller, EventSubscriber(topics=[Topic.ALERT]) as subscriber:
         logger.info("Humidifier service started")

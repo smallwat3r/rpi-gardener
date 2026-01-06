@@ -7,7 +7,7 @@ import pytest
 from rpi.humidifier.service import _is_low_humidity_alert
 from rpi.lib.alerts import Namespace
 from rpi.lib.config import MeasureName, Unit
-from rpi.lib.smartplug import SmartPlugController, get_smartplug_controller
+from rpi.lib.smartplug import SmartPlugController, create_smartplug_controller
 from tests.conftest import make_alert_event
 
 
@@ -163,7 +163,7 @@ class TestSmartPlugController:
         mock_device.disconnect.assert_called_once()
 
 
-class TestGetSmartPlugController:
+class TestCreateSmartPlugController:
     """Tests for the factory function."""
 
     @pytest.mark.asyncio
@@ -173,56 +173,21 @@ class TestGetSmartPlugController:
         from rpi.lib.mock import MockSmartPlugController
         from tests.conftest import set_settings
 
-        set_settings(
-            Settings(
-                humidifier_enabled=True,
-                humidifier_host="192.168.1.100",
-                mock_sensors=True,
-            )
-        )
+        set_settings(Settings(mock_sensors=True))
 
-        result = await get_smartplug_controller()
+        result = create_smartplug_controller("192.168.1.100")
 
-        assert result is not None
         assert isinstance(result, MockSmartPlugController)
-
-        # Controller connects via context manager
         async with result:
             assert result.is_connected is True
 
     @pytest.mark.asyncio
-    async def test_returns_none_when_disabled(self):
-        """Returns None when smart plug is disabled."""
+    async def test_returns_real_controller(self):
+        """Returns real controller when mock_sensors is disabled."""
         from rpi.lib.config import Settings
         from tests.conftest import set_settings
 
-        set_settings(Settings(humidifier_enabled=False))
-
-        result = await get_smartplug_controller()
-
-        assert result is None
-
-    @pytest.mark.asyncio
-    async def test_returns_none_when_no_host(self):
-        """Returns None when host is not configured."""
-        from rpi.lib.config import Settings
-        from tests.conftest import set_settings
-
-        set_settings(Settings(humidifier_enabled=True, humidifier_host=""))
-
-        result = await get_smartplug_controller()
-
-        assert result is None
-
-    @pytest.mark.asyncio
-    async def test_returns_controller_when_configured(self):
-        """Returns controller when properly configured."""
-        from rpi.lib.config import Settings
-        from tests.conftest import set_settings
-
-        set_settings(
-            Settings(humidifier_enabled=True, humidifier_host="192.168.1.100")
-        )
+        set_settings(Settings(mock_sensors=False))
 
         mock_device = AsyncMock()
         mock_device.is_on = False
@@ -232,10 +197,9 @@ class TestGetSmartPlugController:
             new_callable=AsyncMock,
             return_value=mock_device,
         ):
-            result = await get_smartplug_controller()
+            result = create_smartplug_controller("192.168.1.100")
 
-            assert result is not None
-            # Controller connects via context manager
+            assert isinstance(result, SmartPlugController)
             async with result:
                 assert result.is_connected is True
 
@@ -245,17 +209,14 @@ class TestGetSmartPlugController:
         from rpi.lib.config import Settings
         from tests.conftest import set_settings
 
-        set_settings(
-            Settings(humidifier_enabled=True, humidifier_host="192.168.1.100")
-        )
+        set_settings(Settings(mock_sensors=False))
 
         with patch(
             "rpi.lib.smartplug.Discover.discover_single",
             new_callable=AsyncMock,
             side_effect=OSError("Connection failed"),
         ):
-            result = await get_smartplug_controller()
-            assert result is not None
+            result = create_smartplug_controller("192.168.1.100")
 
             with pytest.raises(OSError, match="Connection failed"):
                 async with result:

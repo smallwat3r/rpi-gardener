@@ -117,33 +117,17 @@ class SmartPlugController:
         await self.close()
 
 
-async def get_smartplug_controller(host: str | None = None) -> SmartPlugProtocol | None:
-    """Create a smart plug controller.
+def create_smartplug_controller(host: str) -> SmartPlugProtocol:
+    """Create a smart plug controller for the given host.
 
-    Args:
-        host: IP address or hostname of the Kasa device. If None, uses
-              humidifier settings from config (for backwards compatibility).
-
-    Returns None if host is not provided and humidifier is disabled/not configured.
-    Use as context manager: async with await get_smartplug_controller(host) as ctrl:
+    Use as context manager: async with create_smartplug_controller(host) as ctrl:
     """
     settings = get_settings()
-
-    if host is None:
-        # Fall back to humidifier config for backwards compatibility
-        cfg = settings.humidifier
-        if not cfg.enabled:
-            logger.debug("Humidifier is disabled")
-            return None
-        if not cfg.host:
-            logger.warning("Humidifier enabled but HUMIDIFIER_HOST not configured")
-            return None
-        host = cfg.host
 
     if settings.mock_sensors:
         from rpi.lib.mock import MockSmartPlugController
 
-        logger.info("Using mock smart plug controller")
+        logger.info("Using mock smart plug controller for %s", host)
         return MockSmartPlugController(host=host)
 
     return SmartPlugController(host=host)

@@ -29,8 +29,6 @@ def _create_display() -> DisplayProtocol:
 async def run() -> None:
     """Run the OLED service."""
     with _create_display() as display:
-        display.clear()
-
         async with EventSubscriber(topics=[Topic.DHT_READING]) as subscriber:
             logger.info("OLED service started")
             async for _topic, data in subscriber.receive():

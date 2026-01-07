@@ -84,6 +84,7 @@ class Display:
 
     def __enter__(self) -> Self:
         """Enter context manager."""
+        self.clear()  # Ensure clean state before rendering
         return self
 
     def __exit__(self, *_: object) -> None:

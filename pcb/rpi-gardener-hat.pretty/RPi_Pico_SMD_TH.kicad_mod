@@ -1,0 +1,307 @@
+(footprint "RPi_Pico_SMD_TH"
+  (version 20240108)
+  (generator "pcbnew")
+  (generator_version "8.0")
+  (layer "F.Cu")
+  (descr "Raspberry Pi Pico footprint with through-hole pins")
+  (tags "raspberry pi pico rp2040")
+  (attr through_hole)
+  (fp_text reference "REF**"
+    (at 0 -3 0)
+    (layer "F.SilkS")
+    (uuid "pico-ref")
+    (effects
+      (font
+        (size 1 1)
+        (thickness 0.15))))
+  (fp_text value "Pico"
+    (at 0 54 0)
+    (layer "F.Fab")
+    (uuid "pico-val")
+    (effects
+      (font
+        (size 1 1)
+        (thickness 0.15))))
+  (fp_rect
+    (start -10.5 -1.5)
+    (end 10.5 52.5)
+    (stroke
+      (width 0.12)
+      (type default))
+    (fill none)
+    (layer "F.SilkS")
+    (uuid "pico-outline"))
+  (fp_rect
+    (start -10.16 -1.27)
+    (end 10.16 52.07)
+    (stroke
+      (width 0.1)
+      (type default))
+    (fill none)
+    (layer "F.Fab")
+    (uuid "pico-fab"))
+  (fp_rect
+    (start -4 -1.5)
+    (end 4 2)
+    (stroke
+      (width 0.12)
+      (type default))
+    (fill none)
+    (layer "F.SilkS")
+    (uuid "pico-usb"))
+  (fp_text user "USB"
+    (at 0 0 0)
+    (layer "F.SilkS")
+    (uuid "pico-usb-text")
+    (effects
+      (font
+        (size 0.8 0.8)
+        (thickness 0.1))))
+  (pad "1" thru_hole rect
+    (at -8.89 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-1"))
+  (pad "2" thru_hole oval
+    (at -8.89 2.54)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-2"))
+  (pad "3" thru_hole oval
+    (at -8.89 5.08)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-3"))
+  (pad "4" thru_hole oval
+    (at -8.89 7.62)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-4"))
+  (pad "5" thru_hole oval
+    (at -8.89 10.16)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-5"))
+  (pad "6" thru_hole oval
+    (at -8.89 12.7)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-6"))
+  (pad "7" thru_hole oval
+    (at -8.89 15.24)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-7"))
+  (pad "8" thru_hole oval
+    (at -8.89 17.78)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-8"))
+  (pad "9" thru_hole oval
+    (at -8.89 20.32)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-9"))
+  (pad "10" thru_hole oval
+    (at -8.89 22.86)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-10"))
+  (pad "11" thru_hole oval
+    (at -8.89 25.4)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-11"))
+  (pad "12" thru_hole oval
+    (at -8.89 27.94)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-12"))
+  (pad "13" thru_hole oval
+    (at -8.89 30.48)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-13"))
+  (pad "14" thru_hole oval
+    (at -8.89 33.02)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-14"))
+  (pad "15" thru_hole oval
+    (at -8.89 35.56)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-15"))
+  (pad "16" thru_hole oval
+    (at -8.89 38.1)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-16"))
+  (pad "17" thru_hole oval
+    (at -8.89 40.64)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-17"))
+  (pad "18" thru_hole oval
+    (at -8.89 43.18)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-18"))
+  (pad "19" thru_hole oval
+    (at -8.89 45.72)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-19"))
+  (pad "20" thru_hole oval
+    (at -8.89 48.26)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-20"))
+  (pad "21" thru_hole oval
+    (at 8.89 48.26)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-21"))
+  (pad "22" thru_hole oval
+    (at 8.89 45.72)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-22"))
+  (pad "23" thru_hole oval
+    (at 8.89 43.18)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-23"))
+  (pad "24" thru_hole oval
+    (at 8.89 40.64)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-24"))
+  (pad "25" thru_hole oval
+    (at 8.89 38.1)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-25"))
+  (pad "26" thru_hole oval
+    (at 8.89 35.56)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-26"))
+  (pad "27" thru_hole oval
+    (at 8.89 33.02)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-27"))
+  (pad "28" thru_hole oval
+    (at 8.89 30.48)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-28"))
+  (pad "29" thru_hole oval
+    (at 8.89 27.94)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-29"))
+  (pad "30" thru_hole oval
+    (at 8.89 25.4)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-30"))
+  (pad "31" thru_hole oval
+    (at 8.89 22.86)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-31"))
+  (pad "32" thru_hole oval
+    (at 8.89 20.32)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-32"))
+  (pad "33" thru_hole oval
+    (at 8.89 17.78)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-33"))
+  (pad "34" thru_hole oval
+    (at 8.89 15.24)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-34"))
+  (pad "35" thru_hole oval
+    (at 8.89 12.7)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-35"))
+  (pad "36" thru_hole oval
+    (at 8.89 10.16)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-36"))
+  (pad "37" thru_hole oval
+    (at 8.89 7.62)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-37"))
+  (pad "38" thru_hole oval
+    (at 8.89 5.08)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-38"))
+  (pad "39" thru_hole oval
+    (at 8.89 2.54)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-39"))
+  (pad "40" thru_hole oval
+    (at 8.89 0)
+    (size 1.7 1.7)
+    (drill 1)
+    (layers "*.Cu" "*.Mask")
+    (uuid "pico-pad-40"))
+  (model "${KICAD8_3DMODEL_DIR}/Module.3dshapes/RPi_Pico.step"
+    (offset
+      (xyz 0 25.4 0))
+    (scale
+      (xyz 1 1 1))
+    (rotate
+      (xyz 0 0 0)))
+)

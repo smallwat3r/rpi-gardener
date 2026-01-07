@@ -24,7 +24,16 @@ Mechanical
 ----------
 | Ref | Description                    | Qty | Footprint                           |
 |-----|--------------------------------|-----|-------------------------------------|
-| H1-H4| M2.5 Mounting Holes           | 4   | MountingHole_2.7mm_M2.5             |
+| H1-H4| M3 Mounting Holes             | 4   | MountingHole_3.2mm_M3               |
+
+Additional Hardware (for assembly with 3D printed base)
+-------------------------------------------------------
+| Item                  | Qty | Notes                              |
+|-----------------------|-----|------------------------------------|
+| M3 x 25-30mm screws   | 4   | Length depends on spacer height    |
+| M3 nuts               | 4   | To secure on top of HAT            |
+| M3 spacers (5-6mm)    | 4   | Between base and RPi               |
+| M3 spacers (10-12mm)  | 4   | Between RPi and HAT                |
 
 
 PIN ASSIGNMENTS
@@ -97,7 +106,7 @@ PCB DIMENSIONS
 - Total board size: 65mm x 56mm (standard RPi HAT size)
 - Compact design with Pico integrated on same footprint
 - Pico USB port extends slightly past right edge for access
-- Mounting holes: M2.5 at standard HAT positions (3.5mm from edges)
+- Mounting holes: M3 at standard HAT positions (3.5mm from edges)
 - 2-layer board, 1.6mm thickness recommended
 
 

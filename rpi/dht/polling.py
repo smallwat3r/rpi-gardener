@@ -115,7 +115,7 @@ class DHTPollingService(PollingService[Reading]):
                 (
                     reading.temperature.value,
                     reading.humidity.value,
-                    reading.recording_time,
+                    int(reading.recording_time.timestamp()),
                 ),
             )
 

@@ -61,11 +61,11 @@ class TestDatabaseCleanup:
         # Should delete from both tables + vacuum (3 execute)
         assert mock_db.execute.call_count == 3
 
-        # Check cutoff date (3 days retention) in first delete call
+        # Check cutoff epoch (3 days retention) in first delete call
         first_delete = mock_db.execute.call_args_list[0]
-        cutoff = first_delete[0][1][0]
+        cutoff_epoch = first_delete[0][1][0]
         expected_cutoff = frozen_time - timedelta(days=3)
-        assert cutoff == expected_cutoff
+        assert cutoff_epoch == int(expected_cutoff.timestamp())
 
         # Check vacuum is called
         vacuum_call = mock_db.execute.call_args_list[2]

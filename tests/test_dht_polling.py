@@ -182,7 +182,7 @@ class TestDHTPollingServicePersist:
         params = call_args[0][1]
         assert params[0] == sample_reading.temperature.value
         assert params[1] == sample_reading.humidity.value
-        assert params[2] == sample_reading.recording_time
+        assert params[2] == int(sample_reading.recording_time.timestamp())
         mock_publisher.publish.assert_called_once()
 
 

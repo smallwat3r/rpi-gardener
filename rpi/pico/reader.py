@@ -220,7 +220,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
                     {
                         "plant_id": r.plant_id,
                         "moisture": r.moisture,
-                        "recording_time": r.recording_time,
+                        "recording_time": int(r.recording_time.timestamp()),
                     }
                     for r in readings
                 ],

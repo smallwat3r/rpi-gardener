@@ -13,7 +13,7 @@ from rpi.lib.mock import random_walk
 
 def generate_dht_data(
     num_records: int, interval: timedelta
-) -> list[tuple[float, float, datetime]]:
+) -> list[tuple[float, float, int]]:
     """Generate realistic DHT sensor readings using random walk."""
     now = datetime.now(UTC)
     data = []
@@ -28,7 +28,7 @@ def generate_dht_data(
         )
         humidity = random_walk(humidity, drift=0.3, min_val=30.0, max_val=70.0)
         data.append(
-            (round(temperature, 1), round(humidity, 1), recording_time)
+            (round(temperature, 1), round(humidity, 1), int(recording_time.timestamp()))
         )
 
     return data
@@ -36,10 +36,10 @@ def generate_dht_data(
 
 def generate_pico_data(
     num_records: int, interval: timedelta
-) -> list[tuple[int, float, datetime]]:
+) -> list[tuple[int, float, int]]:
     """Generate realistic Pico moisture readings using random walk."""
     now = datetime.now(UTC)
-    data: list[tuple[int, float, datetime]] = []
+    data: list[tuple[int, float, int]] = []
     plant_ids = list(PlantId)
 
     moisture = {plant_id: random.uniform(40.0, 70.0) for plant_id in plant_ids}
@@ -51,7 +51,7 @@ def generate_pico_data(
                 moisture[plant_id], drift=0.5, min_val=10.0, max_val=90.0
             )
             data.append(
-                (int(plant_id), round(moisture[plant_id], 1), recording_time)
+                (int(plant_id), round(moisture[plant_id], 1), int(recording_time.timestamp()))
             )
 
     return data

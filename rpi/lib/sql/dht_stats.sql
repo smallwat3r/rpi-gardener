@@ -5,4 +5,4 @@ SELECT round(avg(temperature), 2) as 'avg_temperature'
      , max(humidity) as 'max_humidity'
      , min(humidity) as 'min_humidity'
 FROM reading
-WHERE recording_time > ?
+WHERE recording_time > :from_epoch

@@ -378,9 +378,10 @@ def _calculate_bucket_size(
 async def get_initial_dht_data(from_time: datetime) -> list[DHTReading]:
     """Return DHT22 sensor data from a given time, downsampled for charts."""
     bucket = _calculate_bucket_size(from_time)
+    from_epoch = int(from_time.timestamp())
     async with get_db() as db:
         rows = await db.fetchall(
-            _DHT_CHART_SQL, {"from_time": from_time, "bucket": bucket}
+            _DHT_CHART_SQL, {"from_epoch": from_epoch, "bucket": bucket}
         )
         return cast(list[DHTReading], rows)
 
@@ -394,8 +395,9 @@ async def get_latest_dht_data() -> DHTReading | None:
 
 async def get_stats_dht_data(from_time: datetime) -> DHTStats | None:
     """Return statistics for the DHT22 sensor data from a given time."""
+    from_epoch = int(from_time.timestamp())
     async with get_db() as db:
-        row = await db.fetchone(_DHT_STATS_SQL, (from_time,))
+        row = await db.fetchone(_DHT_STATS_SQL, {"from_epoch": from_epoch})
         return cast(DHTStats | None, row)
 
 
@@ -404,9 +406,10 @@ async def get_initial_pico_data(
 ) -> list[PicoChartDataPoint]:
     """Return Pico sensor data from a given time, downsampled and pivoted."""
     bucket = _calculate_bucket_size(from_time)
+    from_epoch = int(from_time.timestamp())
     async with get_db() as db:
         rows = await db.fetchall(
-            _PICO_CHART_SQL, {"from_time": from_time, "bucket": bucket}
+            _PICO_CHART_SQL, {"from_epoch": from_epoch, "bucket": bucket}
         )
 
     # Pivot: group by epoch, with plant_id as columns

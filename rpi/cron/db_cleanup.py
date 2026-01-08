@@ -31,6 +31,7 @@ async def cleanup() -> None:
         return
 
     cutoff = datetime.now(UTC) - timedelta(days=cleanup_cfg.retention_days)
+    cutoff_epoch = int(cutoff.timestamp())
     logger.info(
         "Starting cleanup (retention: %d days)", cleanup_cfg.retention_days
     )
@@ -38,10 +39,11 @@ async def cleanup() -> None:
     async with Database() as db:
         async with db.transaction():
             dht_deleted = await db.execute(
-                "DELETE FROM reading WHERE recording_time < ?", (cutoff,)
+                "DELETE FROM reading WHERE recording_time < ?", (cutoff_epoch,)
             )
             pico_deleted = await db.execute(
-                "DELETE FROM pico_reading WHERE recording_time < ?", (cutoff,)
+                "DELETE FROM pico_reading WHERE recording_time < ?",
+                (cutoff_epoch,),
             )
 
         if dht_deleted > 0 or pico_deleted > 0:

@@ -1,3 +1,4 @@
+import asyncio
 from sqlite3 import DatabaseError
 
 from pydantic import ValidationError
@@ -25,16 +26,24 @@ async def get_dashboard(request: Request) -> JSONResponse:
         return JSONResponse({"error": str(err)}, status_code=400)
 
     try:
-        return JSONResponse(
-            {
-                "hours": query.hours,
-                "data": await get_initial_dht_data(query.from_time),
-                "stats": await get_stats_dht_data(query.from_time),
-                "latest": await get_latest_dht_data(),
-                "pico_data": await get_initial_pico_data(query.from_time),
-                "pico_latest": await get_latest_pico_data(),
-            }
+        dht_data, stats, latest, pico_data, pico_latest = await asyncio.gather(
+            get_initial_dht_data(query.from_time),
+            get_stats_dht_data(query.from_time),
+            get_latest_dht_data(),
+            get_initial_pico_data(query.from_time),
+            get_latest_pico_data(),
         )
     except DatabaseError:
         logger.exception("Database error fetching dashboard data")
         return JSONResponse({"error": "Database unavailable"}, status_code=503)
+
+    return JSONResponse(
+        {
+            "hours": query.hours,
+            "data": dht_data,
+            "stats": stats,
+            "latest": latest,
+            "pico_data": pico_data,
+            "pico_latest": pico_latest,
+        }
+    )

@@ -114,10 +114,32 @@ class TestGetDashboard:
     @pytest.mark.asyncio
     async def test_database_error_returns_503(self):
         """Should return 503 when database is unavailable."""
-        with patch(
-            "rpi.server.api.dashboard.get_initial_dht_data",
-            new_callable=AsyncMock,
-            side_effect=DatabaseError("Connection failed"),
+        with (
+            patch(
+                "rpi.server.api.dashboard.get_initial_dht_data",
+                new_callable=AsyncMock,
+                side_effect=DatabaseError("Connection failed"),
+            ),
+            patch(
+                "rpi.server.api.dashboard.get_stats_dht_data",
+                new_callable=AsyncMock,
+                return_value={},
+            ),
+            patch(
+                "rpi.server.api.dashboard.get_latest_dht_data",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "rpi.server.api.dashboard.get_initial_pico_data",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "rpi.server.api.dashboard.get_latest_pico_data",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
             response = await get_dashboard(self._make_request())
 

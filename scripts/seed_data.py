@@ -28,7 +28,11 @@ def generate_dht_data(
         )
         humidity = random_walk(humidity, drift=0.3, min_val=30.0, max_val=70.0)
         data.append(
-            (round(temperature, 1), round(humidity, 1), int(recording_time.timestamp()))
+            (
+                round(temperature, 1),
+                round(humidity, 1),
+                int(recording_time.timestamp()),
+            )
         )
 
     return data
@@ -51,7 +55,11 @@ def generate_pico_data(
                 moisture[plant_id], drift=0.5, min_val=10.0, max_val=90.0
             )
             data.append(
-                (int(plant_id), round(moisture[plant_id], 1), int(recording_time.timestamp()))
+                (
+                    int(plant_id),
+                    round(moisture[plant_id], 1),
+                    int(recording_time.timestamp()),
+                )
             )
 
     return data

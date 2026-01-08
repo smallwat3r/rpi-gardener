@@ -99,29 +99,12 @@ class DHTReading(TypedDict):
     epoch: int
 
 
-class DHTStats(TypedDict):
-    """DHT22 sensor statistics."""
-
-    avg_temperature: float
-    min_temperature: float
-    max_temperature: float
-    avg_humidity: float
-    min_humidity: float
-    max_humidity: float
-
-
 class PicoReading(TypedDict):
     """Pico moisture reading from the database."""
 
     plant_id: int
     moisture: float
     recording_time: str
-    epoch: int
-
-
-class PicoChartDataPoint(TypedDict, total=False):
-    """Pico chart data point with dynamic plant columns."""
-
     epoch: int
 
 
@@ -375,52 +358,11 @@ def _calculate_bucket_size(
     return bucket
 
 
-async def get_initial_dht_data(from_time: datetime) -> list[DHTReading]:
-    """Return DHT22 sensor data from a given time, downsampled for charts."""
-    bucket = _calculate_bucket_size(from_time)
-    from_epoch = int(from_time.timestamp())
-    async with get_db() as db:
-        rows = await db.fetchall(
-            _DHT_CHART_SQL, {"from_epoch": from_epoch, "bucket": bucket}
-        )
-        return cast(list[DHTReading], rows)
-
-
 async def get_latest_dht_data() -> DHTReading | None:
     """Return the latest DHT22 sensor data."""
     async with get_db() as db:
         row = await db.fetchone(_DHT_LATEST_SQL)
         return cast(DHTReading | None, row)
-
-
-async def get_stats_dht_data(from_time: datetime) -> DHTStats | None:
-    """Return statistics for the DHT22 sensor data from a given time."""
-    from_epoch = int(from_time.timestamp())
-    async with get_db() as db:
-        row = await db.fetchone(_DHT_STATS_SQL, {"from_epoch": from_epoch})
-        return cast(DHTStats | None, row)
-
-
-async def get_initial_pico_data(
-    from_time: datetime,
-) -> list[PicoChartDataPoint]:
-    """Return Pico sensor data from a given time, downsampled and pivoted."""
-    bucket = _calculate_bucket_size(from_time)
-    from_epoch = int(from_time.timestamp())
-    async with get_db() as db:
-        rows = await db.fetchall(
-            _PICO_CHART_SQL, {"from_epoch": from_epoch, "bucket": bucket}
-        )
-
-    # Pivot: group by epoch, with plant_id as columns
-    pivoted: dict[int, dict[str, Any]] = {}
-    for row in rows:
-        epoch: int = row["epoch"]
-        if epoch not in pivoted:
-            pivoted[epoch] = {"epoch": epoch}
-        pivoted[epoch][str(row["plant_id"])] = row["moisture"]
-
-    return cast(list[PicoChartDataPoint], list(pivoted.values()))
 
 
 async def get_latest_pico_data() -> list[PicoReading]:

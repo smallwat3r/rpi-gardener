@@ -1,21 +1,34 @@
-import asyncio
 from sqlite3 import DatabaseError
+from typing import Any
 
 from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from rpi.lib.db import (
-    get_initial_dht_data,
-    get_initial_pico_data,
-    get_latest_dht_data,
-    get_latest_pico_data,
-    get_stats_dht_data,
+    _DHT_CHART_SQL,
+    _DHT_LATEST_SQL,
+    _DHT_STATS_SQL,
+    _PICO_CHART_SQL,
+    _PICO_LATEST_SQL,
+    _calculate_bucket_size,
+    get_db,
 )
 from rpi.logging import get_logger
 from rpi.server.validators import HoursQuery
 
 logger = get_logger("server.api.dashboard")
+
+
+def _pivot_pico_data(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Pivot pico rows by epoch with plant_id as columns."""
+    pivoted: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        epoch: int = row["epoch"]
+        if epoch not in pivoted:
+            pivoted[epoch] = {"epoch": epoch}
+        pivoted[epoch][str(row["plant_id"])] = row["moisture"]
+    return list(pivoted.values())
 
 
 async def get_dashboard(request: Request) -> JSONResponse:
@@ -25,14 +38,19 @@ async def get_dashboard(request: Request) -> JSONResponse:
     except (ValueError, ValidationError) as err:
         return JSONResponse({"error": str(err)}, status_code=400)
 
+    bucket = _calculate_bucket_size(query.from_time)
+    from_epoch = int(query.from_time.timestamp())
+    params = {"from_epoch": from_epoch, "bucket": bucket}
+
     try:
-        dht_data, stats, latest, pico_data, pico_latest = await asyncio.gather(
-            get_initial_dht_data(query.from_time),
-            get_stats_dht_data(query.from_time),
-            get_latest_dht_data(),
-            get_initial_pico_data(query.from_time),
-            get_latest_pico_data(),
-        )
+        async with get_db() as db:
+            dht_data = await db.fetchall(_DHT_CHART_SQL, params)
+            stats = await db.fetchone(
+                _DHT_STATS_SQL, {"from_epoch": from_epoch}
+            )
+            latest = await db.fetchone(_DHT_LATEST_SQL)
+            pico_rows = await db.fetchall(_PICO_CHART_SQL, params)
+            pico_latest = await db.fetchall(_PICO_LATEST_SQL)
     except DatabaseError:
         logger.exception("Database error fetching dashboard data")
         return JSONResponse({"error": "Database unavailable"}, status_code=503)
@@ -43,7 +61,7 @@ async def get_dashboard(request: Request) -> JSONResponse:
             "data": dht_data,
             "stats": stats,
             "latest": latest,
-            "pico_data": pico_data,
+            "pico_data": _pivot_pico_data(pico_rows),
             "pico_latest": pico_latest,
         }
     )

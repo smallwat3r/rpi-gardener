@@ -284,7 +284,3 @@ Recommended settings:
 - Verify 3.3V power
 - Check GPIO17 connection
 - Some DHT22 modules need a pull-up resistor (4.7kΩ)
-
-## License
-
-This hardware design is provided as-is for the RPi Gardener project.

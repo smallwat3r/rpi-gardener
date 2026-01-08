@@ -134,6 +134,8 @@ Connect using a USB-A to Micro-USB cable from any RPi USB port to the Pico.
 
 ## Files
 
+### KiCad (`kicad/`)
+
 | File | Description |
 |------|-------------|
 | `rpi-gardener-hat.kicad_pro` | KiCad project file |
@@ -141,9 +143,15 @@ Connect using a USB-A to Micro-USB cable from any RPi USB port to the Pico.
 | `rpi-gardener-hat.kicad_pcb` | PCB layout |
 | `rpi-gardener-hat.pretty/` | Custom footprint library |
 | `gerber.zip` | Manufacturing files (Gerber + drill) |
-| `BOM.txt` | Bill of materials with pin assignments |
-| `rpi-gardener-base.scad` | OpenSCAD source for 3D printable base |
-| `rpi-gardener-base.stl` | 3D printable mounting base |
+
+### 3D Printable Parts (`case/`)
+
+| File | Description |
+|------|-------------|
+| `rpi-gardener-base.scad` | OpenSCAD source for base plate |
+| `rpi-gardener-base.stl` | Base plate STL |
+| `rpi-gardener-display-plate.scad` | OpenSCAD source for display plate |
+| `rpi-gardener-display-plate.stl` | Display plate STL |
 
 ## 3D Printable Base
 
@@ -153,7 +161,7 @@ A simple mounting base for securing the Raspberry Pi and HAT assembly using phys
 
 | Property | Value |
 |----------|-------|
-| Dimensions | 90mm x 62mm x 3mm |
+| Dimensions | 90mm x 62mm x 2mm |
 | Supports | Raspberry Pi 4 (85mm x 56mm) |
 | Mounting Pattern | 58mm x 49mm (standard RPi/HAT) |
 | Hole Diameter | 3.2mm (M3 clearance) |
@@ -173,15 +181,17 @@ A simple mounting base for securing the Raspberry Pi and HAT assembly using phys
 
 ### Regenerating STL
 ```bash
+cd case
 openscad -o rpi-gardener-base.stl rpi-gardener-base.scad
+openscad -o rpi-gardener-display-plate.stl rpi-gardener-display-plate.scad
 ```
 
 ### Customization
-Edit `rpi-gardener-base.scad` to adjust:
+Edit the `.scad` files in `case/` to adjust:
 - `hole_diameter` - change hole size (default 3.2mm for M3)
 - `vent_slots` - enable/disable ventilation
 - `usb_cutout` - enable/disable cable cutout
-- `base_thickness` - plate thickness (default 3mm)
+- `base_thickness` - plate thickness (default 2mm)
 
 ## Assembly Instructions
 
@@ -274,14 +284,6 @@ Recommended settings:
 - Verify 3.3V power
 - Check GPIO17 connection
 - Some DHT22 modules need a pull-up resistor (4.7kΩ)
-
-## Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | - | Initial design with fan support |
-| 1.1 | - | Removed fan circuit |
-| 1.2-compact | 2026-01-07 | Reduced to standard HAT size (65x56mm), added ground planes on both layers, unified ground nets, fixed GPIO header orientation, aligned connectors with 7mm spacing |
 
 ## License
 

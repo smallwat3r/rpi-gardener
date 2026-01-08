@@ -52,6 +52,15 @@ cable_slot_height = 5;        // mm - height of each slot
 cable_slot_spacing = 8;       // mm - gap between slots
 cable_slot_from_top = 12;     // mm - positioned between mounting holes and OLEDs
 
+/* [DHT22 Holder Configuration] */
+// Vertical tab mount for DHT22 sensor module (screw-mounted)
+dht22_holder_enabled = true;
+dht22_tab_width = 16;         // mm - width of the tab
+dht22_tab_height = 35;        // mm - height of tab above plate
+dht22_tab_thickness = 3;      // mm - thickness of the tab
+dht22_hole_diameter = 3.2;    // mm - M3 clearance hole for screw
+dht22_hole_height = 28;       // mm - height of hole center from plate surface
+
 /* [Custom OLED Cutout] */
 // Only used when oled_type = 0
 custom_cutout_width = 30;   // mm
@@ -135,6 +144,23 @@ module cable_slot(width, height) {
     }
 }
 
+// DHT22 vertical tab mount with screw hole
+// Flat tab extends from top edge, hole on the vertical face
+module dht22_holder() {
+    tab_x = base_width / 2 - dht22_tab_width / 2;
+
+    difference() {
+        // Vertical tab
+        translate([tab_x, base_depth - dht22_tab_thickness, 0])
+            cube([dht22_tab_width, dht22_tab_thickness, dht22_tab_height]);
+
+        // Screw hole through the face (horizontal, pointing outward)
+        translate([base_width / 2, base_depth + 0.1, dht22_hole_height])
+            rotate([90, 0, 0])
+            cylinder(h=dht22_tab_thickness + 0.2, d=dht22_hole_diameter, $fn=24);
+    }
+}
+
 // LCD 1602A cutout and mounting holes
 module lcd_1602_cutout_and_mount(center_x, center_y) {
     // Display window cutout
@@ -213,6 +239,11 @@ module display_plate() {
             }
         }
     }
+
+    // DHT22 holder (extends from top edge)
+    if (dht22_holder_enabled) {
+        dht22_holder();
+    }
 }
 
 // Render the plate
@@ -248,8 +279,15 @@ if (cable_slots_enabled) {
     echo(str("  Spacing: ", cable_slot_spacing, "mm"));
 }
 echo("");
+if (dht22_holder_enabled) {
+    echo("DHT22 Mount Tab (top edge, centered):");
+    echo(str("  Tab size: ", dht22_tab_width, "mm x ", dht22_tab_height, "mm x ", dht22_tab_thickness, "mm"));
+    echo(str("  Screw hole: ", dht22_hole_diameter, "mm (M3) at ", dht22_hole_height, "mm height"));
+}
+echo("");
 echo("Assembly:");
 echo("1. Stack on top of HAT using M3 screws and spacers");
 echo("2. Mount OLED module(s) using M2.5 screws");
 echo("3. Mount LCD 1602A using M3 screws");
-echo("4. Route sensor wires (DHT22, moisture, etc.) through top slots");
+echo("4. Screw DHT22 module onto the post using M3 screw");
+echo("5. Route sensor wires through top slots to HAT connectors");

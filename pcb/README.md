@@ -17,7 +17,8 @@ This PCB serves as a unified interface board that:
 | Layers | 2 (F.Cu, B.Cu) |
 | Thickness | 1.6mm |
 | Mounting Holes | 4x M3 at standard HAT positions |
-| KiCad Version | 8.x / 9.x |
+| Ground Planes | Both layers (unified GND net) |
+| KiCad Version | 9.x |
 
 ## Components
 
@@ -139,6 +140,7 @@ Connect using a USB-A to Micro-USB cable from any RPi USB port to the Pico.
 | `rpi-gardener-hat.kicad_sch` | Schematic |
 | `rpi-gardener-hat.kicad_pcb` | PCB layout |
 | `rpi-gardener-hat.pretty/` | Custom footprint library |
+| `gerber.zip` | Manufacturing files (Gerber + drill) |
 | `BOM.txt` | Bill of materials with pin assignments |
 | `rpi-gardener-base.scad` | OpenSCAD source for 3D printable base |
 | `rpi-gardener-base.stl` | 3D printable mounting base |
@@ -239,7 +241,7 @@ Edit `rpi-gardener-base.scad` to adjust:
 ## Manufacturing
 
 ### PCB Fabrication
-Export Gerber files from KiCad and send to your preferred PCB manufacturer.
+Upload `gerber.zip` to your preferred PCB manufacturer (JLCPCB, PCBWay, OSHPark, etc.).
 
 Recommended settings:
 - Layers: 2
@@ -279,7 +281,7 @@ Recommended settings:
 |---------|------|---------|
 | 1.0 | - | Initial design with fan support |
 | 1.1 | - | Removed fan circuit |
-| 1.2-compact | 2026-01-07 | Reduced to standard HAT size (65x56mm) |
+| 1.2-compact | 2026-01-07 | Reduced to standard HAT size (65x56mm), added ground planes on both layers, unified ground nets, fixed GPIO header orientation, aligned connectors with 7mm spacing |
 
 ## License
 

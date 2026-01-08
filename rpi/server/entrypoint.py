@@ -11,6 +11,7 @@ from starlette.applications import Starlette
 from starlette.routing import Route, WebSocketRoute
 
 from rpi.lib.config import get_settings
+from rpi.lib.db import close_db, get_db
 from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.logging import configure, get_logger
 
@@ -59,9 +60,21 @@ async def _event_subscriber_task(subscriber: EventSubscriber) -> None:
             _logger.debug("Broadcast %s to %d clients", topic, count)
 
 
+async def _init_db_pool() -> None:
+    """Pre-warm database connection pool with optimized settings."""
+    async with get_db() as db:
+        if db._connection:
+            await db._connection.execute("PRAGMA journal_mode=WAL")
+            await db._connection.execute("PRAGMA synchronous=NORMAL")
+            await db._connection.execute("PRAGMA cache_size=-64000")  # 64MB
+    _logger.info("Database connection pool initialized")
+
+
 @asynccontextmanager
 async def lifespan(app: Starlette) -> AsyncIterator[None]:
     """Application lifespan manager for startup/shutdown tasks."""
+    await _init_db_pool()
+
     async with EventSubscriber() as subscriber:
         subscriber_task = asyncio.create_task(
             _event_subscriber_task(subscriber)
@@ -75,6 +88,8 @@ async def lifespan(app: Starlette) -> AsyncIterator[None]:
             with suppress(asyncio.CancelledError):
                 await subscriber_task
             _logger.info("Event bus subscriber stopped")
+            await close_db()
+            _logger.info("Database connections closed")
 
 
 def create_app() -> Starlette:

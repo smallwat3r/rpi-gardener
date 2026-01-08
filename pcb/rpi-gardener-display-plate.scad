@@ -6,7 +6,7 @@
 // Extended depth to accommodate LCD 1602A below OLEDs
 base_width = 90;          // mm
 base_depth = 105;         // mm - extended from 62mm to fit 1602A
-base_thickness = 3;       // mm
+base_thickness = 2;       // mm
 corner_radius = 3;        // mm
 
 /* [Mounting Holes - RPi/HAT Pattern] */
@@ -42,6 +42,15 @@ lcd_1602_module_size = [80, 36];      // Full module size
 
 // LCD vertical position from bottom edge (mm)
 lcd_offset_from_bottom = 8;
+
+/* [Cable Routing Slots] */
+// Slots at the top for sensor cables (DHT22, moisture sensors, etc.)
+cable_slots_enabled = true;
+cable_slot_count = 3;         // Number of slots
+cable_slot_width = 20;        // mm - width of each slot
+cable_slot_height = 5;        // mm - height of each slot
+cable_slot_spacing = 8;       // mm - gap between slots
+cable_slot_from_top = 12;     // mm - positioned between mounting holes and OLEDs
 
 /* [Custom OLED Cutout] */
 // Only used when oled_type = 0
@@ -118,6 +127,14 @@ module oled_cutout_and_mount(center_x, center_y, cutout, mount_spacing) {
     }
 }
 
+// Cable routing slot
+module cable_slot(width, height) {
+    hull() {
+        translate([0, 0, 0]) cylinder(h=base_thickness+0.2, d=height, $fn=16);
+        translate([width, 0, 0]) cylinder(h=base_thickness+0.2, d=height, $fn=16);
+    }
+}
+
 // LCD 1602A cutout and mounting holes
 module lcd_1602_cutout_and_mount(center_x, center_y) {
     // Display window cutout
@@ -183,6 +200,18 @@ module display_plate() {
         if (lcd_1602_enabled) {
             lcd_1602_cutout_and_mount(center_x, lcd_center_y);
         }
+
+        // Cable routing slots at top
+        if (cable_slots_enabled) {
+            total_slots_width = cable_slot_count * cable_slot_width + (cable_slot_count - 1) * cable_slot_spacing;
+            slot_start_x = (base_width - total_slots_width) / 2;
+            slot_y = base_depth - cable_slot_from_top - cable_slot_height / 2;
+
+            for (i = [0:cable_slot_count-1]) {
+                translate([slot_start_x + i * (cable_slot_width + cable_slot_spacing), slot_y, -0.1])
+                    cable_slot(cable_slot_width, cable_slot_height);
+            }
+        }
     }
 }
 
@@ -212,8 +241,15 @@ if (lcd_1602_enabled) {
     echo(str("  Mount spacing: ", lcd_1602_mount_spacing[0], "mm x ", lcd_1602_mount_spacing[1], "mm"));
 }
 echo("");
+if (cable_slots_enabled) {
+    echo("Cable Routing Slots (top edge):");
+    echo(str("  Count: ", cable_slot_count));
+    echo(str("  Slot size: ", cable_slot_width, "mm x ", cable_slot_height, "mm"));
+    echo(str("  Spacing: ", cable_slot_spacing, "mm"));
+}
+echo("");
 echo("Assembly:");
 echo("1. Stack on top of HAT using M3 screws and spacers");
 echo("2. Mount OLED module(s) using M2.5 screws");
 echo("3. Mount LCD 1602A using M3 screws");
-echo("4. Route wires through cutouts to HAT");
+echo("4. Route sensor wires (DHT22, moisture, etc.) through top slots");

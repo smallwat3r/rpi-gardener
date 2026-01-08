@@ -1,4 +1,4 @@
-// RPi Gardener HAT Base - Simple Version
+// RPi Gardener HAT Base
 // Flat base with M3 holes for RPi 4 and HAT mounting with spacers
 // Export to STL: OpenSCAD -> File -> Export -> STL
 
@@ -6,7 +6,7 @@
 // Base sized to support full Raspberry Pi 4 (85mm x 56mm)
 base_width = 90;          // mm - slightly larger than Pi for margin
 base_depth = 62;          // mm - slightly larger than Pi for margin
-base_thickness = 3;       // mm
+base_thickness = 2;       // mm
 corner_radius = 3;        // mm
 
 /* [Mounting Holes] */

@@ -35,8 +35,8 @@ oled_offset_from_top = 20;
 // Enable LCD 1602A mounting
 lcd_1602_enabled = true;
 
-// LCD 1602A dimensions (standard module ~80x36mm, display ~64.5x16mm)
-lcd_1602_cutout = [66, 18];           // Display window
+// LCD 1602A dimensions (standard module ~80x36mm, screen with bezel ~72x24mm)
+lcd_1602_cutout = [73, 25];           // Display window (with 1mm margin)
 lcd_1602_mount_spacing = [75, 31];    // Mounting hole spacing
 lcd_1602_module_size = [80, 36];      // Full module size
 

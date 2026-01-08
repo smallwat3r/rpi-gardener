@@ -52,7 +52,7 @@ class TestGetDashboard:
             dht_data=[{"temperature": 22.0, "humidity": 55.0, "epoch": 1000}],
             stats={"avg_temp": 22.0},
             latest={"temperature": 22.5},
-            pico_data=[{"epoch": 1000, "plant_id": 1, "moisture": 50.0}],
+            pico_data=[{"epoch": 1000, "plants": '{"1": 50.0}'}],
             pico_latest=[{"plant_id": 1, "moisture": 50.0}],
         )
 

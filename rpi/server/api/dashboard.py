@@ -1,3 +1,4 @@
+import json
 from sqlite3 import DatabaseError
 from typing import Any
 
@@ -21,14 +22,8 @@ logger = get_logger("server.api.dashboard")
 
 
 def _pivot_pico_data(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Pivot pico rows by epoch with plant_id as columns."""
-    pivoted: dict[int, dict[str, Any]] = {}
-    for row in rows:
-        epoch: int = row["epoch"]
-        if epoch not in pivoted:
-            pivoted[epoch] = {"epoch": epoch}
-        pivoted[epoch][str(row["plant_id"])] = row["moisture"]
-    return list(pivoted.values())
+    """Flatten pico rows with pre-pivoted plant data from SQL."""
+    return [{"epoch": r["epoch"], **json.loads(r["plants"])} for r in rows]
 
 
 async def get_dashboard(request: Request) -> JSONResponse:

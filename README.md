@@ -31,6 +31,29 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - 1602A LCD with I2C backpack (optional, for alert display)
 - TP-Link Kasa smart plug (optional, for automatic humidity control)
 
+### Why both a Pico and a Raspberry Pi?
+
+The Raspberry Pi 4 doesn't have analog-to-digital converter (ADC) inputs,
+which are required to read capacitive soil moisture sensors. A common solution
+is to add an external ADC module (like the ADS1115) to the RPi's I2C bus.
+However, this project uses a Raspberry Pi Pico instead for several reasons:
+
+- **Practical**: I already had a Pico lying around, so why not put it to use
+- **More GPIO**: The Pico provides 3 ADC pins and 26 GPIO pins total, leaving
+  plenty of room for additional sensors or peripherals without competing for
+  the RPi's limited GPIO. Future additions like light sensors, water level
+  sensors, or relay controls can be handled entirely by the Pico
+- **Architectural separation**: Keeping sensor reading on a dedicated
+  microcontroller isolates it from the main application. The Pico handles
+  real-time ADC sampling and display updates, while the RPi focuses on the web
+  server, database, and notifications. If the RPi application crashes or
+  restarts, the Pico keeps running independently
+- **Network scalability**: Using a Pico W instead of the standard Pico allows
+  sensors to communicate over WiFi rather than USB serial. This enables a
+  distributed setup where multiple Picos in different locations (greenhouse,
+  garden beds, indoor plants) can all report back to a single RPi base station
+  over the network
+
 ## Quick Start
 
 ### 1. Enable I2C on the Raspberry Pi

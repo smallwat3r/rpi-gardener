@@ -161,11 +161,11 @@ A simple mounting base for securing the Raspberry Pi and HAT assembly using phys
 
 | Property | Value |
 |----------|-------|
-| Dimensions | 90mm x 62mm x 2mm |
+| Dimensions | 90mm x 62mm x 1.5mm |
 | Supports | Raspberry Pi 4 (85mm x 56mm) |
-| Mounting Pattern | 58mm x 49mm (standard RPi/HAT) |
+| Mounting Pattern | 58mm x 49.5mm (matches PCB) |
 | Hole Diameter | 3.2mm (M3 clearance) |
-| Holes | 4 (centered, aligned with RPi and HAT mounting holes) |
+| Holes | 4 (3.5mm from right edge, aligned with RPi and HAT mounting holes) |
 
 ### Features
 - Simple flat plate design (use your own spacers)
@@ -191,7 +191,7 @@ Edit the `.scad` files in `case/` to adjust:
 - `hole_diameter` - change hole size (default 3.2mm for M3)
 - `vent_slots` - enable/disable ventilation
 - `usb_cutout` - enable/disable cable cutout
-- `base_thickness` - plate thickness (default 2mm)
+- `base_thickness` - plate thickness (default 1.5mm)
 
 ## Assembly Instructions
 
@@ -229,7 +229,7 @@ Edit the `.scad` files in `case/` to adjust:
 
 5. **Mount Raspberry Pi**
    - Place RPi onto the spacers, aligning with screw holes
-   - The RPi mounting holes are 58mm x 49mm (same as HAT)
+   - The RPi mounting holes are 58mm x 49.5mm (same as HAT)
 
 6. **Add Second Spacers**
    - Thread 10-12mm spacers onto each screw above the RPi

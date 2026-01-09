@@ -5,7 +5,7 @@
 /* [Base Dimensions] */
 // Extended depth to accommodate LCD 1602A below OLEDs
 base_width = 90;          // mm
-base_depth = 105;         // mm - extended from 62mm to fit 1602A
+base_depth = 95;          // mm - sized to fit LCD 1602A below OLEDs
 base_thickness = 1.5;     // mm
 corner_radius = 3;        // mm
 
@@ -30,7 +30,7 @@ oled_type = 1;
 oled_gap = 6;
 
 // OLED vertical position from top edge (mm)
-oled_offset_from_top = 20;
+oled_offset_from_top = 18;
 
 /* [LCD 1602A Configuration] */
 // Enable LCD 1602A mounting
@@ -42,7 +42,8 @@ lcd_1602_mount_spacing = [75, 31];    // Mounting hole spacing
 lcd_1602_module_size = [80, 36];      // Full module size
 
 // LCD vertical position from bottom edge (mm)
-lcd_offset_from_bottom = 8;
+lcd_offset_from_bottom = 4;
+
 
 /* [Cable Routing Slots] */
 // Slots at the top for sensor cables (DHT22, moisture sensors, etc.)
@@ -62,6 +63,7 @@ dht22_tab_thickness = 3;      // mm - thickness of the tab
 dht22_hole_diameter = 3.2;    // mm - M3 clearance hole for screw
 dht22_hole_height = 28;       // mm - height of hole center from plate surface
 
+
 /* [Custom OLED Cutout] */
 // Only used when oled_type = 0
 custom_cutout_width = 30;   // mm
@@ -73,7 +75,7 @@ oled_mount_hole_diameter = 2.5;   // mm - M2.5 clearance for OLEDs
 lcd_mount_hole_diameter = 3.2;    // mm - M3 clearance for 1602A
 
 // OLED presets
-oled_096_cutout = [24, 13];
+oled_096_cutout = [26, 15];
 oled_096_mount_spacing = [23.5, 23.5];
 oled_096_module_size = [27, 27];
 
@@ -162,6 +164,7 @@ module dht22_holder() {
     }
 }
 
+
 // LCD 1602A cutout and mounting holes
 module lcd_1602_cutout_and_mount(center_x, center_y) {
     // Display window cutout
@@ -183,26 +186,19 @@ module lcd_1602_cutout_and_mount(center_x, center_y) {
     }
 }
 
-// Main assembly
+
+// Main assembly - flat display plate
 module display_plate() {
     oled_cutout = get_oled_cutout();
     oled_mount_spacing = get_oled_mount_spacing();
     oled_module_size = get_oled_module_size();
-
-    // Center X of plate
     center_x = base_width / 2;
-
-    // OLED Y position (from top)
     oled_center_y = base_depth - oled_offset_from_top - oled_module_size[1] / 2;
-
-    // LCD Y position (from bottom)
     lcd_center_y = lcd_offset_from_bottom + lcd_1602_module_size[1] / 2;
-
-    // Calculate OLED positions for dual mode
     oled_dual_offset = (oled_module_size[0] + oled_gap) / 2;
 
     difference() {
-        // Base plate
+        // Flat plate with rounded corners
         rounded_rect(base_width, base_depth, base_thickness, corner_radius);
 
         // RPi/HAT mounting holes (M3)
@@ -241,7 +237,7 @@ module display_plate() {
         }
     }
 
-    // DHT22 holder (extends from top edge)
+    // DHT22 holder
     if (dht22_holder_enabled) {
         dht22_holder();
     }

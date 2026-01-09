@@ -203,6 +203,8 @@ Edit the `.scad` files in `case/` to adjust:
 | M3 nuts | 4 | To secure on top |
 | M3 spacers (5-6mm) | 4 | Between base and RPi |
 | M3 spacers (10-12mm) | 4 | Between RPi and HAT |
+| M3 spacers (15-20mm) | 4 | Between HAT and display plate |
+| Rubber bumpons (8-10mm) | 4 | Anti-slip feet under base plate |
 | 2x20 pin socket header | 1 | For J1 (RPi GPIO) |
 | 1x4 pin headers | 3 | For J2, J3, J5 |
 | 1x3 pin headers | 4 | For J4, J6, J7, J8 |

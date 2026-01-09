@@ -30,7 +30,7 @@ oled_type = 1;
 oled_gap = 6;
 
 // OLED vertical position from top edge (mm)
-oled_offset_from_top = 18;
+oled_offset_from_top = 22;
 
 /* [LCD 1602A Configuration] */
 // Enable LCD 1602A mounting
@@ -76,11 +76,13 @@ lcd_mount_hole_diameter = 3.2;    // mm - M3 clearance for 1602A
 
 // OLED presets
 oled_096_cutout = [26, 15];
-oled_096_mount_spacing = [23.5, 23.5];
+oled_096_mount_spacing = [23.5, 22];
+oled_096_mount_y_offset = -1.5;     // mm - bottom holes 5mm from cutout, top holes 2mm from cutout
 oled_096_module_size = [27, 27];
 
 oled_13_cutout = [32, 18];
 oled_13_mount_spacing = [29, 27];
+oled_13_mount_y_offset = 0;
 oled_13_module_size = [35, 33];
 
 // Get OLED dimensions based on type
@@ -93,6 +95,11 @@ function get_oled_mount_spacing() =
     oled_type == 1 ? oled_096_mount_spacing :
     oled_type == 2 ? oled_13_mount_spacing :
     [custom_cutout_width + 6, custom_cutout_height + 6];
+
+function get_oled_mount_y_offset() =
+    oled_type == 1 ? oled_096_mount_y_offset :
+    oled_type == 2 ? oled_13_mount_y_offset :
+    0;
 
 function get_oled_module_size() =
     oled_type == 1 ? oled_096_module_size :
@@ -119,18 +126,18 @@ module rounded_cutout(w, h, thickness, r=2) {
 }
 
 // OLED display cutout and mounting holes
-module oled_cutout_and_mount(center_x, center_y, cutout, mount_spacing) {
+module oled_cutout_and_mount(center_x, center_y, cutout, mount_spacing, mount_y_offset=0) {
     // Display cutout
     translate([center_x - cutout[0]/2, center_y - cutout[1]/2, -0.1])
         rounded_cutout(cutout[0], cutout[1], base_thickness + 0.2);
 
-    // Mounting holes (M2.5)
+    // Mounting holes (M2)
     if (display_mount_holes) {
         for (dx = [-1, 1]) {
             for (dy = [-1, 1]) {
                 translate([
                     center_x + dx * mount_spacing[0] / 2,
-                    center_y + dy * mount_spacing[1] / 2,
+                    center_y + dy * mount_spacing[1] / 2 + mount_y_offset,
                     -0.1
                 ])
                 cylinder(h=base_thickness+0.2, d=oled_mount_hole_diameter, $fn=32);
@@ -191,6 +198,7 @@ module lcd_1602_cutout_and_mount(center_x, center_y) {
 module display_plate() {
     oled_cutout = get_oled_cutout();
     oled_mount_spacing = get_oled_mount_spacing();
+    oled_mount_y_offset = get_oled_mount_y_offset();
     oled_module_size = get_oled_module_size();
     center_x = base_width / 2;
     oled_center_y = base_depth - oled_offset_from_top - oled_module_size[1] / 2;
@@ -213,10 +221,10 @@ module display_plate() {
 
         // OLED cutouts and mounting holes
         if (oled_count == 1) {
-            oled_cutout_and_mount(center_x, oled_center_y, oled_cutout, oled_mount_spacing);
+            oled_cutout_and_mount(center_x, oled_center_y, oled_cutout, oled_mount_spacing, oled_mount_y_offset);
         } else {
-            oled_cutout_and_mount(center_x - oled_dual_offset, oled_center_y, oled_cutout, oled_mount_spacing);
-            oled_cutout_and_mount(center_x + oled_dual_offset, oled_center_y, oled_cutout, oled_mount_spacing);
+            oled_cutout_and_mount(center_x - oled_dual_offset, oled_center_y, oled_cutout, oled_mount_spacing, oled_mount_y_offset);
+            oled_cutout_and_mount(center_x + oled_dual_offset, oled_center_y, oled_cutout, oled_mount_spacing, oled_mount_y_offset);
         }
 
         // LCD 1602A cutout and mounting holes

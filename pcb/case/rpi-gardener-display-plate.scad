@@ -6,17 +6,18 @@
 // Extended depth to accommodate LCD 1602A below OLEDs
 base_width = 90;          // mm
 base_depth = 105;         // mm - extended from 62mm to fit 1602A
-base_thickness = 2;       // mm
+base_thickness = 1.5;     // mm
 corner_radius = 3;        // mm
 
 /* [Mounting Holes - RPi/HAT Pattern] */
-// Standard RPi 4 mounting pattern: 58mm x 49mm
+// Standard RPi 4 mounting pattern: 58mm x 49.5mm
 // Positioned toward the top of the extended plate
 hole_spacing_x = 58;      // mm between holes horizontally
-hole_spacing_y = 49;      // mm between holes vertically
+hole_spacing_y = 49.5;    // mm between holes vertically
 hole_diameter = 3.2;      // mm - M3 clearance hole
-hole_offset_x = (90 - 58) / 2;   // 16mm - centered on base width
-hole_offset_y = base_depth - 62 + (62 - 49) / 2;  // Offset to top portion
+// Match PCB hole positions from the right edge
+hole_offset_x = base_width - hole_spacing_x - 3.5;  // mm from left (3.5mm from right edge)
+hole_offset_y = base_depth - hole_spacing_y - 4;    // near top (4mm from top edge, avoids OLED/cable slots)
 
 /* [OLED Display Configuration] */
 // Number of OLED displays: 1 = single centered, 2 = dual side by side

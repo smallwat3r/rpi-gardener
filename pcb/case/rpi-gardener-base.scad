@@ -6,19 +6,19 @@
 // Base sized to support full Raspberry Pi 4 (85mm x 56mm)
 base_width = 90;          // mm - slightly larger than Pi for margin
 base_depth = 62;          // mm - slightly larger than Pi for margin
-base_thickness = 2;       // mm
+base_thickness = 1.5;     // mm
 corner_radius = 3;        // mm
 
 /* [Mounting Holes] */
-// Standard RPi 4 mounting pattern: 58mm x 49mm
+// Standard RPi 4 mounting pattern: 58mm x 49.5mm
 // Holes are 3.5mm from board edges on the Pi
 // Same holes work for both RPi and HAT (they align)
 hole_spacing_x = 58;      // mm between holes horizontally
-hole_spacing_y = 49;      // mm between holes vertically
+hole_spacing_y = 49.5;    // mm between holes vertically
 hole_diameter = 3.2;      // mm - M3 clearance hole
-// Center the Pi mounting pattern on the base
-hole_offset_x = (90 - 58) / 2;   // 16mm - centered on base width
-hole_offset_y = (62 - 49) / 2;   // 6.5mm - centered on base depth
+// Match PCB hole positions from the right edge
+hole_offset_x = base_width - hole_spacing_x - 3.5;  // mm from left (3.5mm from right edge)
+hole_offset_y = (base_depth - hole_spacing_y) / 2;  // centered vertically
 
 /* [Ventilation] */
 vent_slots = true;        // Add ventilation slots
@@ -96,7 +96,7 @@ base();
 echo("=== RPi Gardener HAT Base ===");
 echo(str("Base size: ", base_width, "mm x ", base_depth, "mm x ", base_thickness, "mm"));
 echo(str("Supports: Raspberry Pi 4 (85mm x 56mm)"));
-echo(str("Hole pattern: ", hole_spacing_x, "mm x ", hole_spacing_y, "mm (standard RPi)"));
+echo(str("Hole pattern: ", hole_spacing_x, "mm x ", hole_spacing_y, "mm (matches PCB)"));
 echo(str("Hole positions: (", hole_offset_x, ",", hole_offset_y, ") to (", hole_offset_x+hole_spacing_x, ",", hole_offset_y+hole_spacing_y, ")"));
 echo(str("Hole diameter: ", hole_diameter, "mm (M3 clearance)"));
 echo("");

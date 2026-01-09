@@ -71,7 +71,7 @@ custom_cutout_height = 15;  // mm
 
 /* [Display Module Mounting] */
 display_mount_holes = true;
-oled_mount_hole_diameter = 2.5;   // mm - M2.5 clearance for OLEDs
+oled_mount_hole_diameter = 2.2;   // mm - M2 clearance for OLEDs
 lcd_mount_hole_diameter = 3.2;    // mm - M3 clearance for 1602A
 
 // OLED presets

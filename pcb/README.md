@@ -210,6 +210,8 @@ Edit the `.scad` files in `case/` to adjust:
 | 1x3 pin headers | 4 | For J4, J6, J7, J8 |
 | Pin headers for Pico | 2x20 | Or solder Pico directly |
 
+**Note:** The Raspberry Pi 4 has native M2.5 mounting holes. You may need to lightly drill or ream them to fit M3 screws.
+
 ### Assembly Steps
 
 1. **Solder Headers**

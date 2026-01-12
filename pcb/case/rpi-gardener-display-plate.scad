@@ -76,7 +76,7 @@ lcd_mount_hole_diameter = 3.2;    // mm - M3 clearance for 1602A
 
 // OLED presets
 oled_096_cutout = [26, 15];
-oled_096_mount_spacing = [23.5, 22.5];
+oled_096_mount_spacing = [23, 23.5];
 oled_096_mount_y_offset = -1.25;    // mm - bottom holes 5mm from cutout, top holes 2.5mm from cutout
 oled_096_module_size = [27, 27];
 

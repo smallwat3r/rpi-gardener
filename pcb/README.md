@@ -9,17 +9,6 @@ This PCB serves as a unified interface board that:
 - Integrates a Raspberry Pi Pico for analog sensor readings
 - Provides connectors for all sensors and displays
 
-## Board Specifications
-
-| Property | Value |
-|----------|-------|
-| Dimensions | 65mm x 56mm (standard RPi HAT size) |
-| Layers | 2 (F.Cu, B.Cu) |
-| Thickness | 1.6mm |
-| Mounting Holes | 4x M3 at standard HAT positions |
-| Ground Planes | Both layers (unified GND net) |
-| KiCad Version | 9.x |
-
 ## Components
 
 ### Connectors
@@ -167,18 +156,6 @@ A simple mounting base for securing the Raspberry Pi and HAT assembly using phys
 | Hole Diameter | 3.2mm (M3 clearance) |
 | Holes | 4 (3.5mm from right edge, aligned with RPi and HAT mounting holes) |
 
-### Features
-- Simple flat plate design (use your own spacers)
-- 4x M3 mounting holes at standard RPi positions
-- Ventilation slots for cooling
-- USB cable cutout on the side
-
-### Printing Settings
-- Layer height: 0.2mm
-- Infill: 20%
-- Material: PLA or PETG
-- Supports: Not required
-
 ### Regenerating STL
 ```bash
 cd case
@@ -186,105 +163,99 @@ openscad -o rpi-gardener-base.stl rpi-gardener-base.scad
 openscad -o rpi-gardener-display-plate.stl rpi-gardener-display-plate.scad
 ```
 
-### Customization
-Edit the `.scad` files in `case/` to adjust:
-- `hole_diameter` - change hole size (default 3.2mm for M3)
-- `vent_slots` - enable/disable ventilation
-- `usb_cutout` - enable/disable cable cutout
-- `base_thickness` - plate thickness (default 1.5mm)
-
 ## Assembly Instructions
 
 ### Required Hardware
 
 | Item | Quantity | Notes |
 |------|----------|-------|
-| M3 x 25-30mm screws | 4 | Length depends on spacer height |
-| M3 nuts | 4 | To secure on top |
-| M3 spacers (5-6mm) | 4 | Between base and RPi |
-| M3 spacers (10-12mm) | 4 | Between RPi and HAT |
-| M3 spacers (15-20mm) | 4 | Between HAT and display plate |
+| M3 screws | 4 | Bottom, thread into F-M spacers |
+| M3 screws | 4 | Top, thread into F-F spacers |
+| M3 spacers (5-6mm, F-M) | 4 | Between base and RPi |
+| M3 washers (1mm) | 4 | Between RPi and next spacer |
+| M3 spacers (10mm, F-M) | 4 | Between RPi and HAT |
+| M3 spacers (20mm, F-M) | 4 | Above HAT |
+| M3 spacers (5-6mm, F-F) | 4 | Top, screws thread into these |
 | Rubber bumpons (8-10mm) | 4 | Anti-slip feet under base plate |
-| 2x20 pin socket header | 1 | For J1 (RPi GPIO) |
-| 1x4 pin headers | 3 | For J2, J3, J5 |
-| 1x3 pin headers | 4 | For J4, J6, J7, J8 |
+| M2 x 1mm screws | 8 | To attach OLEDs to display plate |
+| M2 nuts | 8 | To secure OLEDs |
+| M3 screws (for LCD) | 4 | To attach LCD to display plate |
+| M3 spacers (5-6mm, F-M) | 4 | Between display plate and LCD |
+| M3 nuts (for LCD) | 4 | To secure LCD |
+| 2x16 pin male-to-female header | 2 | For J1 (RPi GPIO), allows RPi plug/unplug |
+| 1x4 pin male-to-female header | 3 | For J2, J5 (OLEDs) and J3 (LCD) |
+| 1x3 pin male-to-female header | 1 | For J4 (DHT22) |
 | Pin headers for Pico | 2x20 | Or solder Pico directly |
+| Capacitive soil sensors | 3 | Solder directly to J6, J7, J8 |
+| Small dupont wires (male-to-female) | - | Modules (OLED, LCD, DHT22) have male pins, HAT has female headers |
 
-**Note:** The Raspberry Pi 4 has native M2.5 mounting holes. You may need to lightly drill or ream them to fit M3 screws.
+**Important note:** The RPi 4 has native M2.5 mounting holes. You may need to lightly drill or ream them to fit M3 screws.
+
+### Stack Assembly
+
+```
+    ┌─────────────────────┐
+    │   4x M3 screws      │  ← Thread into F-F spacers
+    ├─────────────────────┤
+    │   Display plate     │  ← Top plate with OLEDs + LCD
+    ├─────────────────────┤
+    │   4x spacers 5-6mm  │  ← F-F (top screws thread here)
+    │ + 4x spacers 20mm   │  ← F-M
+    ├─────────────────────┤
+    │   HAT (PCB)         │  ← RPi Gardener HAT with Pico
+    ├─────────────────────┤
+    │   4x spacers 10mm   │  ← F-M
+    ├─────────────────────┤
+    │   4x washers 1mm    │  ← Fine adjustment
+    ├─────────────────────┤
+    │   Raspberry Pi      │  ← RPi 4
+    ├─────────────────────┤
+    │   4x spacers 5-6mm  │  ← F-M
+    ├─────────────────────┤
+    │   Base plate        │  ← 3D printed base
+    ├─────────────────────┤
+    │   4x M3 screws      │  ← Thread into F-M spacers
+    └─────────────────────┘
+```
 
 ### Assembly Steps
 
-1. **Solder Headers**
-   - Solder the 2x20 socket header (J1) first - ensure alignment
-   - Solder 1x4 pin headers for J2, J3, J5
-   - Solder 1x3 pin headers for J4, J6, J7, J8
+1. **Solder Components to HAT**
+   - Solder 2x 16-pin male-to-female headers for J1 (RPi GPIO) - allows plugging/unplugging RPi
+   - Solder 1x4 pin male-to-female headers for J2, J5 (OLEDs) and J3 (LCD)
+   - Solder 1x3 pin male-to-female header for J4 (DHT22)
+   - Solder capacitive soil sensors directly to J6, J7, J8 (or use pins if you want to remove them easily)
+   - Mount Pico: solder directly or use pin headers for removable mounting
 
-2. **Mount Pico**
-   - Option A: Solder Pico directly to PCB
-   - Option B: Use pin headers for removable mounting
+2. **Mount Displays to Plate**
+   - Attach OLEDs using 8x M2 screws (1mm) and 8x M2 nuts
+   - Attach LCD using 4x M3 screws, 4x M3 spacers (5-6mm F-M), and 4x M3 nuts
 
-3. **Prepare Base**
-   - 3D print the base plate
-   - Insert M3 screws from bottom through the 4 holes
+3. **Build the Stack**
+   - Insert 4x M3 screws from bottom through the base plate into 4x 5-6mm F-M spacers
+   - Place Raspberry Pi onto spacers
+   - Add 4x 1mm washers
+   - Add 4x 10mm F-M spacers
+   - Mount HAT, seating GPIO connector onto RPi header
+   - Add 4x 20mm F-M spacers
+   - Add 4x 5-6mm F-F spacers
 
-4. **Add First Spacers**
-   - Thread 5-6mm spacers onto each screw
-   - These provide clearance for RPi bottom components
+4. **Connect Peripherals**
+   - Connect OLED displays to J2, J5 using dupont wires
+   - Connect LCD 1602A to J3 using dupont wires
+   - Connect DHT22 to J4 using dupont wires
+   - Connect Pico USB to RPi USB port
 
-5. **Mount Raspberry Pi**
-   - Place RPi onto the spacers, aligning with screw holes
-   - The RPi mounting holes are 58mm x 49.5mm (same as HAT)
-
-6. **Add Second Spacers**
-   - Thread 10-12mm spacers onto each screw above the RPi
-   - These provide clearance for GPIO header and components
-
-7. **Mount HAT**
-   - Align HAT with RPi GPIO header
-   - Lower onto spacers while seating the GPIO connector
-   - Secure with M3 nuts on top
-
-8. **Connect Sensors**
-   - Connect displays to J2, J3, J5
-   - Connect DHT22 to J4
-   - Connect moisture sensors to J6, J7, J8
-
-9. **USB Connection**
-   - Connect Pico USB to RPi USB port for serial communication
+5. **Secure Top Plate**
+   - Place display plate on top
+   - Secure with 4x M3 screws from top
 
 ## Manufacturing
 
 ### PCB Fabrication
-Upload `gerber.zip` to your preferred PCB manufacturer (JLCPCB, PCBWay, OSHPark, etc.).
+Upload `gerber.zip` to your preferred PCB manufacturer (JLCPCB, PCBWay, etc.).
 
 Recommended settings:
 - Layers: 2
 - Thickness: 1.6mm
-- Surface finish: HASL or ENIG
-- Copper weight: 1oz
-- Solder mask: Any color
-- Silkscreen: White
-
-### Design Rules (used in this design)
-- Min track width: 0.2mm
-- Min clearance: 0.2mm
-- Min via diameter: 0.6mm
-- Min via drill: 0.3mm
-- Min hole diameter: 0.3mm
-
-## Troubleshooting
-
-### I2C Devices Not Detected
-- Check address conflicts (OLED typically 0x3C, LCD typically 0x27)
-- Verify correct voltage (OLED: 3.3V, LCD: 5V)
-- Use `i2cdetect -y 1` on RPi to scan bus
-
-### Moisture Sensors Not Reading
-- Verify Pico is powered (check 3V3 LED)
-- Check USB serial connection to RPi
-- Ensure sensors are connected to correct ADC pins
-
-### DHT22 Not Responding
-- Verify 3.3V power
-- Check GPIO17 connection
-- Some DHT22 modules need a pull-up resistor (4.7kΩ)
+- Surface finish: HASL (lead free) or ENIG

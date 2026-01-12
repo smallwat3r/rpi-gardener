@@ -5,7 +5,7 @@
 /* [Base Dimensions] */
 // Extended depth to accommodate LCD 1602A below OLEDs
 base_width = 90;          // mm
-base_depth = 95;          // mm - sized to fit LCD 1602A below OLEDs
+base_depth = 100;         // mm - sized to fit LCD 1602A below OLEDs
 base_thickness = 1.5;     // mm
 corner_radius = 3;        // mm
 

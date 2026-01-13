@@ -2,9 +2,10 @@
 
 Monitor your plant environment with a Raspberry Pi 4 and Raspberry Pi Pico.
 
+![gardener](./img/gardener.jpeg)
+
 Tracks temperature, humidity, and soil moisture with a real-time web dashboard, displays, smart alerts, and more.
 
-![gardener](./img/gardener.jpeg)
 ![dashboard](./img/dashboard.png)
 
 ## Features

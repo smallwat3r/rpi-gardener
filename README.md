@@ -5,7 +5,7 @@ Monitor your plant environment with a Raspberry Pi 4 and Raspberry Pi Pico.
 Tracks temperature, humidity (DHT22 sensor), and soil moisture (capacitive
 sensors) with a real-time web dashboard, OLED displays, and email alerts.
 
-![setup](./img/setup.jpg)
+![gardener](./img/gardener.jpeg)
 ![dashboard](./img/dashboard.png)
 
 ## Features
@@ -19,6 +19,7 @@ sensors) with a real-time web dashboard, OLED displays, and email alerts.
 - 16x2 LCD alert display with scrolling text
 - Notifications when thresholds are crossed and when alerts resolve
 - Smart plug automation (TP-Link Kasa) for humidity control
+- Custom RPi HAT PCB and 3D-printable case (optional, can also wire manually)
 - Docker deployment
 
 ## Requirements
@@ -218,9 +219,30 @@ This project is designed for local home networks:
 - Admin interface protected by HTTP Basic Auth (set `ADMIN_PASSWORD` to enable)
 - Do not expose to the internet without additional security
 
-## Wiring
+## Hardware Build
 
-### Raspberry Pi 4
+There are two ways to build the hardware: using a custom PCB with 3D-printed case, or manual wiring on a breadboard.
+
+### Option 1: PCB + Case (Recommended)
+
+A custom PCB that mounts as a Raspberry Pi HAT with an integrated Pico. Includes 3D-printable base and display plates.
+
+![pcb_with_case](./img/assembly3.jpeg)
+
+See [pcb/README.md](./pcb/README.md) for:
+- PCB specifications and manufacturing files
+- 3D printable case files (OpenSCAD/STL)
+- Complete bill of materials
+- Step-by-step assembly instructions
+
+### Option 2: Manual Wiring
+
+![manual_setup](./img/manual_setup.jpg)
+![manual_wiring](./img/manual_wiring.jpg)
+
+For prototyping or if you prefer not to use the PCB.
+
+#### Raspberry Pi 4
 
 | Component | Pin  | GPIO |
 |-----------|------|------|
@@ -234,7 +256,7 @@ Note: OLED and LCD share the I2C bus (same SDA/SCL pins). They work together
 because they have different I2C addresses (OLED: 0x3C, LCD: 0x27).
 Run `i2cdetect -y 1` to verify both devices are detected.
 
-### Raspberry Pi Pico
+#### Raspberry Pi Pico
 
 | Component | Pin    | GPIO |
 |-----------|--------|------|
@@ -243,5 +265,3 @@ Run `i2cdetect -y 1` to verify both devices are detected.
 | Sensor 1  | AOUT   | 26   |
 | Sensor 2  | AOUT   | 27   |
 | Sensor 3  | AOUT   | 28   |
-
-![wiring](./img/wiring.jpg)

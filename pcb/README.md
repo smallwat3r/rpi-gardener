@@ -1,17 +1,43 @@
-# RPi Gardener HAT PCB
+# RPi Gardener HAT
 
 A custom PCB that combines a Raspberry Pi HAT with an integrated Raspberry Pi Pico for the RPi Gardener project.
 
-## Overview
+## Contents
+
+| Section | Description |
+|---------|-------------|
+| [PCB](#pcb) | Board specifications, components, pinouts, manufacturing |
+| [Case](#case) | 3D printable base and display plates |
+| [Assembly](#assembly) | Hardware requirements, stack diagram, build steps |
+| [Troubleshooting](#troubleshooting) | Common issues and solutions |
+
+---
+
+## PCB Hat
+
+### Overview
 
 This PCB serves as a unified interface board that:
 - Mounts directly on a Raspberry Pi as a HAT (Hardware Attached on Top)
 - Integrates a Raspberry Pi Pico for analog sensor readings
 - Provides connectors for all sensors and displays
 
-## Components
+![pcb](../img/pcb.png)
 
-### Connectors
+### Board Specifications
+
+| Property | Value |
+|----------|-------|
+| Dimensions | 65mm x 56mm (standard RPi HAT size) |
+| Layers | 2 (F.Cu, B.Cu) |
+| Thickness | 1.6mm |
+| Mounting Holes | 4x M3 at standard HAT positions |
+| Ground Planes | Both layers (unified GND net) |
+| KiCad Version | 9.x |
+
+### Components
+
+#### Connectors
 
 | Ref | Description | Pins | Connection |
 |-----|-------------|------|------------|
@@ -24,21 +50,21 @@ This PCB serves as a unified interface board that:
 | J7 | Moisture Sensor 2 | 1x3 | Capacitive soil sensor |
 | J8 | Moisture Sensor 3 | 1x3 | Capacitive soil sensor |
 
-### Modules
+#### Modules
 
 | Ref | Description | Footprint |
 |-----|-------------|-----------|
 | U1 | Raspberry Pi Pico | Through-hole (40 pins) |
 
-### Mounting
+#### Mounting
 
 | Ref | Description |
 |-----|-------------|
 | H1-H4 | M3 mounting holes at standard HAT positions |
 
-## Pin Assignments
+### Pin Assignments
 
-### Raspberry Pi GPIO (directly from J1)
+#### Raspberry Pi GPIO (directly from J1)
 
 | Function | GPIO | Pin |
 |----------|------|-----|
@@ -49,7 +75,7 @@ This PCB serves as a unified interface board that:
 | 5V Power | - | 2, 4 |
 | Ground | - | 6, 9, 14, 20, 25, 30, 34, 39 |
 
-### Raspberry Pi Pico (U1)
+#### Raspberry Pi Pico (U1)
 
 | Function | GPIO | Pin |
 |----------|------|-----|
@@ -61,9 +87,9 @@ This PCB serves as a unified interface board that:
 | 3.3V Out | 3V3 | 36 |
 | Ground | GND | 3, 8, 13, 18, 23, 28, 33, 38 |
 
-## Connector Pinouts
+### Connector Pinouts
 
-### J2 - OLED RPi (SSD1306 I2C)
+#### J2 - OLED RPi (SSD1306 I2C)
 ```
 Pin 1: VCC (3.3V)
 Pin 2: GND
@@ -71,7 +97,7 @@ Pin 3: SDA (GPIO2)
 Pin 4: SCL (GPIO3)
 ```
 
-### J3 - LCD I2C (1602A with PCF8574)
+#### J3 - LCD I2C (1602A with PCF8574)
 ```
 Pin 1: VCC (5V)
 Pin 2: GND
@@ -79,14 +105,14 @@ Pin 3: SDA (GPIO2)
 Pin 4: SCL (GPIO3)
 ```
 
-### J4 - DHT22 Sensor
+#### J4 - DHT22 Sensor
 ```
 Pin 1: VCC (3.3V)
 Pin 2: DATA (GPIO17)
 Pin 3: GND
 ```
 
-### J5 - OLED Pico (SSD1306 I2C)
+#### J5 - OLED Pico (SSD1306 I2C)
 ```
 Pin 1: VCC (Pico 3.3V)
 Pin 2: GND
@@ -94,25 +120,25 @@ Pin 3: SDA (GP0)
 Pin 4: SCL (GP1)
 ```
 
-### J6, J7, J8 - Moisture Sensors
+#### J6, J7, J8 - Moisture Sensors
 ```
 Pin 1: VCC (Pico 3.3V)
 Pin 2: SIG (GP26/GP27/GP28)
 Pin 3: GND
 ```
 
-## I2C Bus Configuration
+### I2C Bus Configuration
 
 The board has two separate I2C buses:
 
-### RPi I2C Bus (GPIO2/GPIO3)
+#### RPi I2C Bus (GPIO2/GPIO3)
 - OLED Display (J2) - typically address 0x3C
 - LCD Display (J3) - typically address 0x27 or 0x3F
 
-### Pico I2C Bus (GP0/GP1)
+#### Pico I2C Bus (GP0/GP1)
 - OLED Display (J5) - typically address 0x3C
 
-## USB Passthrough
+### USB Passthrough
 
 The Pico's USB port is accessible at the board edge for:
 - Serial communication with the Raspberry Pi
@@ -121,51 +147,95 @@ The Pico's USB port is accessible at the board edge for:
 
 Connect using a USB-A to Micro-USB cable from any RPi USB port to the Pico.
 
-## Files
-
-### KiCad (`kicad/`)
+### Files
 
 | File | Description |
 |------|-------------|
-| `rpi-gardener-hat.kicad_pro` | KiCad project file |
-| `rpi-gardener-hat.kicad_sch` | Schematic |
-| `rpi-gardener-hat.kicad_pcb` | PCB layout |
-| `rpi-gardener-hat.pretty/` | Custom footprint library |
-| `gerber.zip` | Manufacturing files (Gerber + drill) |
+| `kicad/rpi-gardener-hat.kicad_pro` | KiCad project file |
+| `kicad/rpi-gardener-hat.kicad_sch` | Schematic |
+| `kicad/rpi-gardener-hat.kicad_pcb` | PCB layout |
+| `kicad/rpi-gardener-hat.pretty/` | Custom footprint library |
+| `kicad/gerber.zip` | Manufacturing files (Gerber + drill) |
 
-### 3D Printable Parts (`case/`)
+### Manufacturing
+
+Upload `kicad/gerber.zip` to your preferred PCB manufacturer (JLCPCB, PCBWay, etc.).
+
+Recommended settings:
+- Layers: 2
+- Thickness: 1.6mm
+- Surface finish: HASL (lead free) or ENIG
+- Copper weight: 1oz
+- Solder mask: Any color
+- Silkscreen: White
+
+Design rules used:
+- Min track width: 0.2mm
+- Min clearance: 0.2mm
+- Min via diameter: 0.6mm
+- Min via drill: 0.3mm
+
+---
+
+## Case
+
+3D printable base and display plates for mounting the full assembly.
+
+### Files
 
 | File | Description |
 |------|-------------|
-| `rpi-gardener-base.scad` | OpenSCAD source for base plate |
-| `rpi-gardener-base.stl` | Base plate STL |
-| `rpi-gardener-display-plate.scad` | OpenSCAD source for display plate |
-| `rpi-gardener-display-plate.stl` | Display plate STL |
+| `case/rpi-gardener-base.scad` | OpenSCAD source for base plate |
+| `case/rpi-gardener-base.stl` | Base plate STL |
+| `case/rpi-gardener-display-plate.scad` | OpenSCAD source for display plate |
+| `case/rpi-gardener-display-plate.stl` | Display plate STL |
 
-## 3D Printable Base
-
-A simple mounting base for securing the Raspberry Pi and HAT assembly using physical spacers.
-
-### Base Specifications
+### Base Plate
 
 | Property | Value |
 |----------|-------|
 | Dimensions | 90mm x 62mm x 1.5mm |
-| Supports | Raspberry Pi 4 (85mm x 56mm) |
-| Mounting Pattern | 58mm x 49.5mm (matches PCB) |
+| Mounting Pattern | 58mm x 49.5mm (matches RPi/HAT) |
 | Hole Diameter | 3.2mm (M3 clearance) |
-| Holes | 4 (3.5mm from right edge, aligned with RPi and HAT mounting holes) |
+| Features | Ventilation slots, USB cable cutout |
+
+### Display Plate
+
+| Property | Value |
+|----------|-------|
+| Dimensions | 90mm x 100mm x 1.5mm |
+| OLED Cutouts | 2x 26mm x 15mm (for 0.96" SSD1306) |
+| OLED Mount Spacing | 23mm x 23.5mm (M2) |
+| LCD Cutout | 73mm x 25mm (for 1602A) |
+| LCD Mount Spacing | 75mm x 31mm (M3) |
+| Features | Cable routing slots, DHT22 holder tab |
+
+### Printing Settings
+
+- Layer height: 0.2mm
+- Infill: 20%
+- Material: PLA or PETG
+- Supports: Not required
 
 ### Regenerating STL
+
 ```bash
 cd case
 openscad -o rpi-gardener-base.stl rpi-gardener-base.scad
 openscad -o rpi-gardener-display-plate.stl rpi-gardener-display-plate.scad
 ```
 
-## Assembly Instructions
+### Customization
+
+Edit the `.scad` files to adjust dimensions, enable/disable features, or change OLED type (0.96" vs 1.3").
+
+---
+
+## Assembly
 
 ### Required Hardware
+
+#### Stack Hardware
 
 | Item | Quantity | Notes |
 |------|----------|-------|
@@ -177,21 +247,31 @@ openscad -o rpi-gardener-display-plate.stl rpi-gardener-display-plate.scad
 | M3 spacers (20mm, F-M) | 4 | Above HAT |
 | M3 spacers (5-6mm, F-F) | 4 | Top, screws thread into these |
 | Rubber bumpons (8-10mm) | 4 | Anti-slip feet under base plate |
-| M2 x 1mm screws | 8 | To attach OLEDs to display plate |
+
+#### Display Mounting
+
+| Item | Quantity | Notes |
+|------|----------|-------|
+| M2 screws (1mm) | 8 | To attach OLEDs to display plate |
 | M2 nuts | 8 | To secure OLEDs |
-| M3 screws (for LCD) | 4 | To attach LCD to display plate |
+| M3 screws | 4 | To attach LCD to display plate |
 | M3 spacers (5-6mm, F-M) | 4 | Between display plate and LCD |
-| M3 nuts (for LCD) | 4 | To secure LCD |
+| M3 nuts | 4 | To secure LCD |
+
+#### PCB Components
+
+| Item | Quantity | Notes |
+|------|----------|-------|
 | 2x16 pin male-to-female header | 2 | For J1 (RPi GPIO), allows RPi plug/unplug |
 | 1x4 pin male-to-female header | 3 | For J2, J5 (OLEDs) and J3 (LCD) |
 | 1x3 pin male-to-female header | 1 | For J4 (DHT22) |
 | Pin headers for Pico | 2x20 | Or solder Pico directly |
 | Capacitive soil sensors | 3 | Solder directly to J6, J7, J8 |
-| Small dupont wires (male-to-female) | - | Modules (OLED, LCD, DHT22) have male pins, HAT has female headers |
+| Small dupont wires (M-F) | - | Modules have male pins, HAT has female headers |
 
-**Important note:** The RPi 4 has native M2.5 mounting holes. You may need to lightly drill or ream them to fit M3 screws.
+**Note:** The RPi 4 has native M2.5 mounting holes. You may need to lightly drill or ream them to fit M3 screws.
 
-### Stack Assembly
+### Stack Diagram
 
 ```
     ┌─────────────────────┐
@@ -221,18 +301,18 @@ openscad -o rpi-gardener-display-plate.stl rpi-gardener-display-plate.scad
 ### Assembly Steps
 
 1. **Solder Components to HAT**
-   - Solder 2x 16-pin male-to-female headers for J1 (RPi GPIO) - allows plugging/unplugging RPi
+   - Solder 2x 16-pin male-to-female headers for J1 (RPi GPIO)
    - Solder 1x4 pin male-to-female headers for J2, J5 (OLEDs) and J3 (LCD)
    - Solder 1x3 pin male-to-female header for J4 (DHT22)
-   - Solder capacitive soil sensors directly to J6, J7, J8 (or use pins if you want to remove them easily)
-   - Mount Pico: solder directly or use pin headers for removable mounting
+   - Solder capacitive soil sensors directly to J6, J7, J8
+   - Mount Pico: solder directly or use pin headers
 
 2. **Mount Displays to Plate**
    - Attach OLEDs using 8x M2 screws (1mm) and 8x M2 nuts
    - Attach LCD using 4x M3 screws, 4x M3 spacers (5-6mm F-M), and 4x M3 nuts
 
 3. **Build the Stack**
-   - Insert 4x M3 screws from bottom through the base plate into 4x 5-6mm F-M spacers
+   - Insert 4x M3 screws from bottom through base plate into 4x 5-6mm F-M spacers
    - Place Raspberry Pi onto spacers
    - Add 4x 1mm washers
    - Add 4x 10mm F-M spacers
@@ -249,13 +329,26 @@ openscad -o rpi-gardener-display-plate.stl rpi-gardener-display-plate.scad
 5. **Secure Top Plate**
    - Place display plate on top
    - Secure with 4x M3 screws from top
+   
+![assembly1](../img/assembly1.jpeg)
+![assembly2](../img/assembly2.jpeg)
+![assembly3](../img/assembly3.jpeg)
 
-## Manufacturing
+---
 
-### PCB Fabrication
-Upload `gerber.zip` to your preferred PCB manufacturer (JLCPCB, PCBWay, etc.).
+## Troubleshooting
 
-Recommended settings:
-- Layers: 2
-- Thickness: 1.6mm
-- Surface finish: HASL (lead free) or ENIG
+### I2C Devices Not Detected
+- Check address conflicts (OLED typically 0x3C, LCD typically 0x27)
+- Verify correct voltage (OLED: 3.3V, LCD: 5V)
+- Use `i2cdetect -y 1` on RPi to scan bus
+
+### Moisture Sensors Not Reading
+- Verify Pico is powered (check 3V3 LED)
+- Check USB serial connection to RPi
+- Ensure sensors are connected to correct ADC pins
+
+### DHT22 Not Responding
+- Verify 3.3V power
+- Check GPIO17 connection
+- Some DHT22 modules need a pull-up resistor (4.7kΩ)

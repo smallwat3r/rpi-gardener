@@ -195,21 +195,7 @@ The RPi reads from `/dev/ttyACM0` and persists readings directly to the database
 
 ## Troubleshooting
 
-**Pico stops sending data**: The Pico can lose sync. Add a cron job to
-restart it periodically:
-
-    0 */3 * * * (cd /home/pi/rpi-gardener && make mprestart)
-
-**Email notifications not working**: Ensure `GMAIL_PASSWORD` uses a
-Gmail App Password (not your account password).
-
-**Container won't start**: Check that I2C is enabled and devices exist:
-
-    ls -la /dev/i2c-* /dev/gpiochip0 /dev/gpiomem /dev/ttyACM*
-
-**Pico on different serial port**: The app auto-detects `/dev/ttyACM0` or
-`/dev/ttyACM1`. You can also set `PICO_SERIAL_PORT` in `.env` to specify
-a custom port.
+See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for common issues and solutions.
 
 ## Security
 

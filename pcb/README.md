@@ -333,22 +333,3 @@ Edit the `.scad` files to adjust dimensions, enable/disable features, or change 
 ![assembly1](../img/assembly1.jpeg)
 ![assembly2](../img/assembly2.jpeg)
 ![assembly3](../img/assembly3.jpeg)
-
----
-
-## Troubleshooting
-
-### I2C Devices Not Detected
-- Check address conflicts (OLED typically 0x3C, LCD typically 0x27)
-- Verify correct voltage (OLED: 3.3V, LCD: 5V)
-- Use `i2cdetect -y 1` on RPi to scan bus
-
-### Moisture Sensors Not Reading
-- Verify Pico is powered (check 3V3 LED)
-- Check USB serial connection to RPi
-- Ensure sensors are connected to correct ADC pins
-
-### DHT22 Not Responding
-- Verify 3.3V power
-- Check GPIO17 connection
-- Some DHT22 modules need a pull-up resistor (4.7kΩ)

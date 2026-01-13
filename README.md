@@ -237,31 +237,10 @@ See [pcb/README.md](./pcb/README.md) for:
 
 ### Option 2: Manual Wiring
 
+For prototyping or if you prefer not to use the PCB. 
+
 ![manual_setup](./img/manual_setup.jpg)
+
+Refer to [pcb/README.md](./pcb/README.md) for pin assignments and use the wiring diagram below as a reference.
+
 ![manual_wiring](./img/manual_wiring.jpg)
-
-For prototyping or if you prefer not to use the PCB.
-
-#### Raspberry Pi 4
-
-| Component | Pin  | GPIO |
-|-----------|------|------|
-| DHT22     | DATA | 17   |
-| OLED      | SDA  | 2    |
-| OLED      | SCL  | 3    |
-| LCD 1602A | SDA  | 2    |
-| LCD 1602A | SCL  | 3    |
-
-Note: OLED and LCD share the I2C bus (same SDA/SCL pins). They work together
-because they have different I2C addresses (OLED: 0x3C, LCD: 0x27).
-Run `i2cdetect -y 1` to verify both devices are detected.
-
-#### Raspberry Pi Pico
-
-| Component | Pin    | GPIO |
-|-----------|--------|------|
-| OLED      | SDA    | 0    |
-| OLED      | SCL    | 1    |
-| Sensor 1  | AOUT   | 26   |
-| Sensor 2  | AOUT   | 27   |
-| Sensor 3  | AOUT   | 28   |

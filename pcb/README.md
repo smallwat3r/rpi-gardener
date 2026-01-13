@@ -307,8 +307,10 @@ Edit the `.scad` files to adjust dimensions, enable/disable features, or change 
    - Solder 2x 16-pin male-to-female headers for J1 (RPi GPIO)
    - Solder 1x4 pin male-to-female headers for J2, J5 (OLEDs) and J3 (LCD)
    - Solder 1x3 pin male-to-female header for J4 (DHT22)
-   - Solder capacitive soil sensors directly to J6, J7, J8
+   - Solder capacitive soil sensors directly to J6, J7, J8 (see note below)
    - Mount Pico: solder directly or use pin headers
+
+   **Note on soil sensor wiring:** From testing, soldering the sensors directly to the PCB produces much more reliable readings than joining multiple dupont cables, which can introduce noise and intermittent connections. An even better alternative is to use JST-XH connectors on both ends for a secure, detachable connection. You'll likely need long cables to reach plants around the installation.
 
 2. **Mount Displays to Plate**
    - Attach OLEDs using 8x M2 screws (1mm) and 8x M2 nuts

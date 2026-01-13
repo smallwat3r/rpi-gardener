@@ -257,6 +257,9 @@ Edit the `.scad` files to adjust dimensions, enable/disable features, or change 
 | M3 screws | 4 | To attach LCD to display plate |
 | M3 spacers (5-6mm, F-M) | 4 | Between display plate and LCD |
 | M3 nuts | 4 | To secure LCD |
+| M3 screw | 1 | Front, to mount DHT22 to display plate pole |
+| M3 spacer (F-M) | 1 | Between DHT22 and display plate pole |
+| M3 nut | 1 | Back, to secure DHT22 |
 
 #### PCB Components
 
@@ -329,7 +332,10 @@ Edit the `.scad` files to adjust dimensions, enable/disable features, or change 
 5. **Secure Top Plate**
    - Place display plate on top
    - Secure with 4x M3 screws from top
-   
+
+6. **Mount DHT22 Sensor**
+   - Attach DHT22 to display plate pole using M3 screw (front), M3 spacer F-M, and M3 nut (back)
+
 ![assembly1](../img/assembly1.jpeg)
 ![assembly2](../img/assembly2.jpeg)
 ![assembly3](../img/assembly3.jpeg)

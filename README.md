@@ -223,7 +223,7 @@ This project is designed for local home networks:
 
 There are two ways to build the hardware: using a custom PCB with 3D-printed case, or manual wiring on a breadboard.
 
-### Option 1: PCB + Case (Recommended)
+### Option 1: Custom PCB Hat + Case
 
 A custom PCB that mounts as a Raspberry Pi HAT with an integrated Pico. Includes 3D-printable base and display plates.
 

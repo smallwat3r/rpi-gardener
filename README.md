@@ -184,7 +184,7 @@ The Pico sends moisture readings via USB serial as JSON, including raw ADC value
 
     {"plant-1": {"pct": 45.2, "raw": 29550}, "plant-2": {"pct": 67.8, "raw": 25000}, ...}
 
-The RPi reads from `/dev/ttyACM0` and persists readings directly to the database.
+The RPi auto-detects `/dev/ttyACM0` or `/dev/ttyACM1` and persists readings directly to the database.
 
 ## Data Management
 

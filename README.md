@@ -230,3 +230,10 @@ For prototyping or if you prefer not to use the PCB.
 Refer to [pcb/README.md](./pcb/README.md) for pin assignments and use the wiring diagram below as a reference.
 
 ![manual_wiring](./img/manual_wiring.jpg)
+
+## License
+
+This project uses a dual-license structure:
+
+- **Software** (code, scripts, configurations): [MIT License](./LICENSE)
+- **Hardware** (`pcb/` directory): [CERN-OHL-P v2](./pcb/LICENSE)

@@ -58,29 +58,41 @@ _logger = get_logger("lib.db")
 
 
 class _SettingsCache:
-    """TTL cache for settings (reduces DB queries during polling)."""
+    """TTL cache for settings with cross-process invalidation via Redis.
+
+    Uses a version number stored in Redis to detect when settings have been
+    modified by another process. This ensures all processes see updated settings
+    immediately when changed via the admin API.
+    """
+
+    _REDIS_VERSION_KEY = "rpi:settings:version"
 
     def __init__(self, ttl_sec: float = 30.0) -> None:
         self._cache: dict[str, str] | None = None
         self._cache_time: float = 0.0
+        self._cached_version: int = 0
         self._ttl_sec = ttl_sec
 
-    def get(self) -> dict[str, str] | None:
-        """Get cached settings if not expired."""
+    def get(self, current_version: int) -> dict[str, str] | None:
+        """Get cached settings if not expired and version matches."""
         if self._cache is not None:
-            if (time.monotonic() - self._cache_time) < self._ttl_sec:
+            version_valid = self._cached_version == current_version
+            ttl_valid = (time.monotonic() - self._cache_time) < self._ttl_sec
+            if version_valid and ttl_valid:
                 return self._cache
         return None
 
-    def set(self, settings: dict[str, str]) -> None:
-        """Update cache with fresh settings."""
+    def set(self, settings: dict[str, str], version: int) -> None:
+        """Update cache with fresh settings and version."""
         self._cache = settings
         self._cache_time = time.monotonic()
+        self._cached_version = version
 
     def invalidate(self) -> None:
         """Clear the cache."""
         self._cache = None
         self._cache_time = 0.0
+        self._cached_version = 0
 
 
 _settings_cache = _SettingsCache()
@@ -408,13 +420,40 @@ def _invalidate_settings_cache() -> None:
     _settings_cache.invalidate()
 
 
+async def _get_settings_version() -> int:
+    """Get the current settings version from Redis."""
+    import redis.asyncio as aioredis
+
+    try:
+        async with aioredis.from_url(get_settings().redis_url) as client:
+            version = await client.get(_SettingsCache._REDIS_VERSION_KEY)
+            return int(version) if version else 0
+    except (aioredis.RedisError, OSError):
+        # Redis unavailable - return 0 to allow cache to work with TTL only
+        return 0
+
+
+async def _increment_settings_version() -> int:
+    """Increment the settings version in Redis and return the new version."""
+    import redis.asyncio as aioredis
+
+    try:
+        async with aioredis.from_url(get_settings().redis_url) as client:
+            return await client.incr(_SettingsCache._REDIS_VERSION_KEY)
+    except (aioredis.RedisError, OSError) as e:
+        _logger.warning("Failed to increment settings version in Redis: %s", e)
+        return 0
+
+
 async def get_all_settings() -> dict[SettingsKey, str]:
     """Get all settings as a dictionary.
 
-    Results are cached for 30 seconds to reduce DB load during polling.
-    On database errors, the cache is invalidated to ensure fresh data on retry.
+    Results are cached with cross-process invalidation via Redis version tracking.
+    When settings are modified by any process, all processes see the update
+    immediately on their next call.
     """
-    cached = _settings_cache.get()
+    version = await _get_settings_version()
+    cached = _settings_cache.get(version)
     if cached is not None:
         return cached  # type: ignore[return-value]
 
@@ -422,7 +461,7 @@ async def get_all_settings() -> dict[SettingsKey, str]:
         async with get_db() as db:
             rows = await db.fetchall("SELECT key, value FROM settings")
             result = {row["key"]: row["value"] for row in rows}
-            _settings_cache.set(result)
+            _settings_cache.set(result, version)
     except (aiosqlite.Error, OSError) as e:
         _invalidate_settings_cache()
         _logger.warning("Failed to fetch settings, cache invalidated: %s", e)
@@ -436,7 +475,8 @@ async def set_settings_batch(
 ) -> dict[SettingsKey, str]:
     """Set multiple settings in a single transaction.
 
-    Returns the full settings dict after update (avoids needing a separate fetch).
+    Returns the full settings dict after update. Increments the Redis version
+    to invalidate caches in other processes.
     """
     async with get_db() as db, db.transaction():
         await db.executemany(
@@ -453,7 +493,9 @@ async def set_settings_batch(
             row["key"]: row["value"] for row in rows
         }
 
-    _settings_cache.set(cast(dict[str, str], all_settings))
+    # Increment version to invalidate caches in other processes
+    new_version = await _increment_settings_version()
+    _settings_cache.set(cast(dict[str, str], all_settings), new_version)
     return all_settings
 
 

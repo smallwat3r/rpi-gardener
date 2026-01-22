@@ -56,10 +56,34 @@ from rpi.logging import get_logger
 
 _logger = get_logger("lib.db")
 
-# TTL cache for settings (reduces DB queries during polling)
-_settings_cache: dict[str, str] | None = None
-_settings_cache_time: float = 0.0
-_SETTINGS_CACHE_TTL_SEC: float = 30.0
+
+class _SettingsCache:
+    """TTL cache for settings (reduces DB queries during polling)."""
+
+    def __init__(self, ttl_sec: float = 30.0) -> None:
+        self._cache: dict[str, str] | None = None
+        self._cache_time: float = 0.0
+        self._ttl_sec = ttl_sec
+
+    def get(self) -> dict[str, str] | None:
+        """Get cached settings if not expired."""
+        if self._cache is not None:
+            if (time.monotonic() - self._cache_time) < self._ttl_sec:
+                return self._cache
+        return None
+
+    def set(self, settings: dict[str, str]) -> None:
+        """Update cache with fresh settings."""
+        self._cache = settings
+        self._cache_time = time.monotonic()
+
+    def invalidate(self) -> None:
+        """Clear the cache."""
+        self._cache = None
+        self._cache_time = 0.0
+
+
+_settings_cache = _SettingsCache()
 
 # SQL templates directory
 _SQL_DIR = Path(__file__).resolve().parent / "sql"
@@ -381,9 +405,7 @@ async def get_latest_pico_data() -> list[PicoReading]:
 
 def _invalidate_settings_cache() -> None:
     """Invalidate the settings cache."""
-    global _settings_cache, _settings_cache_time
-    _settings_cache = None
-    _settings_cache_time = 0.0
+    _settings_cache.invalidate()
 
 
 async def get_all_settings() -> dict[SettingsKey, str]:
@@ -392,26 +414,21 @@ async def get_all_settings() -> dict[SettingsKey, str]:
     Results are cached for 30 seconds to reduce DB load during polling.
     On database errors, the cache is invalidated to ensure fresh data on retry.
     """
-    global _settings_cache, _settings_cache_time
-
-    now = time.monotonic()
-    if (
-        _settings_cache is not None
-        and (now - _settings_cache_time) < _SETTINGS_CACHE_TTL_SEC
-    ):
-        return _settings_cache  # type: ignore[return-value]
+    cached = _settings_cache.get()
+    if cached is not None:
+        return cached  # type: ignore[return-value]
 
     try:
         async with get_db() as db:
             rows = await db.fetchall("SELECT key, value FROM settings")
-            _settings_cache = {row["key"]: row["value"] for row in rows}
-            _settings_cache_time = now
+            result = {row["key"]: row["value"] for row in rows}
+            _settings_cache.set(result)
     except (aiosqlite.Error, OSError) as e:
         _invalidate_settings_cache()
         _logger.warning("Failed to fetch settings, cache invalidated: %s", e)
         raise
 
-    return _settings_cache  # type: ignore[return-value]
+    return result
 
 
 async def set_settings_batch(
@@ -421,8 +438,6 @@ async def set_settings_batch(
 
     Returns the full settings dict after update (avoids needing a separate fetch).
     """
-    global _settings_cache, _settings_cache_time
-
     async with get_db() as db, db.transaction():
         await db.executemany(
             """INSERT INTO settings (key, value, updated_at)
@@ -438,10 +453,7 @@ async def set_settings_batch(
             row["key"]: row["value"] for row in rows
         }
 
-    # Update cache with fresh data
-    _settings_cache = cast(dict[str, str], all_settings)
-    _settings_cache_time = time.monotonic()
-
+    _settings_cache.set(cast(dict[str, str], all_settings))
     return all_settings
 
 

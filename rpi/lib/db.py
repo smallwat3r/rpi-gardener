@@ -37,6 +37,7 @@ appropriate connection type is selected based on whether init_db() was called.
 
 from __future__ import annotations
 
+import asyncio
 import time
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
@@ -82,12 +83,51 @@ _PICO_LATEST_SQL = _load_template("pico_latest_recording.sql")
 _INIT_SETTINGS_SQL = _load_template("init_settings_table.sql")
 _INIT_ADMIN_SQL = _load_template("init_admin_table.sql")
 
-# Global persistent database connection (for polling services)
-_db: Database | None = None
 
-# Connection pool for web server (avoids creating new connections per request)
-_pool: list[Database] = []
-_pool_max_size = 5
+class ConnectionPool:
+    """Async connection pool with bounded concurrency.
+
+    Limits concurrent database connections using a semaphore. Connections
+    are reused when available, created on demand up to max_size.
+    """
+
+    def __init__(self, max_size: int = 5) -> None:
+        self._max_size = max_size
+        self._connections: list[Database] = []
+        self._semaphore: asyncio.Semaphore | None = None
+
+    def _get_semaphore(self) -> asyncio.Semaphore:
+        # Lazy init: asyncio.Semaphore requires running event loop
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self._max_size)
+        return self._semaphore
+
+    @asynccontextmanager
+    async def acquire(self) -> AsyncIterator[Database]:
+        """Acquire a connection from the pool."""
+        async with self._get_semaphore():
+            conn = self._connections.pop() if self._connections else Database()
+            if conn._connection is None:
+                await conn.connect()
+            try:
+                yield conn
+            finally:
+                self._connections.append(conn)
+
+    async def close(self) -> None:
+        """Close all pooled connections."""
+        for conn in self._connections:
+            await conn.close()
+        count = len(self._connections)
+        self._connections = []
+        self._semaphore = None
+        if count:
+            _logger.info("Closed %d pooled connections", count)
+
+
+# Module singletons
+_persistent: Database | None = None
+_pool = ConnectionPool()
 
 
 class DHTReading(TypedDict):
@@ -235,70 +275,45 @@ class Database:
 
 @asynccontextmanager
 async def get_db() -> AsyncIterator[Database]:
-    """Get a database connection using the appropriate pattern.
+    """Get a database connection.
 
-    This context manager automatically selects the connection pattern:
-    - If init_db() was called: reuses the persistent connection
-    - Otherwise: uses connection pool (reuses connections across requests)
-
-    Calling code doesn't need to know which pattern is in use.
+    Uses persistent connection if init_db() was called, otherwise uses pool.
 
     Usage:
         async with get_db() as db:
             await db.execute("INSERT INTO ...")
     """
-    if _db is not None:
-        # Persistent connection mode: reuse existing connection
-        yield _db
+    if _persistent is not None:
+        yield _persistent
     else:
-        # Pool mode: reuse connections from pool when available
-        if _pool:
-            db = _pool.pop()
-        else:
-            db = Database()
-            await db.connect()
-
-        try:
+        async with _pool.acquire() as db:
             yield db
-        finally:
-            # Return to pool if under max size, otherwise close
-            if len(_pool) < _pool_max_size:
-                _pool.append(db)
-            else:
-                await db.close()
 
 
 async def init_db() -> None:
     """Initialize database with persistent connection and schema.
 
-    Call this once at startup for services that make frequent database
-    queries (e.g., polling services with 2-second intervals). This opens
-    a persistent connection that will be reused by all get_db() calls,
-    avoiding connection overhead on each query.
-
-    For services that don't call init_db() (e.g., web server), get_db()
-    will create temporary per-request connections instead.
-
-    Safe to call multiple times - uses IF NOT EXISTS clauses.
-    Call close_db() on shutdown to close the persistent connection.
+    Call this once at startup for polling services. Opens a long-lived
+    connection reused by all get_db() calls. For web server (no init_db),
+    get_db() uses the connection pool instead.
     """
-    global _db
-    if _db is None:
-        _db = Database()
-        await _db.connect()
+    global _persistent
+    if _persistent is None:
+        _persistent = Database()
+        await _persistent.connect()
         _logger.info(
             "Opened persistent database connection: %s", get_settings().db_path
         )
 
-    conn = _db._connection
+    conn = _persistent._connection
     if conn is None:
         raise DatabaseNotConnectedError()
     await conn.execute("PRAGMA journal_mode=WAL")
     await conn.execute("PRAGMA auto_vacuum=INCREMENTAL")
     await conn.execute(_INIT_READING_SQL)
-    await _db.executescript(_IDX_READING_SQL)
+    await _persistent.executescript(_IDX_READING_SQL)
     await conn.execute(_INIT_PICO_SQL)
-    await _db.executescript(_IDX_PICO_SQL)
+    await _persistent.executescript(_IDX_PICO_SQL)
     await conn.execute(_INIT_SETTINGS_SQL)
     await conn.execute(_INIT_ADMIN_SQL)
     await _init_admin_password()
@@ -327,22 +342,14 @@ async def _init_admin_password() -> None:
 
 
 async def close_db() -> None:
-    """Close the persistent database connection and connection pool.
-
-    Should be called on application shutdown.
-    """
-    global _db, _pool
-    if _db is not None:
-        await _db.close()
+    """Close the persistent connection and connection pool."""
+    global _persistent
+    if _persistent is not None:
+        await _persistent.close()
         _logger.info("Closed persistent database connection")
-        _db = None
+        _persistent = None
 
-    # Close all pooled connections
-    if _pool:
-        for conn in _pool:
-            await conn.close()
-        _logger.info("Closed %d pooled database connections", len(_pool))
-        _pool = []
+    await _pool.close()
 
 
 def _calculate_bucket_size(

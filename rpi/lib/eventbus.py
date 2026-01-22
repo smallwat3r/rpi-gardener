@@ -2,11 +2,15 @@
 
 Provides pub/sub messaging between polling services (publishers) and
 the web server/notification service (subscribers) for real-time updates.
+
+Includes automatic reconnection with exponential backoff on connection failures.
 """
 
+import asyncio
 import json
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -14,11 +18,17 @@ from typing import Any, Self
 
 import redis
 import redis.asyncio as aioredis
+from redis.exceptions import RedisError
 
 from rpi.lib.config import Unit, get_settings
 from rpi.logging import get_logger
 
 logger = get_logger("lib.eventbus")
+
+# Reconnection settings
+_INITIAL_BACKOFF_SEC = 1.0
+_MAX_BACKOFF_SEC = 60.0
+_BACKOFF_MULTIPLIER = 2.0
 
 
 class Topic(StrEnum):
@@ -157,6 +167,7 @@ class EventPublisher:
     """Publishes sensor readings to the event bus.
 
     Used by polling services (DHT, Pico) to broadcast new readings.
+    Automatically reconnects on connection failures.
     """
 
     def __init__(self) -> None:
@@ -168,10 +179,24 @@ class EventPublisher:
         self._client = redis.from_url(self._redis_url)
         logger.info("Event publisher connected to Redis")
 
+    def _reconnect(self) -> bool:
+        """Attempt to reconnect to Redis.
+
+        Returns True if reconnection succeeded, False otherwise.
+        """
+        try:
+            self.close()
+            self.connect()
+            return True
+        except RedisError as e:
+            logger.warning("Failed to reconnect to Redis: %s", e)
+            return False
+
     def publish(self, data: _Event | Sequence[_Event]) -> None:
         """Publish event(s) to the event bus.
 
         The topic is derived from the event's topic property.
+        Attempts to reconnect once on connection failure.
         """
         if self._client is None:
             first = data if isinstance(data, _Event) else data[0]
@@ -190,8 +215,24 @@ class EventPublisher:
             payload = [event.to_dict() for event in data]
 
         message = json.dumps(payload)
-        self._client.publish(topic, message)
-        logger.debug("Published to %s: %s", topic, message)
+
+        try:
+            self._client.publish(topic, message)
+            logger.debug("Published to %s: %s", topic, message)
+        except RedisError as e:
+            logger.warning("Publish failed, attempting reconnect: %s", e)
+            if self._reconnect():
+                try:
+                    self._client.publish(topic, message)
+                    logger.debug("Published to %s after reconnect", topic)
+                except RedisError as retry_error:
+                    logger.error(
+                        "Publish failed after reconnect: %s", retry_error
+                    )
+            else:
+                logger.error(
+                    "Could not publish to %s: reconnect failed", topic
+                )
 
     def close(self) -> None:
         """Close the publisher connection."""
@@ -214,6 +255,7 @@ class EventSubscriber:
     """Subscribes to sensor readings from the event bus.
 
     Used by the web server and notification service to receive real-time updates.
+    Automatically reconnects with exponential backoff on connection failures.
     """
 
     def __init__(self, topics: list[Topic] | None = None) -> None:
@@ -226,40 +268,74 @@ class EventSubscriber:
         self._topics = topics or list(Topic)
         self._client: aioredis.Redis[bytes] | None = None
         self._pubsub: aioredis.client.PubSub | None = None
+        self._backoff = _INITIAL_BACKOFF_SEC
 
     async def connect(self) -> None:
         """Connect to Redis and subscribe to topics."""
         self._client = aioredis.from_url(self._redis_url)
         self._pubsub = self._client.pubsub()
         await self._pubsub.subscribe(*self._topics)
+        self._backoff = _INITIAL_BACKOFF_SEC  # Reset on successful connect
         logger.info(
             "Event subscriber connected to Redis, topics: %s", self._topics
         )
 
-    async def receive(self) -> AsyncIterator[tuple[Topic, dict[str, Any]]]:
-        """Async iterator that yields (topic, data) tuples as they arrive."""
-        if self._pubsub is None:
-            return
+    async def _reconnect(self) -> None:
+        """Reconnect to Redis with exponential backoff."""
+        await self.close()
 
-        async for message in self._pubsub.listen():
-            if message["type"] != "message":
-                continue
+        while True:
+            logger.info(
+                "Reconnecting to Redis in %.1f seconds...", self._backoff
+            )
+            await asyncio.sleep(self._backoff)
 
             try:
-                topic = Topic(message["channel"].decode())
-                data = json.loads(message["data"].decode())
-                yield topic, data
-            except (ValueError, json.JSONDecodeError) as e:
-                logger.warning("Invalid message: %s", e)
+                await self.connect()
+                logger.info("Successfully reconnected to Redis")
+                return
+            except (RedisError, OSError) as e:
+                logger.warning("Reconnection attempt failed: %s", e)
+                self._backoff = min(
+                    self._backoff * _BACKOFF_MULTIPLIER, _MAX_BACKOFF_SEC
+                )
+
+    async def receive(self) -> AsyncIterator[tuple[Topic, dict[str, Any]]]:
+        """Async iterator that yields (topic, data) tuples as they arrive.
+
+        Automatically reconnects on connection failures and resumes listening.
+        """
+        while self._pubsub is not None:
+            try:
+                async for message in self._pubsub.listen():
+                    if message["type"] != "message":
+                        continue
+
+                    try:
+                        topic = Topic(message["channel"].decode())
+                        data = json.loads(message["data"].decode())
+                        yield topic, data
+                    except (ValueError, json.JSONDecodeError) as e:
+                        logger.warning("Invalid message: %s", e)
+                # Iterator finished normally - exit the loop
+                return
+            except (RedisError, OSError) as e:
+                logger.error("Redis connection lost: %s", e)
+                await self._reconnect()
+                # Continue the while loop to resume listening
 
     async def close(self) -> None:
         """Close the subscriber connection."""
         if self._pubsub is not None:
-            await self._pubsub.unsubscribe()
-            await self._pubsub.close()
+            # Ignore errors if connection already broken
+            with suppress(RedisError, OSError):
+                await self._pubsub.unsubscribe()
+                await self._pubsub.close()
             self._pubsub = None
         if self._client is not None:
-            await self._client.close()
+            # Ignore errors if connection already broken
+            with suppress(RedisError, OSError):
+                await self._client.close()
             self._client = None
         logger.info("Event subscriber closed")
 

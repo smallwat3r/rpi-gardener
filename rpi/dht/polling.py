@@ -58,7 +58,7 @@ class DHTPollingService(PollingService[Reading]):
         """Initialize database and register alert callback."""
         await init_db()
         self._publisher.connect()
-        self._alert_tracker.register_callback(
+        await self._alert_tracker.register_callback(
             Namespace.DHT, create_alert_publisher(self._publisher)
         )
 

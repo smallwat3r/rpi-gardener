@@ -111,7 +111,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         """Initialize database and register alert callback."""
         await init_db()
         self._publisher.connect()
-        self._alert_tracker.register_callback(
+        await self._alert_tracker.register_callback(
             Namespace.PICO, create_alert_publisher(self._publisher)
         )
 
@@ -196,7 +196,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         for reading in readings:
             if reading.is_anomaly:
                 continue
-            self._alert_tracker.check(
+            await self._alert_tracker.check(
                 namespace=Namespace.PICO,
                 sensor_name=reading.plant_id,
                 value=reading.moisture,

@@ -142,7 +142,7 @@ def mock_sensor():
 
 
 @pytest.fixture
-def dht_audit_events(alert_tracker):
+async def dht_audit_events(alert_tracker):
     """Capture DHT audit events published to the event bus.
 
     Use this fixture when testing DHT audit functionality that needs
@@ -158,12 +158,12 @@ def dht_audit_events(alert_tracker):
     def capture_event(event: AlertEvent) -> None:
         events.append(event)
 
-    alert_tracker.register_callback(Namespace.DHT, capture_event)
+    await alert_tracker.register_callback(Namespace.DHT, capture_event)
     return events
 
 
 @pytest.fixture
-def pico_audit_events(alert_tracker):
+async def pico_audit_events(alert_tracker):
     """Capture Pico audit events published to the event bus.
 
     Use this fixture when testing Pico moisture auditing that needs
@@ -179,5 +179,5 @@ def pico_audit_events(alert_tracker):
     def capture_event(event: AlertEvent) -> None:
         events.append(event)
 
-    alert_tracker.register_callback(Namespace.PICO, capture_event)
+    await alert_tracker.register_callback(Namespace.PICO, capture_event)
     return events

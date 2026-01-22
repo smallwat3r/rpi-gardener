@@ -26,7 +26,7 @@ async def audit_reading(reading: Reading, tracker: AlertTracker) -> None:
 
         # Check all threshold rules for this measure
         for threshold_type, threshold, hysteresis in rules:
-            tracker.check(
+            await tracker.check(
                 namespace=Namespace.DHT,
                 sensor_name=name,
                 value=measure.value,
@@ -40,6 +40,6 @@ async def audit_reading(reading: Reading, tracker: AlertTracker) -> None:
         # Set measure state based on any active alert
         measure.state = (
             State.IN_ALERT
-            if tracker.is_any_alert(Namespace.DHT, name)
+            if await tracker.is_any_alert(Namespace.DHT, name)
             else State.OK
         )

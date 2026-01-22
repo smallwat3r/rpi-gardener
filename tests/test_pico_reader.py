@@ -201,7 +201,7 @@ class TestPicoPollingServiceAudit:
 
         assert len(pico_audit_events) == 0
         assert (
-            alert_tracker.get_state(
+            await alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
             )
             == AlertState.OK
@@ -228,7 +228,7 @@ class TestPicoPollingServiceAudit:
         assert event.threshold == 30
         assert event.namespace == Namespace.PICO
         assert (
-            alert_tracker.get_state(
+            await alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
             )
             == AlertState.IN_ALERT
@@ -275,13 +275,13 @@ class TestPicoPollingServiceAudit:
 
         assert len(pico_audit_events) == 2
         assert (
-            alert_tracker.get_state(
+            await alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
             )
             == AlertState.IN_ALERT
         )
         assert (
-            alert_tracker.get_state(
+            await alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_2, ThresholdType.MIN
             )
             == AlertState.IN_ALERT
@@ -446,7 +446,7 @@ class TestConfirmationWindow:
         return AlertTracker(confirmation_count=3)
 
     @pytest.fixture
-    def pico_events_with_confirmation(self, tracker_with_confirmation):
+    async def pico_events_with_confirmation(self, tracker_with_confirmation):
         from rpi.lib.alerts import AlertEvent
 
         events: list[AlertEvent] = []
@@ -454,19 +454,20 @@ class TestConfirmationWindow:
         def capture_event(event: AlertEvent) -> None:
             events.append(event)
 
-        tracker_with_confirmation.register_callback(
+        await tracker_with_confirmation.register_callback(
             Namespace.PICO, capture_event
         )
         return events
 
-    def test_single_reading_no_alert(
+    @pytest.mark.asyncio
+    async def test_single_reading_no_alert(
         self,
         tracker_with_confirmation,
         pico_events_with_confirmation,
         frozen_time,
     ):
         """Single reading below threshold should not trigger alert."""
-        tracker_with_confirmation.check(
+        await tracker_with_confirmation.check(
             namespace=Namespace.PICO,
             sensor_name=1,
             value=20.0,  # Below threshold
@@ -478,7 +479,8 @@ class TestConfirmationWindow:
         )
         assert len(pico_events_with_confirmation) == 0
 
-    def test_confirmation_after_three_readings(
+    @pytest.mark.asyncio
+    async def test_confirmation_after_three_readings(
         self,
         tracker_with_confirmation,
         pico_events_with_confirmation,
@@ -486,7 +488,7 @@ class TestConfirmationWindow:
     ):
         """Alert should trigger after 3 consecutive readings below threshold."""
         for _ in range(3):
-            tracker_with_confirmation.check(
+            await tracker_with_confirmation.check(
                 namespace=Namespace.PICO,
                 sensor_name=1,
                 value=20.0,  # Below threshold
@@ -499,7 +501,8 @@ class TestConfirmationWindow:
         assert len(pico_events_with_confirmation) == 1
         assert pico_events_with_confirmation[0].value == 20.0
 
-    def test_counter_resets_on_normal_reading(
+    @pytest.mark.asyncio
+    async def test_counter_resets_on_normal_reading(
         self,
         tracker_with_confirmation,
         pico_events_with_confirmation,
@@ -508,7 +511,7 @@ class TestConfirmationWindow:
         """Pending counter should reset when value returns to normal."""
         # Two readings below threshold
         for _ in range(2):
-            tracker_with_confirmation.check(
+            await tracker_with_confirmation.check(
                 namespace=Namespace.PICO,
                 sensor_name=1,
                 value=20.0,
@@ -521,7 +524,7 @@ class TestConfirmationWindow:
         assert len(pico_events_with_confirmation) == 0
 
         # Normal reading resets counter
-        tracker_with_confirmation.check(
+        await tracker_with_confirmation.check(
             namespace=Namespace.PICO,
             sensor_name=1,
             value=50.0,  # Above threshold
@@ -534,7 +537,7 @@ class TestConfirmationWindow:
 
         # Two more readings below threshold (not 3 total)
         for _ in range(2):
-            tracker_with_confirmation.check(
+            await tracker_with_confirmation.check(
                 namespace=Namespace.PICO,
                 sensor_name=1,
                 value=20.0,

@@ -7,11 +7,11 @@ transitions (to prevent notification spam).
 Uses hysteresis to prevent flapping when values oscillate around thresholds.
 Uses confirmation window to require consecutive readings before state change.
 
-Thread-safe: Uses locks to protect shared state when accessed from multiple
-polling services or async contexts.
+Async-safe: Uses asyncio.Lock to protect shared state when accessed from
+multiple async contexts without blocking the event loop.
 """
 
-import threading
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -112,7 +112,7 @@ class AlertTracker:
 
     Supports multiple namespaces (DHT, Pico) to keep sensor states organized.
 
-    Thread-safe: All state mutations are protected by a lock.
+    Async-safe: All state mutations are protected by an asyncio.Lock.
     """
 
     def __init__(self, confirmation_count: int | None = None) -> None:
@@ -122,7 +122,7 @@ class AlertTracker:
             confirmation_count: Number of consecutive readings required to
                 confirm a state change. If None, uses config default.
         """
-        self._lock = threading.Lock()
+        self._lock: asyncio.Lock | None = None
         self._states: dict[_AlertKey, AlertState] = {}
         self._callbacks: dict[Namespace, AlertCallback] = {}
         self._pending_counts: dict[_AlertKey, int] = {}
@@ -132,7 +132,13 @@ class AlertTracker:
             else get_settings().alerts.confirmation_count
         )
 
-    def register_callback(
+    def _get_lock(self) -> asyncio.Lock:
+        """Get or create the async lock (lazy init for event loop compatibility)."""
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
+
+    async def register_callback(
         self, namespace: Namespace, callback: AlertCallback
     ) -> None:
         """Register a callback for a specific namespace.
@@ -141,7 +147,7 @@ class AlertTracker:
             namespace: The namespace to register for.
             callback: Function called when a sensor transitions state.
         """
-        with self._lock:
+        async with self._get_lock():
             self._callbacks[namespace] = callback
         logger.debug(
             "Registered alert callback for namespace %s", namespace.value
@@ -232,7 +238,7 @@ class AlertTracker:
                 )
             )
 
-    def check(
+    async def check(
         self,
         namespace: Namespace,
         sensor_name: _SensorName,
@@ -261,7 +267,7 @@ class AlertTracker:
         )
         key = self._make_key(check)
 
-        with self._lock:
+        async with self._get_lock():
             previous_state = self._states.get(key, AlertState.OK)
             new_state = self._compute_new_state(check, key, previous_state)
             self._states[key] = new_state
@@ -271,7 +277,7 @@ class AlertTracker:
         self._handle_transition(check, previous_state, new_state, callback)
         return new_state
 
-    def get_state(
+    async def get_state(
         self,
         namespace: Namespace,
         sensor_name: _SensorName,
@@ -279,14 +285,14 @@ class AlertTracker:
     ) -> AlertState:
         """Get current alert state for a sensor threshold."""
         key: _AlertKey = (namespace, sensor_name, threshold_type)
-        with self._lock:
+        async with self._get_lock():
             return self._states.get(key, AlertState.OK)
 
-    def is_any_alert(
+    async def is_any_alert(
         self, namespace: Namespace, sensor_name: _SensorName
     ) -> bool:
         """Check if any threshold for this sensor is in alert state."""
-        with self._lock:
+        async with self._get_lock():
             return any(
                 state == AlertState.IN_ALERT
                 for key, state in self._states.items()
@@ -307,7 +313,7 @@ class AlertTracker:
             return False
         return threshold_type is None or key[2] == threshold_type
 
-    def reset(
+    async def reset(
         self,
         namespace: Namespace | None = None,
         sensor_name: _SensorName | None = None,
@@ -317,7 +323,7 @@ class AlertTracker:
 
         All parameters are optional filters. If all are None, clears everything.
         """
-        with self._lock:
+        async with self._get_lock():
             to_delete = [
                 k
                 for k in self._states

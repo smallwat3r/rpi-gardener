@@ -111,7 +111,7 @@ async def test_db(tmp_path):
     conn.close()
 
     yield
-    # Clean up database connection pool to prevent hanging threads
+    # Clean up database connection pool
     await close_db()
 
 

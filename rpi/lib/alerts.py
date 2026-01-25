@@ -126,6 +126,8 @@ class AlertTracker:
         self._states: dict[_AlertKey, AlertState] = {}
         self._callbacks: dict[Namespace, AlertCallback] = {}
         self._pending_counts: dict[_AlertKey, int] = {}
+        # Track alert count per (namespace, sensor) for O(1) is_any_alert lookup
+        self._alert_counts: dict[tuple[Namespace, _SensorName], int] = {}
         self._confirmation_count = (
             confirmation_count
             if confirmation_count is not None
@@ -273,6 +275,20 @@ class AlertTracker:
             self._states[key] = new_state
             callback = self._callbacks.get(namespace)
 
+            # Update alert count for O(1) is_any_alert lookup
+            sensor_key = (namespace, sensor_name)
+            if previous_state != new_state:
+                if new_state == AlertState.IN_ALERT:
+                    self._alert_counts[sensor_key] = (
+                        self._alert_counts.get(sensor_key, 0) + 1
+                    )
+                elif previous_state == AlertState.IN_ALERT:
+                    count = self._alert_counts.get(sensor_key, 1) - 1
+                    if count <= 0:
+                        self._alert_counts.pop(sensor_key, None)
+                    else:
+                        self._alert_counts[sensor_key] = count
+
         # Call callback outside of lock to prevent deadlocks
         self._handle_transition(check, previous_state, new_state, callback)
         return new_state
@@ -293,11 +309,7 @@ class AlertTracker:
     ) -> bool:
         """Check if any threshold for this sensor is in alert state."""
         async with self._get_lock():
-            return any(
-                state == AlertState.IN_ALERT
-                for key, state in self._states.items()
-                if key[0] == namespace and key[1] == sensor_name
-            )
+            return self._alert_counts.get((namespace, sensor_name), 0) > 0
 
     def _key_matches(
         self,
@@ -330,6 +342,14 @@ class AlertTracker:
                 if self._key_matches(k, namespace, sensor_name, threshold_type)
             ]
             for k in to_delete:
+                # Update alert count if we're deleting an alert state
+                if self._states.get(k) == AlertState.IN_ALERT:
+                    sensor_key = (k[0], k[1])
+                    count = self._alert_counts.get(sensor_key, 1) - 1
+                    if count <= 0:
+                        self._alert_counts.pop(sensor_key, None)
+                    else:
+                        self._alert_counts[sensor_key] = count
                 self._states.pop(k, None)
                 self._pending_counts.pop(k, None)
 

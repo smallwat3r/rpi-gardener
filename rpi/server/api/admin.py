@@ -112,6 +112,10 @@ class _SettingsReader:
     def __init__(self, db_settings: dict[SettingsKey, str]):
         self._db = db_settings
 
+    def get_str(self, key: SettingsKey, default: str) -> str:
+        val = self._db.get(key)
+        return val if val is not None else default
+
     def get_int(self, key: SettingsKey, default: int) -> int:
         val = self._db.get(key)
         return int(val) if val is not None else default
@@ -122,11 +126,9 @@ class _SettingsReader:
 
     def get_list(self, key: SettingsKey, default: list[str]) -> list[str]:
         val = self._db.get(key)
-        return (
-            [x.strip() for x in val.split(",") if x.strip()]
-            if val
-            else default
-        )
+        if val is None:
+            return default
+        return [x.strip() for x in val.split(",") if x.strip()]
 
 
 def _db_settings_to_response(

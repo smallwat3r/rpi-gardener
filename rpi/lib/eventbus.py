@@ -317,12 +317,9 @@ class EventSubscriber:
                         yield topic, data
                     except (ValueError, json.JSONDecodeError) as e:
                         logger.warning("Invalid message: %s", e)
-                # Iterator finished normally - exit the loop
-                return
             except (RedisError, OSError) as e:
                 logger.error("Redis connection lost: %s", e)
                 await self._reconnect()
-                # Continue the while loop to resume listening
 
     async def close(self) -> None:
         """Close the subscriber connection."""

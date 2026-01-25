@@ -458,3 +458,29 @@ def create_alert_publisher(publisher: EventPublisher) -> AlertCallback:
         publisher.publish(payload)
 
     return publish_alert
+
+
+async def setup_alert_publisher(
+    tracker: AlertTracker,
+    namespace: Namespace,
+    publisher: EventPublisher,
+) -> None:
+    """Register an alert publisher callback with the tracker.
+
+    Shared helper for DHT and Pico polling services to register
+    their alert callbacks consistently.
+    """
+    await tracker.register_callback(namespace, create_alert_publisher(publisher))
+
+
+def safe_parse_alert_event(data: dict[str, object]) -> AlertEvent | None:
+    """Safely parse an AlertEvent from event bus data.
+
+    Returns None and logs an error if parsing fails, avoiding duplicate
+    exception handling across services.
+    """
+    try:
+        return AlertEvent.from_dict(data)
+    except (KeyError, ValueError, TypeError):
+        logger.exception("Failed to parse alert event")
+        return None

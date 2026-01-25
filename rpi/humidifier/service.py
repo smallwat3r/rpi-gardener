@@ -10,7 +10,7 @@ to turn a humidifier on/off based on humidity levels.
 
 from datetime import UTC, datetime
 
-from rpi.lib.alerts import AlertEvent, Namespace
+from rpi.lib.alerts import AlertEvent, Namespace, safe_parse_alert_event
 from rpi.lib.config import MeasureName, get_settings
 from rpi.lib.eventbus import (
     EventPublisher,
@@ -82,10 +82,8 @@ async def run() -> None:
         ):
             logger.info("Humidifier service started")
             async for _topic, data in subscriber.receive():
-                try:
-                    event = AlertEvent.from_dict(data)
-                except (KeyError, ValueError, TypeError):
-                    logger.exception("Failed to parse alert event")
+                event = safe_parse_alert_event(data)
+                if event is None:
                     continue
                 if _is_low_humidity_alert(event):
                     await _handle_humidity_event(event, controller, publisher)

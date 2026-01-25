@@ -12,7 +12,7 @@ from typing import Protocol, override
 
 from rpi.dht.audit import audit_reading
 from rpi.dht.models import Measure, Reading
-from rpi.lib.alerts import AlertTracker, Namespace, create_alert_publisher
+from rpi.lib.alerts import AlertTracker, Namespace, setup_alert_publisher
 from rpi.lib.config import DHT22_BOUNDS, MeasureName, Unit
 from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.eventbus import DHTReadingEvent, EventPublisher
@@ -58,8 +58,8 @@ class DHTPollingService(PollingService[Reading]):
         """Initialize database and register alert callback."""
         await init_db()
         self._publisher.connect()
-        await self._alert_tracker.register_callback(
-            Namespace.DHT, create_alert_publisher(self._publisher)
+        await setup_alert_publisher(
+            self._alert_tracker, Namespace.DHT, self._publisher
         )
 
     @override

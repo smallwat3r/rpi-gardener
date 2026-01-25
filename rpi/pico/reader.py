@@ -9,7 +9,7 @@ import json
 from datetime import UTC, datetime
 from typing import Protocol, override
 
-from rpi.lib.alerts import AlertTracker, Namespace, create_alert_publisher
+from rpi.lib.alerts import AlertTracker, Namespace, setup_alert_publisher
 from rpi.lib.config import (
     ThresholdType,
     Unit,
@@ -111,8 +111,8 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         """Initialize database and register alert callback."""
         await init_db()
         self._publisher.connect()
-        await self._alert_tracker.register_callback(
-            Namespace.PICO, create_alert_publisher(self._publisher)
+        await setup_alert_publisher(
+            self._alert_tracker, Namespace.PICO, self._publisher
         )
 
     @override

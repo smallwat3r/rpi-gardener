@@ -6,14 +6,14 @@ The service is responsible for:
 """
 
 from rpi.dht.models import Measure, Reading
-from rpi.lib.alerts import AlertTracker, Namespace
+from rpi.lib.alerts import Namespace, ThresholdChecker
 from rpi.lib.config import get_threshold_rules_async
 from rpi.logging import get_logger
 
 logger = get_logger("dht.audit")
 
 
-async def audit_reading(reading: Reading, tracker: AlertTracker) -> None:
+async def audit_reading(reading: Reading, tracker: ThresholdChecker) -> None:
     """Audit reading values against thresholds and publish alert events.
 
     Fetches current thresholds from DB to support runtime configuration

@@ -317,6 +317,7 @@ class EventSubscriber:
                         yield topic, data
                     except (ValueError, json.JSONDecodeError) as e:
                         logger.warning("Invalid message: %s", e)
+                return  # Iterator exhausted (e.g., connection closed cleanly)
             except (RedisError, OSError) as e:
                 logger.error("Redis connection lost: %s", e)
                 await self._reconnect()

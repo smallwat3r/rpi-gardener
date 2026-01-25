@@ -126,7 +126,7 @@ def _db_settings_to_response(
     """Convert flat DB settings to structured response format."""
     s = get_settings()
     r = _SettingsReader(db_settings)
-    plant_thresholds = s.thresholds.plant_moisture_thresholds
+    plant_thresholds = s.thresholds.plant_moisture_thresholds or {}
     default_moisture = s.thresholds.min_moisture
 
     return {

@@ -137,6 +137,7 @@ class ConnectionPool:
         self._max_size = max_size
         self._connections: list[Database] = []
         self._semaphore: asyncio.Semaphore | None = None
+        self._closed = False
 
     def _get_semaphore(self) -> asyncio.Semaphore:
         # Lazy init: asyncio.Semaphore requires running event loop
@@ -147,6 +148,8 @@ class ConnectionPool:
     @asynccontextmanager
     async def acquire(self) -> AsyncIterator[Database]:
         """Acquire a connection from the pool."""
+        if self._closed:
+            raise DatabaseNotConnectedError("Connection pool is closed")
         async with self._get_semaphore():
             conn = self._connections.pop() if self._connections else Database()
             try:
@@ -162,11 +165,13 @@ class ConnectionPool:
 
     async def close(self) -> None:
         """Close all pooled connections."""
+        self._closed = True
         for conn in self._connections:
             await conn.close()
         count = len(self._connections)
         self._connections = []
         self._semaphore = None
+        self._closed = False  # Allow pool reuse after close
         if count:
             _logger.info("Closed %d pooled connections", count)
 

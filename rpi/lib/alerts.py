@@ -288,7 +288,7 @@ class AlertTracker:
                         self._alert_counts.get(sensor_key, 0) + 1
                     )
                 elif previous_state == AlertState.IN_ALERT:
-                    count = self._alert_counts.get(sensor_key, 1) - 1
+                    count = self._alert_counts.get(sensor_key, 0) - 1
                     if count <= 0:
                         self._alert_counts.pop(sensor_key, None)
                     else:

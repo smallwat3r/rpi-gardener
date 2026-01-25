@@ -19,7 +19,7 @@ sys.modules["PIL.Image"] = MagicMock()
 sys.modules["PIL.ImageDraw"] = MagicMock()
 sys.modules["PIL.ImageFont"] = MagicMock()
 
-import rpi.lib.config as config
+from rpi.lib.config import settings as config_settings
 from rpi.dht.models import Measure, Reading
 from rpi.lib.alerts import AlertEvent, AlertTracker, Namespace
 from rpi.lib.config import Settings, Unit
@@ -50,8 +50,8 @@ def make_alert_event(
 
 def set_settings(settings: Settings | None) -> None:
     """Override global settings for testing."""
-    config._settings_override = settings
-    config._load_settings.cache_clear()
+    config_settings._settings_override = settings
+    config_settings._load_settings.cache_clear()
 
 
 @pytest.fixture(autouse=True)

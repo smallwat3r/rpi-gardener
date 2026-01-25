@@ -98,7 +98,7 @@ class TestAlertEventPayload:
 class TestEventPublisher:
     """Tests for EventPublisher."""
 
-    @patch("rpi.lib.eventbus.redis")
+    @patch("rpi.lib.eventbus.sync_redis")
     def test_connect_creates_client(self, mock_redis):
         """Connect creates a Redis client."""
         mock_client = MagicMock()
@@ -110,7 +110,7 @@ class TestEventPublisher:
         mock_redis.from_url.assert_called_once()
         assert publisher._client is mock_client
 
-    @patch("rpi.lib.eventbus.redis")
+    @patch("rpi.lib.eventbus.sync_redis")
     def test_publish_single_event(self, mock_redis):
         """Publish serializes and sends a single event."""
         mock_client = MagicMock()
@@ -133,7 +133,7 @@ class TestEventPublisher:
         assert payload["temperature"] == 22.0
         assert payload["humidity"] == 50.0
 
-    @patch("rpi.lib.eventbus.redis")
+    @patch("rpi.lib.eventbus.sync_redis")
     def test_publish_event_list(self, mock_redis):
         """Publish serializes and sends a list of events."""
         mock_client = MagicMock()
@@ -159,7 +159,7 @@ class TestEventPublisher:
         assert payload[0]["plant_id"] == 1
         assert payload[1]["plant_id"] == 2
 
-    @patch("rpi.lib.eventbus.redis")
+    @patch("rpi.lib.eventbus.sync_redis")
     def test_publish_without_connect_does_nothing(self, mock_redis):
         """Publish without connect silently returns."""
         publisher = EventPublisher()
@@ -168,7 +168,7 @@ class TestEventPublisher:
         # Should not raise
         publisher.publish(event)
 
-    @patch("rpi.lib.eventbus.redis")
+    @patch("rpi.lib.eventbus.sync_redis")
     def test_close(self, mock_redis):
         """Close closes the Redis client."""
         mock_client = MagicMock()

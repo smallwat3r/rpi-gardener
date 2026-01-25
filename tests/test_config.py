@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import SecretStr, ValidationError
 
-import rpi.lib.config as config
+from rpi.lib.config import settings as config_settings
 from rpi.lib.config import (
     GmailSettings,
     NotificationSettings,
@@ -208,8 +208,8 @@ class TestGetSettings:
     """Tests for global settings management."""
 
     def test_get_settings_lazy_initialization(self):
-        config._settings_override = None
-        config._load_settings.cache_clear()
+        config_settings._settings_override = None
+        config_settings._load_settings.cache_clear()
 
         settings = get_settings()
 
@@ -218,7 +218,7 @@ class TestGetSettings:
 
     def test_get_settings_uses_override(self):
         custom = Settings(db_path="custom.db")
-        config._settings_override = custom
+        config_settings._settings_override = custom
 
         assert get_settings().db_path == "custom.db"
 

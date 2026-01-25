@@ -50,6 +50,7 @@ import aiosqlite
 from rpi.lib.config import SettingsKey, get_settings
 
 type SQLParams = tuple[Any, ...] | dict[str, Any]
+"""SQL parameter types: positional tuple or named dict for query binding."""
 
 from rpi.lib.exceptions import DatabaseNotConnectedError
 from rpi.logging import get_logger
@@ -323,6 +324,16 @@ class Database:
             rows = await cursor.fetchall()
             return cast(list[dict[str, Any]], rows)
 
+    async def execute_pragma(self, pragma: str) -> None:
+        """Execute a PRAGMA statement directly on the connection.
+
+        Use this for connection-level settings like journal_mode, synchronous,
+        or cache_size that need raw connection access.
+        """
+        if self._connection is None:
+            raise DatabaseNotConnectedError()
+        await self._connection.execute(pragma)
+
 
 @asynccontextmanager
 async def get_db() -> AsyncIterator[Database]:
@@ -356,17 +367,14 @@ async def init_db() -> None:
             "Opened persistent database connection: %s", get_settings().db_path
         )
 
-    conn = _persistent._connection
-    if conn is None:
-        raise DatabaseNotConnectedError()
-    await conn.execute("PRAGMA journal_mode=WAL")
-    await conn.execute("PRAGMA auto_vacuum=INCREMENTAL")
-    await conn.execute(_INIT_READING_SQL)
+    await _persistent.execute_pragma("PRAGMA journal_mode=WAL")
+    await _persistent.execute_pragma("PRAGMA auto_vacuum=INCREMENTAL")
+    await _persistent.execute(_INIT_READING_SQL)
     await _persistent.executescript(_IDX_READING_SQL)
-    await conn.execute(_INIT_PICO_SQL)
+    await _persistent.execute(_INIT_PICO_SQL)
     await _persistent.executescript(_IDX_PICO_SQL)
-    await conn.execute(_INIT_SETTINGS_SQL)
-    await conn.execute(_INIT_ADMIN_SQL)
+    await _persistent.execute(_INIT_SETTINGS_SQL)
+    await _persistent.execute(_INIT_ADMIN_SQL)
     await _init_admin_password()
 
 

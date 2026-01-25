@@ -63,10 +63,9 @@ async def _event_subscriber_task(subscriber: EventSubscriber) -> None:
 async def _init_db_pool() -> None:
     """Pre-warm database connection pool with optimized settings."""
     async with get_db() as db:
-        if db._connection:
-            await db._connection.execute("PRAGMA journal_mode=WAL")
-            await db._connection.execute("PRAGMA synchronous=NORMAL")
-            await db._connection.execute("PRAGMA cache_size=-64000")  # 64MB
+        await db.execute_pragma("PRAGMA journal_mode=WAL")
+        await db.execute_pragma("PRAGMA synchronous=NORMAL")
+        await db.execute_pragma("PRAGMA cache_size=-64000")  # 64MB
     _logger.info("Database connection pool initialized")
 
 

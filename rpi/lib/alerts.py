@@ -98,6 +98,7 @@ class _ThresholdCheck:
 
 
 type AlertCallback = Callable[[AlertEvent], None]
+"""Callback invoked when an alert state transition occurs."""
 
 
 class ThresholdChecker(Protocol):

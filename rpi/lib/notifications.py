@@ -135,7 +135,11 @@ def format_alert_html(event: AlertEvent) -> str:
 
 
 class AbstractNotifier(ABC):
-    """Abstract base class for notification backends."""
+    """Abstract base class for notification backends.
+
+    Subclasses must define:
+        _name: Backend name used for logging in retry operations.
+    """
 
     _name: str
 

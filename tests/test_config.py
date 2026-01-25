@@ -5,7 +5,6 @@ from unittest.mock import patch
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from rpi.lib.config import settings as config_settings
 from rpi.lib.config import (
     GmailSettings,
     NotificationSettings,
@@ -16,6 +15,7 @@ from rpi.lib.config import (
     get_settings,
     parse_pico_plant_id,
 )
+from rpi.lib.config import settings as config_settings
 
 
 class TestParsePicoPlantId:

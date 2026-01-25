@@ -19,10 +19,10 @@ sys.modules["PIL.Image"] = MagicMock()
 sys.modules["PIL.ImageDraw"] = MagicMock()
 sys.modules["PIL.ImageFont"] = MagicMock()
 
-from rpi.lib.config import settings as config_settings
 from rpi.dht.models import Measure, Reading
 from rpi.lib.alerts import AlertEvent, AlertTracker, Namespace
 from rpi.lib.config import Settings, Unit
+from rpi.lib.config import settings as config_settings
 
 
 def make_alert_event(

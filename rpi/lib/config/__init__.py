@@ -15,9 +15,9 @@ from .enums import (
     Unit,
 )
 from .settings import (
+    DHT22_BOUNDS,
     AlertSettings,
     CleanupSettings,
-    DHT22_BOUNDS,
     DisplaySettings,
     EventBusSettings,
     GmailSettings,

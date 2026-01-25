@@ -181,6 +181,11 @@ class AlertTracker:
         Requires multiple consecutive readings indicating a transition before
         actually changing state. This prevents transient sensor errors from
         triggering false alerts.
+
+        Each (namespace, sensor, threshold_type) tuple is tracked independently.
+        The pending counter resets whenever a reading becomes consistent with
+        the current state, ensuring only consecutive transition-indicating
+        readings are counted.
         """
         desired = self._wants_transition(check, current)
 

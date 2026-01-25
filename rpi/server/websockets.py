@@ -183,8 +183,10 @@ async def _get_last_humidifier_state() -> dict[str, Any] | None:
         async with aioredis.from_url(get_settings().redis_url) as client:
             data = await client.get(HUMIDIFIER_STATE_KEY)
             if data:
-                result: dict[str, Any] = json.loads(data)
-                return result
+                parsed = json.loads(data)
+                if isinstance(parsed, dict):
+                    return parsed
+                _logger.warning("Humidifier state is not a dict: %s", type(parsed))
     except (aioredis.RedisError, OSError, json.JSONDecodeError) as e:
         _logger.warning("Failed to fetch humidifier state: %s", e)
     return None

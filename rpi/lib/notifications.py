@@ -253,6 +253,7 @@ class SlackNotifier(AbstractNotifier):
             logger=logger,
             max_retries=cfg.max_retries,
             initial_backoff_sec=cfg.initial_backoff_sec,
+            retryable_exceptions=(OSError, requests.RequestException),
             run_in_thread=True,
         )
 

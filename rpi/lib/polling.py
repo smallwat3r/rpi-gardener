@@ -116,7 +116,7 @@ class PollingService[T](ABC):
         await self.initialize()
         self._logger.info("%s polling service started", self.name)
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         try:
             while not self._shutdown_requested:

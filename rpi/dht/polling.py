@@ -1,9 +1,8 @@
-"""Poll DHT22 sensor for new data, and persist results in Sqlite.
+"""Poll DHT22 sensor for new data, and persist results in SQLite.
 
-The script will take care of initiating the local database if it does not
-exists yet. Polling frequency is set to 2 seconds, we can't make it poll
-faster as the DHT22 sensor is set-up to measure for new data every 2
-seconds, else cache results would be returned.
+Initializes the database on first run. Default polling frequency is 2 seconds
+(configurable via PollingSettings). The DHT22 sensor updates every 2 seconds,
+so polling faster would return cached results.
 """
 
 import asyncio

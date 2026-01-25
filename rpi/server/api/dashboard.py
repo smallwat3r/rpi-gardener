@@ -2,6 +2,7 @@ import json
 from sqlite3 import DatabaseError
 from typing import Any
 
+import aiosqlite
 from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -46,7 +47,7 @@ async def get_dashboard(request: Request) -> JSONResponse:
             latest = await db.fetchone(_DHT_LATEST_SQL)
             pico_rows = await db.fetchall(_PICO_CHART_SQL, params)
             pico_latest = await db.fetchall(_PICO_LATEST_SQL)
-    except DatabaseError:
+    except (DatabaseError, aiosqlite.Error):
         logger.exception("Database error fetching dashboard data")
         return JSONResponse({"error": "Database unavailable"}, status_code=503)
 

@@ -37,6 +37,10 @@ async def with_retry(
     for attempt in range(max_retries):
         try:
             if run_in_thread:
+                if inspect.iscoroutinefunction(fn):
+                    raise TypeError(
+                        "run_in_thread=True cannot be used with async functions"
+                    )
                 await asyncio.to_thread(fn)
             elif inspect.iscoroutinefunction(fn):
                 await fn()

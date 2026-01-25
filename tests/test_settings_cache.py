@@ -87,8 +87,8 @@ class TestGetSettingsVersion:
         assert version == 0
 
     @pytest.mark.asyncio
-    async def test_returns_zero_on_redis_error(self):
-        """Returns 0 when Redis is unavailable."""
+    async def test_returns_none_on_redis_error(self):
+        """Returns None when Redis is unavailable to bypass cache."""
         from redis.exceptions import RedisError
 
         @asynccontextmanager
@@ -99,7 +99,7 @@ class TestGetSettingsVersion:
         with patch("redis.asyncio.from_url", mock_from_url):
             version = await _get_settings_version()
 
-        assert version == 0
+        assert version is None
 
 
 class TestIncrementSettingsVersion:

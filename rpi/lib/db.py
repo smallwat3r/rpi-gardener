@@ -73,8 +73,14 @@ class _SettingsCache:
         self._cached_version: int = 0
         self._ttl_sec = ttl_sec
 
-    def get(self, current_version: int) -> dict[str, str] | None:
-        """Get cached settings if not expired and version matches."""
+    def get(self, current_version: int | None) -> dict[str, str] | None:
+        """Get cached settings if not expired and version matches.
+
+        Returns None if current_version is None (Redis unavailable) to force
+        a fresh fetch from the database.
+        """
+        if current_version is None:
+            return None  # Redis unavailable, don't trust cache
         if self._cache is not None:
             version_valid = self._cached_version == current_version
             ttl_valid = (time.monotonic() - self._cache_time) < self._ttl_sec
@@ -424,8 +430,12 @@ def _invalidate_settings_cache() -> None:
     _settings_cache.invalidate()
 
 
-async def _get_settings_version() -> int:
-    """Get the current settings version from Redis."""
+async def _get_settings_version() -> int | None:
+    """Get the current settings version from Redis.
+
+    Returns None if Redis is unavailable, signaling that the cache should not
+    be trusted (avoids version 0 collision with initial cache state).
+    """
     import redis.asyncio as aioredis
 
     try:
@@ -433,8 +443,8 @@ async def _get_settings_version() -> int:
             version = await client.get(_SettingsCache._REDIS_VERSION_KEY)
             return int(version) if version else 0
     except (aioredis.RedisError, OSError):
-        # Redis unavailable - return 0 to allow cache to work with TTL only
-        return 0
+        # Redis unavailable - return None to bypass cache
+        return None
 
 
 async def _increment_settings_version() -> int:
@@ -465,7 +475,9 @@ async def get_all_settings() -> dict[SettingsKey, str]:
         async with get_db() as db:
             rows = await db.fetchall("SELECT key, value FROM settings")
             result = {row["key"]: row["value"] for row in rows}
-            _settings_cache.set(result, version)
+            # Only cache if we have a valid version from Redis
+            if version is not None:
+                _settings_cache.set(result, version)
     except (aiosqlite.Error, OSError) as e:
         _invalidate_settings_cache()
         _logger.warning("Failed to fetch settings, cache invalidated: %s", e)

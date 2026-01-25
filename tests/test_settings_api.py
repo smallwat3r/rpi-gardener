@@ -109,7 +109,7 @@ class TestSettingsValidation:
 
         with pytest.raises(ValidationError) as exc_info:
             _AdminSettingsRequest.model_validate(settings)
-        assert "Invalid backends" in str(exc_info.value)
+        assert "should be 'gmail' or 'slack'" in str(exc_info.value)
 
     def test_validate_retention_days_out_of_bounds(self):
         """Should error when retention days outside [1, 365]."""

@@ -78,18 +78,7 @@ class _Notifications(BaseModel):
     """Notification settings."""
 
     enabled: bool | None = None
-    backends: list[str] | None = None
-
-    @field_validator("backends")
-    @classmethod
-    def validate_backends(cls, v: list[str] | None) -> list[str] | None:
-        if v is None:
-            return None
-        valid = {b.value for b in NotificationBackend}
-        invalid = [b for b in v if b not in valid]
-        if invalid:
-            raise ValueError(f"Invalid backends: {invalid}")
-        return v
+    backends: list[NotificationBackend] | None = None
 
 
 class _Cleanup(BaseModel):
@@ -221,7 +210,7 @@ def _request_to_db_settings(
         )
     if data.notifications.backends is not None:
         result[SettingsKey.NOTIFICATION_BACKENDS] = ",".join(
-            data.notifications.backends
+            b.value for b in data.notifications.backends
         )
 
     # Cleanup

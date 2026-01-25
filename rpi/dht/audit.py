@@ -5,7 +5,7 @@ The service is responsible for:
 - Publishing alert events to the event bus (notifications handled by web server)
 """
 
-from rpi.dht.models import Measure, Reading, State
+from rpi.dht.models import Measure, Reading
 from rpi.lib.alerts import AlertTracker, Namespace
 from rpi.lib.config import get_threshold_rules_async
 from rpi.logging import get_logger
@@ -36,10 +36,3 @@ async def audit_reading(reading: Reading, tracker: AlertTracker) -> None:
                 hysteresis=hysteresis,
                 recording_time=reading.recording_time,
             )
-
-        # Set measure state based on any active alert
-        measure.state = (
-            State.IN_ALERT
-            if await tracker.is_any_alert(Namespace.DHT, name)
-            else State.OK
-        )

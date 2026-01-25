@@ -2,21 +2,14 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, auto
 
 from rpi.lib.config import Unit
-
-
-class State(Enum):
-    OK = auto()
-    IN_ALERT = auto()
 
 
 @dataclass(slots=True)
 class Measure:
     value: float
     unit: Unit
-    state: State = State.OK
 
     def __str__(self) -> str:
         return f"{self.value}{self.unit}"

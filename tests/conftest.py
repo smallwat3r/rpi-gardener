@@ -20,7 +20,7 @@ sys.modules["PIL.ImageDraw"] = MagicMock()
 sys.modules["PIL.ImageFont"] = MagicMock()
 
 import rpi.lib.config as config
-from rpi.dht.models import Measure, Reading, State
+from rpi.dht.models import Measure, Reading
 from rpi.lib.alerts import AlertEvent, AlertTracker, Namespace
 from rpi.lib.config import Settings, Unit
 
@@ -126,8 +126,8 @@ def frozen_time():
 def sample_reading(frozen_time):
     """Create a valid DHT22 reading."""
     return Reading(
-        temperature=Measure(22.5, Unit.CELSIUS, State.OK),
-        humidity=Measure(55.0, Unit.PERCENT, State.OK),
+        temperature=Measure(22.5, Unit.CELSIUS),
+        humidity=Measure(55.0, Unit.PERCENT),
         recording_time=frozen_time,
     )
 

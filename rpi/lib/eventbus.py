@@ -16,9 +16,9 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Self
 
-import redis
+import redis as sync_redis
 import redis.asyncio as aioredis
-from redis.exceptions import RedisError
+from redis.asyncio import RedisError
 
 from rpi.lib.config import Unit, get_settings
 from rpi.logging import get_logger
@@ -172,11 +172,11 @@ class EventPublisher:
 
     def __init__(self) -> None:
         self._redis_url = get_settings().eventbus.redis_url
-        self._client: redis.Redis[bytes] | None = None
+        self._client: sync_redis.Redis[bytes] | None = None
 
     def connect(self) -> None:
         """Connect to Redis."""
-        self._client = redis.from_url(self._redis_url)
+        self._client = sync_redis.from_url(self._redis_url)
         logger.info("Event publisher connected to Redis")
 
     def _reconnect(self) -> bool:

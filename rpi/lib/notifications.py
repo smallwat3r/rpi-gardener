@@ -1,7 +1,7 @@
 """Notification system for sensor alerts.
 
 Provides an abstract notification interface with pluggable backends.
-Supports Gmail and Slack notifications, or both simultaneously.
+Currently includes Gmail and Slack backends, with support for both simultaneously.
 """
 
 import asyncio

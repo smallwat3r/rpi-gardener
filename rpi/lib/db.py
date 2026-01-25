@@ -143,10 +143,14 @@ class ConnectionPool:
         """Acquire a connection from the pool."""
         async with self._get_semaphore():
             conn = self._connections.pop() if self._connections else Database()
-            if conn._connection is None:
-                await conn.connect()
             try:
+                if conn._connection is None:
+                    await conn.connect()
                 yield conn
+            except Exception:
+                # Connection failed, close it to avoid returning a bad connection
+                await conn.close()
+                raise
             finally:
                 self._connections.append(conn)
 

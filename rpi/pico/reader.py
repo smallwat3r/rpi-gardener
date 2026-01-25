@@ -175,8 +175,10 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
                     reading.raw,
                 )
                 reading.is_anomaly = True
+            else:
+                # Only update baseline with valid readings, not spikes
+                self._update_last_reading(reading.plant_id, reading.moisture)
 
-            self._update_last_reading(reading.plant_id, reading.moisture)
             readings.append(reading)
 
         if readings:

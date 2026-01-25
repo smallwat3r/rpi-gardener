@@ -396,7 +396,14 @@ class Settings(BaseSettings):
         serial_port = self.pico_serial_port
         # Auto-detect if set to "auto" or configured port doesn't exist
         if serial_port == "auto" or not os.path.exists(serial_port):
-            serial_port = _detect_pico_port() or self.pico_serial_port
+            detected = _detect_pico_port()
+            if detected:
+                serial_port = detected
+            elif serial_port == "auto":
+                raise RuntimeError(
+                    "No Pico serial port detected. Set PICO_SERIAL_PORT explicitly."
+                )
+            # else: use configured port even if it doesn't exist yet (may appear later)
         return PicoSettings(
             serial_port=serial_port,
             serial_baud=self.pico_serial_baud,

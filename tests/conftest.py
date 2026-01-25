@@ -98,7 +98,8 @@ async def test_db(tmp_path):
     db_file = tmp_path / "test.sqlite3"
 
     # Override settings to use the temp database
-    test_settings = Settings(db_path=str(db_file))
+    # Use a fake serial port to avoid RuntimeError from pico auto-detection
+    test_settings = Settings(db_path=str(db_file), pico_serial_port="/dev/null")
     set_settings(test_settings)
 
     # Initialize the schema using sync sqlite3 (simpler for setup)

@@ -1,24 +1,16 @@
 import { useCallback, useState } from 'preact/hooks';
 import type { HumidifierState } from '../types';
-import { useWebSocket } from './useWebSocket';
-
-type HumidifierMessage = HumidifierState | { type: 'ping' };
-
-function isHumidifierState(msg: HumidifierMessage): msg is HumidifierState {
-  return 'is_on' in msg;
-}
+import { useSSE } from './useSSE';
 
 export function useHumidifierStatus() {
   const [state, setState] = useState<HumidifierState | null>(null);
 
-  const handleMessage = useCallback((data: HumidifierMessage) => {
-    if (isHumidifierState(data)) {
-      setState(data);
-    }
+  const handleMessage = useCallback((data: HumidifierState) => {
+    setState(data);
   }, []);
 
-  useWebSocket<HumidifierMessage>({
-    url: '/humidifier/state',
+  useSSE<HumidifierState>({
+    url: '/sse/humidifier/state',
     onMessage: handleMessage,
   });
 

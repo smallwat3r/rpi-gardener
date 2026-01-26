@@ -47,3 +47,11 @@ class SettingsKey(StrEnum):
     NOTIFICATION_ENABLED = "notification.enabled"
     NOTIFICATION_BACKENDS = "notification.backends"
     RETENTION_DAYS = "cleanup.retention_days"
+
+
+# Mapping from PlantId to moisture SettingsKey
+PLANT_MOISTURE_KEYS: dict[PlantId, SettingsKey] = {
+    PlantId.PLANT_1: SettingsKey.MOISTURE_1,
+    PlantId.PLANT_2: SettingsKey.MOISTURE_2,
+    PlantId.PLANT_3: SettingsKey.MOISTURE_3,
+}

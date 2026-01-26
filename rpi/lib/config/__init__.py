@@ -4,8 +4,12 @@ This package provides:
 - Enums for sensor types, thresholds, and notification backends
 - Pydantic settings models for configuration
 - Functions for accessing DB-backed runtime settings
+
+Note: The `import X as X` pattern marks symbols as explicit public re-exports.
+Without it, type checkers consider imports private to this module.
 """
 
+from rpi.lib.config.enums import PLANT_MOISTURE_KEYS as PLANT_MOISTURE_KEYS
 from rpi.lib.config.enums import MeasureName as MeasureName
 from rpi.lib.config.enums import NotificationBackend as NotificationBackend
 from rpi.lib.config.enums import PlantId as PlantId

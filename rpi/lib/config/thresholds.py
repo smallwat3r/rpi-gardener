@@ -5,6 +5,7 @@ from rpi.lib.config.constants import (
     HYSTERESIS_TEMPERATURE,
 )
 from rpi.lib.config.enums import (
+    PLANT_MOISTURE_KEYS,
     MeasureName,
     NotificationBackend,
     SettingsKey,
@@ -72,17 +73,12 @@ async def get_effective_thresholds() -> ThresholdSettings:
     min_moisture = get_int(
         SettingsKey.MOISTURE_DEFAULT, env_settings.thresholds.min_moisture
     )
-    moisture_keys: dict[int, SettingsKey] = {
-        1: SettingsKey.MOISTURE_1,
-        2: SettingsKey.MOISTURE_2,
-        3: SettingsKey.MOISTURE_3,
-    }
     plant_thresholds = {
-        i: get_int(
-            moisture_keys[i],
-            env_settings.thresholds.get_moisture_threshold(i),
+        int(plant_id): get_int(
+            settings_key,
+            env_settings.thresholds.get_moisture_threshold(plant_id),
         )
-        for i in (1, 2, 3)
+        for plant_id, settings_key in PLANT_MOISTURE_KEYS.items()
     }
 
     return ThresholdSettings(

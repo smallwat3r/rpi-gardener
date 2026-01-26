@@ -9,6 +9,7 @@ from starlette.responses import JSONResponse
 
 from rpi.lib.config import (
     DHT22_BOUNDS,
+    PLANT_MOISTURE_KEYS,
     MeasureName,
     NotificationBackend,
     SettingsKey,
@@ -151,18 +152,13 @@ def _db_settings_to_response(
                 "default": r.get_int(
                     SettingsKey.MOISTURE_DEFAULT, default_moisture
                 ),
-                "1": r.get_int(
-                    SettingsKey.MOISTURE_1,
-                    plant_thresholds.get(1, default_moisture),
-                ),
-                "2": r.get_int(
-                    SettingsKey.MOISTURE_2,
-                    plant_thresholds.get(2, default_moisture),
-                ),
-                "3": r.get_int(
-                    SettingsKey.MOISTURE_3,
-                    plant_thresholds.get(3, default_moisture),
-                ),
+                **{
+                    str(plant_id): r.get_int(
+                        settings_key,
+                        plant_thresholds.get(plant_id, default_moisture),
+                    )
+                    for plant_id, settings_key in PLANT_MOISTURE_KEYS.items()
+                },
             },
         },
         "notifications": {
@@ -195,10 +191,13 @@ def _request_to_db_settings(
         (SettingsKey.HUMIDITY_MIN, data.thresholds.humidity.min),
         (SettingsKey.HUMIDITY_MAX, data.thresholds.humidity.max),
         (SettingsKey.MOISTURE_DEFAULT, data.thresholds.moisture.default),
-        (SettingsKey.MOISTURE_1, data.thresholds.moisture.plant_1),
-        (SettingsKey.MOISTURE_2, data.thresholds.moisture.plant_2),
-        (SettingsKey.MOISTURE_3, data.thresholds.moisture.plant_3),
     ]
+    # Add plant moisture thresholds dynamically
+    for plant_id, settings_key in PLANT_MOISTURE_KEYS.items():
+        field_name = f"plant_{plant_id}"
+        value = getattr(data.thresholds.moisture, field_name)
+        threshold_fields.append((settings_key, value))
+
     for key, field in threshold_fields:
         if field is not None:
             result[key] = str(field)

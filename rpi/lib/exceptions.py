@@ -18,7 +18,3 @@ class DatabaseNotConnectedError(DatabaseError):
 
     def __init__(self, message: str = "Database not connected") -> None:
         super().__init__(message)
-
-
-class NotificationError(RpiGardenerError):
-    """Base exception for notification-related errors."""

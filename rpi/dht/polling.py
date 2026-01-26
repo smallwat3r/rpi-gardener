@@ -116,7 +116,7 @@ class DHTPollingService(PollingService[Reading]):
                 ),
             )
 
-        # Publish to event bus for real-time WebSocket updates
+        # Publish to event bus for real-time SSE updates
         event = DHTReadingEvent(
             temperature=reading.temperature.value,
             humidity=reading.humidity.value,

@@ -8,7 +8,7 @@ from typing import Any
 
 import redis.asyncio as aioredis
 from starlette.applications import Starlette
-from starlette.routing import Route, WebSocketRoute
+from starlette.routing import Route
 
 from rpi.lib.config import get_settings
 from rpi.lib.db import close_db, get_db
@@ -18,28 +18,18 @@ from rpi.server.api.admin import get_admin_settings, update_admin_settings
 from rpi.server.api.dashboard import get_dashboard
 from rpi.server.api.health import health_check
 from rpi.server.api.thresholds import get_thresholds
-from rpi.server.websockets import (
-    ConnectionManager,
-    ws_dht_latest,
-    ws_humidifier_state,
-    ws_pico_latest,
+from rpi.server.sse import (
+    HUMIDIFIER_STATE_KEY,
+    sse_dht_latest,
+    sse_humidifier_state,
+    sse_pico_latest,
 )
 
 _logger = get_logger("server.entrypoint")
 
-# Redis key for storing last humidifier state
-HUMIDIFIER_STATE_KEY = "humidifier:last_state"
-
-# Map event bus topics to WebSocket endpoints
-_TOPIC_TO_ENDPOINT = {
-    Topic.DHT_READING: "/dht/latest",
-    Topic.PICO_READING: "/pico/latest",
-    Topic.HUMIDIFIER_STATE: "/humidifier/state",
-}
-
 
 async def _store_humidifier_state(data: dict[str, Any]) -> None:
-    """Store humidifier state in Redis for retrieval on WebSocket connect."""
+    """Store humidifier state in Redis for retrieval on SSE connect."""
     try:
         async with aioredis.from_url(get_settings().redis_url) as client:
             await client.set(HUMIDIFIER_STATE_KEY, json.dumps(data))
@@ -47,19 +37,12 @@ async def _store_humidifier_state(data: dict[str, Any]) -> None:
         _logger.warning("Failed to store humidifier state: %s", e)
 
 
-async def _event_subscriber_task(
-    subscriber: EventSubscriber,
-    manager: ConnectionManager,
-) -> None:
-    """Background task that receives events and broadcasts to WebSocket clients."""
+async def _humidifier_state_task(subscriber: EventSubscriber) -> None:
+    """Background task that stores humidifier state for new client connections."""
     async for topic, data in subscriber.receive():
-        endpoint = _TOPIC_TO_ENDPOINT.get(topic)
-        if endpoint:
-            # Store humidifier state for retrieval on WebSocket connect
-            if topic == Topic.HUMIDIFIER_STATE:
-                await _store_humidifier_state(data)
-            count = await manager.broadcast(endpoint, data)
-            _logger.debug("Broadcast %s to %d clients", topic, count)
+        if topic == Topic.HUMIDIFIER_STATE:
+            await _store_humidifier_state(data)
+            _logger.debug("Stored humidifier state")
 
 
 async def _init_db_pool() -> None:
@@ -74,16 +57,12 @@ async def _init_db_pool() -> None:
 @asynccontextmanager
 async def lifespan(app: Starlette) -> AsyncIterator[None]:
     """Application lifespan manager for startup/shutdown tasks."""
-    # Initialize connection manager on app.state for WebSocket handlers
-    app.state.connection_manager = ConnectionManager()
-
     await _init_db_pool()
 
-    async with EventSubscriber() as subscriber:
-        subscriber_task = asyncio.create_task(
-            _event_subscriber_task(subscriber, app.state.connection_manager)
-        )
-        _logger.info("Event bus subscriber started")
+    # Subscribe only to humidifier state to store it for new connections
+    async with EventSubscriber(topics=[Topic.HUMIDIFIER_STATE]) as subscriber:
+        subscriber_task = asyncio.create_task(_humidifier_state_task(subscriber))
+        _logger.info("Humidifier state subscriber started")
 
         try:
             yield
@@ -91,7 +70,7 @@ async def lifespan(app: Starlette) -> AsyncIterator[None]:
             subscriber_task.cancel()
             with suppress(asyncio.CancelledError):
                 await subscriber_task
-            _logger.info("Event bus subscriber stopped")
+            _logger.info("Humidifier state subscriber stopped")
             await close_db()
             _logger.info("Database connections closed")
 
@@ -114,9 +93,9 @@ def create_app() -> Starlette:
         Route("/api/thresholds", get_thresholds),
         Route("/api/admin/settings", get_admin_settings),
         Route("/api/admin/settings", update_admin_settings, methods=["PUT"]),
-        WebSocketRoute("/dht/latest", ws_dht_latest),
-        WebSocketRoute("/pico/latest", ws_pico_latest),
-        WebSocketRoute("/humidifier/state", ws_humidifier_state),
+        Route("/sse/dht/latest", sse_dht_latest),
+        Route("/sse/pico/latest", sse_pico_latest),
+        Route("/sse/humidifier/state", sse_humidifier_state),
     ]
 
     return Starlette(routes=routes, lifespan=lifespan)

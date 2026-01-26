@@ -7,7 +7,7 @@ Python code for the Raspberry Pi 4.
 Services communicate via Redis pub/sub:
 
 ```
-DHT Polling ──┐                  ┌── Web Server (WebSocket)
+DHT Polling ──┐                  ┌── Web Server (SSE)
               │                  ├── Notification Service (Gmail/Slack)
               ├── Redis ─────────┼── Humidifier Service (Kasa smart plug)
 Pico Reader ──┘                  ├── OLED Service (SSD1306 display)
@@ -32,7 +32,7 @@ Parses JSON lines and publishes readings to the event bus.
 
 ### Web Server (`server/`)
 
-REST API and WebSocket server for the dashboard. Uses Starlette (ASGI).
+REST API and SSE server for the dashboard. Uses Starlette (ASGI).
 Subscribes to the event bus for real-time updates.
 
     make serve       # Development (with hot reload)
@@ -91,8 +91,9 @@ P1 dry | Temp low | Humid high
 | `/api/thresholds` | GET | Configured alert thresholds (JSON) |
 | `/api/admin/settings` | GET | Admin settings (requires auth) |
 | `/api/admin/settings` | PUT | Update admin settings (requires auth) |
-| `/dht/latest` | WS | Real-time DHT22 readings |
-| `/pico/latest` | WS | Real-time Pico readings |
+| `/sse/dht/latest` | SSE | Real-time DHT22 readings |
+| `/sse/pico/latest` | SSE | Real-time Pico readings |
+| `/sse/humidifier/state` | SSE | Real-time humidifier state |
 
 ## Dashboard Features
 

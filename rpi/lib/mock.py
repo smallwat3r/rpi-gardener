@@ -80,12 +80,15 @@ class MockPicoDataSource:
             plant_id: random.uniform(40.0, 70.0) for plant_id in PlantId
         }
 
-    def _generate_moisture(self, plant_id: PlantId) -> float:
+    def _generate_reading(self, plant_id: PlantId) -> dict[str, float | int]:
         """Generate a realistic moisture reading for a plant."""
         self._moisture[plant_id] = random_walk(
             self._moisture[plant_id], drift=0.5, min_val=10.0, max_val=90.0
         )
-        return round(self._moisture[plant_id], 1)
+        pct = round(self._moisture[plant_id], 1)
+        # Simulate raw ADC value (inverse relationship: dry=high, wet=low)
+        raw = int((100 - pct) * 400 + random.randint(-50, 50))
+        return {"pct": pct, "raw": raw}
 
     async def readline(self) -> str:
         """Generate a line of mock Pico JSON data."""
@@ -95,8 +98,7 @@ class MockPicoDataSource:
         await asyncio.sleep(self._frequency_sec)
 
         data = {
-            f"plant-{plant_id.value}": self._generate_moisture(plant_id)
-            for plant_id in PlantId
+            plant_id.key: self._generate_reading(plant_id) for plant_id in PlantId
         }
         return json.dumps(data)
 

@@ -26,10 +26,6 @@ def configure(level: int = logging.INFO) -> None:
     uv_log.handlers.clear()
     uv_log.addHandler(handler)
 
-    # Silence verbose websocket connection open/close logs from uvicorn
-    # (we have our own more detailed logs in rpi.server.websockets)
-    logging.getLogger("uvicorn.protocols.websockets").setLevel(logging.WARNING)
-
 
 def get_logger(name: str) -> logging.Logger:
     """Get a logger under the 'rpi' namespace.

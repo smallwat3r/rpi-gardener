@@ -338,22 +338,27 @@ class Settings(BaseSettings):
             timeout_sec=self.email_timeout_sec,
         )
 
+    def _resolve_pico_serial_port(self) -> str:
+        """Resolve the Pico serial port, with auto-detection if needed."""
+        port = self.pico_serial_port
+        if self.mock_sensors:
+            return port
+        if port != "auto" and os.path.exists(port):
+            return port
+        detected = _detect_pico_port()
+        if detected:
+            return detected
+        if port == "auto":
+            raise RuntimeError(
+                "No Pico serial port detected. Set PICO_SERIAL_PORT explicitly."
+            )
+        return port  # Use configured port even if it doesn't exist yet
+
     @cached_property
     def pico(self) -> PicoSettings:
         """Get Pico settings as nested object."""
-        serial_port = self.pico_serial_port
-        # Auto-detect if set to "auto" or configured port doesn't exist
-        if serial_port == "auto" or not os.path.exists(serial_port):
-            detected = _detect_pico_port()
-            if detected:
-                serial_port = detected
-            elif serial_port == "auto":
-                raise RuntimeError(
-                    "No Pico serial port detected. Set PICO_SERIAL_PORT explicitly."
-                )
-            # else: use configured port even if it doesn't exist yet (may appear later)
         return PicoSettings(
-            serial_port=serial_port,
+            serial_port=self._resolve_pico_serial_port(),
             serial_baud=self.pico_serial_baud,
             serial_timeout_sec=self.pico_serial_timeout_sec,
         )

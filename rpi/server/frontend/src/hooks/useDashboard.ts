@@ -8,7 +8,7 @@ import type {
   PicoReading,
   Thresholds,
 } from '@/types';
-import { useWebSocket } from './useWebSocket';
+import { useSSE } from './useSSE';
 
 export function useDashboard(initialHours: number = 24) {
   const [hours, setHours] = useState(initialHours);
@@ -131,13 +131,13 @@ export function useDashboard(initialHours: number = 24) {
     };
   }, [data?.data, hours]);
 
-  useWebSocket<DHTReading>({
-    url: '/dht/latest',
+  useSSE<DHTReading>({
+    url: '/sse/dht/latest',
     onMessage: handleDhtLatest,
   });
 
-  useWebSocket<PicoReading[]>({
-    url: '/pico/latest',
+  useSSE<PicoReading[]>({
+    url: '/sse/pico/latest',
     onMessage: handlePicoLatest,
   });
 

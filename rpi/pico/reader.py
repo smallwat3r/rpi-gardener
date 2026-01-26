@@ -229,7 +229,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
             )
         self._logger.debug("Persisted %d readings", len(readings))
 
-        # Publish to event bus for real-time WebSocket updates
+        # Publish to event bus for real-time SSE updates
         events = [
             PicoReadingEvent(
                 plant_id=r.plant_id,

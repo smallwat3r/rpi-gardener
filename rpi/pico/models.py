@@ -26,28 +26,22 @@ class MoistureReading:
     def from_raw(
         cls,
         raw_id: str,
-        raw_value: float | dict[str, float | int],
+        raw_value: dict[str, float | int],
         recording_time: datetime,
     ) -> MoistureReading:
         """Create a validated reading from raw Pico data.
 
         Args:
             raw_id: Plant ID in 'plant-N' format.
-            raw_value: Either a float (legacy) or {"pct": float, "raw": int}.
+            raw_value: Dict with {"pct": float, "raw": int}.
             recording_time: When the reading was taken.
 
         Raises:
             ValidationError: If the input data is invalid.
         """
         plant_id = cls._validate_plant_id(raw_id)
-
-        # Handle both legacy (float) and new format (dict with pct/raw)
-        if isinstance(raw_value, dict):
-            moisture = cls._validate_moisture(raw_value.get("pct", 0))
-            raw = int(raw_value.get("raw", 0))
-        else:
-            moisture = cls._validate_moisture(raw_value)
-            raw = 0
+        moisture = cls._validate_moisture(raw_value.get("pct", 0))
+        raw = int(raw_value.get("raw", 0))
 
         return cls(plant_id, moisture, recording_time, raw=raw)
 

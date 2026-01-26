@@ -13,62 +13,85 @@ class TestMoistureReadingValidation:
     """Tests for MoistureReading validation."""
 
     def test_valid_plant_id(self, frozen_time):
-        reading = MoistureReading.from_raw("plant-1", 50.0, frozen_time)
+        reading = MoistureReading.from_raw(
+            "plant-1", {"pct": 50.0, "raw": 1000}, frozen_time
+        )
         assert reading.plant_id == 1
         assert reading.moisture == 50.0
+        assert reading.raw == 1000
 
     def test_valid_plant_id_multi_digit(self, frozen_time):
-        reading = MoistureReading.from_raw("plant-99", 50.0, frozen_time)
+        reading = MoistureReading.from_raw(
+            "plant-99", {"pct": 50.0, "raw": 1000}, frozen_time
+        )
         assert reading.plant_id == 99
 
     def test_invalid_plant_id_format_raises(self, frozen_time):
         with pytest.raises(
             ValidationError, match="must be in 'plant-N' format"
         ):
-            MoistureReading.from_raw("invalid", 50.0, frozen_time)
+            MoistureReading.from_raw(
+                "invalid", {"pct": 50.0, "raw": 1000}, frozen_time
+            )
         with pytest.raises(
             ValidationError, match="must be in 'plant-N' format"
         ):
-            MoistureReading.from_raw("plant_1", 50.0, frozen_time)
+            MoistureReading.from_raw(
+                "plant_1", {"pct": 50.0, "raw": 1000}, frozen_time
+            )
         with pytest.raises(
             ValidationError, match="must be in 'plant-N' format"
         ):
-            MoistureReading.from_raw("", 50.0, frozen_time)
+            MoistureReading.from_raw("", {"pct": 50.0, "raw": 1000}, frozen_time)
 
     def test_non_string_plant_id_raises(self, frozen_time):
         with pytest.raises(ValidationError, match="must be a string"):
-            MoistureReading.from_raw(123, 50.0, frozen_time)  # type: ignore[arg-type]
+            MoistureReading.from_raw(123, {"pct": 50.0, "raw": 1000}, frozen_time)  # type: ignore[arg-type]
 
     def test_valid_moisture_values(self, frozen_time):
         assert (
-            MoistureReading.from_raw("plant-1", 50.0, frozen_time).moisture
+            MoistureReading.from_raw(
+                "plant-1", {"pct": 50.0, "raw": 1000}, frozen_time
+            ).moisture
             == 50.0
         )
         assert (
-            MoistureReading.from_raw("plant-1", 0.0, frozen_time).moisture
+            MoistureReading.from_raw(
+                "plant-1", {"pct": 0.0, "raw": 0}, frozen_time
+            ).moisture
             == 0.0
         )
         assert (
-            MoistureReading.from_raw("plant-1", 100.0, frozen_time).moisture
+            MoistureReading.from_raw(
+                "plant-1", {"pct": 100.0, "raw": 2000}, frozen_time
+            ).moisture
             == 100.0
         )
         # int converted to float
         assert (
-            MoistureReading.from_raw("plant-1", 50, frozen_time).moisture
+            MoistureReading.from_raw(
+                "plant-1", {"pct": 50, "raw": 1000}, frozen_time
+            ).moisture
             == 50.0
         )
 
     def test_moisture_below_min_raises(self, frozen_time):
         with pytest.raises(ValidationError, match="must be between 0"):
-            MoistureReading.from_raw("plant-1", -1.0, frozen_time)
+            MoistureReading.from_raw(
+                "plant-1", {"pct": -1.0, "raw": 0}, frozen_time
+            )
 
     def test_moisture_above_max_raises(self, frozen_time):
         with pytest.raises(ValidationError, match="must be between 0"):
-            MoistureReading.from_raw("plant-1", 101.0, frozen_time)
+            MoistureReading.from_raw(
+                "plant-1", {"pct": 101.0, "raw": 2000}, frozen_time
+            )
 
     def test_non_number_moisture_raises(self, frozen_time):
         with pytest.raises(ValidationError, match="must be a number"):
-            MoistureReading.from_raw("plant-1", "50", frozen_time)  # type: ignore[arg-type]
+            MoistureReading.from_raw(
+                "plant-1", {"pct": "50", "raw": 1000}, frozen_time  # type: ignore[dict-item]
+            )
 
 
 class TestPicoPollingServicePoll:
@@ -117,7 +140,8 @@ class TestPicoPollingServicePoll:
         with patch("rpi.pico.reader.datetime") as mock_dt:
             mock_dt.now.return_value = frozen_time
             mock_source.readline.return_value = (
-                '{"plant-1": 50.0, "plant-2": 60.0}'
+                '{"plant-1": {"pct": 50.0, "raw": 1000}, '
+                '"plant-2": {"pct": 60.0, "raw": 1200}}'
             )
 
             result = await service.poll()
@@ -135,7 +159,9 @@ class TestPicoPollingServicePoll:
         with patch("rpi.pico.reader.datetime") as mock_dt:
             mock_dt.now.return_value = frozen_time
             mock_source.readline.return_value = (
-                '{"plant-1": 50.0, "invalid": 60.0, "plant-2": 150.0}'
+                '{"plant-1": {"pct": 50.0, "raw": 1000}, '
+                '"invalid": {"pct": 60.0, "raw": 1200}, '
+                '"plant-2": {"pct": 150.0, "raw": 3000}}'
             )
 
             result = await service.poll()
@@ -315,14 +341,18 @@ class TestSpikeDetection:
             )
 
             # First reading establishes baseline
-            mock_source.readline.return_value = '{"plant-1": 50.0}'
+            mock_source.readline.return_value = (
+                '{"plant-1": {"pct": 50.0, "raw": 1000}}'
+            )
             result = await service.poll()
             assert len(result) == 1
             assert result[0].moisture == 50.0
             assert result[0].is_anomaly is False
 
             # Spike to 100% should be marked but still returned
-            mock_source.readline.return_value = '{"plant-1": 100.0}'
+            mock_source.readline.return_value = (
+                '{"plant-1": {"pct": 100.0, "raw": 2000}}'
+            )
             result = await service.poll()
             assert len(result) == 1
             assert result[0].moisture == 100.0
@@ -342,13 +372,17 @@ class TestSpikeDetection:
             )
 
             # Dry soil
-            mock_source.readline.return_value = '{"plant-1": 25.0}'
+            mock_source.readline.return_value = (
+                '{"plant-1": {"pct": 25.0, "raw": 500}}'
+            )
             result = await service.poll()
             assert result[0].moisture == 25.0
             assert result[0].is_anomaly is False
 
             # After watering - large jump to 80% should not be a spike
-            mock_source.readline.return_value = '{"plant-1": 80.0}'
+            mock_source.readline.return_value = (
+                '{"plant-1": {"pct": 80.0, "raw": 1600}}'
+            )
             result = await service.poll()
             assert len(result) == 1
             assert result[0].moisture == 80.0
@@ -365,12 +399,16 @@ class TestSpikeDetection:
             )
 
             # Already high moisture
-            mock_source.readline.return_value = '{"plant-1": 85.0}'
+            mock_source.readline.return_value = (
+                '{"plant-1": {"pct": 85.0, "raw": 1700}}'
+            )
             result = await service.poll()
             assert result[0].moisture == 85.0
 
             # Rise to 100% (within 20% threshold)
-            mock_source.readline.return_value = '{"plant-1": 100.0}'
+            mock_source.readline.return_value = (
+                '{"plant-1": {"pct": 100.0, "raw": 2000}}'
+            )
             result = await service.poll()
             assert len(result) == 1
             assert result[0].moisture == 100.0
@@ -386,7 +424,9 @@ class TestSpikeDetection:
             )
 
             # Even 100% as first reading should be accepted
-            mock_source.readline.return_value = '{"plant-1": 100.0}'
+            mock_source.readline.return_value = (
+                '{"plant-1": {"pct": 100.0, "raw": 2000}}'
+            )
             result = await service.poll()
             assert len(result) == 1
             assert result[0].moisture == 100.0

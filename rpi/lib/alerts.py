@@ -244,7 +244,18 @@ class AlertTracker:
         self._alert_counts = _AlertCountCache()
 
     def _get_lock(self) -> asyncio.Lock:
-        """Get or create the async lock (lazy init for event loop compatibility)."""
+        """Get or create the async lock.
+
+        The lock is lazily initialized on first use rather than in __init__
+        because asyncio.Lock() binds to the current event loop at creation time.
+        Since AlertTracker instances may be created before the event loop is
+        running (e.g., at module import or in test setup), creating the lock
+        eagerly would either fail or bind to a different loop than the one used
+        at runtime.
+
+        Lazy initialization ensures the lock is created within the correct
+        event loop context when first accessed by an async method.
+        """
         if self._lock is None:
             self._lock = asyncio.Lock()
         return self._lock

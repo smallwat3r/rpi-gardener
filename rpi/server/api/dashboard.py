@@ -7,14 +7,14 @@ from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from rpi.lib.db import (
+from rpi.lib.db import get_db
+from rpi.lib.db.queries import (
     _DHT_CHART_SQL,
     _DHT_LATEST_SQL,
     _DHT_STATS_SQL,
     _PICO_CHART_SQL,
     _PICO_LATEST_SQL,
     _calculate_bucket_size,
-    get_db,
 )
 from rpi.logging import get_logger
 from rpi.server.validators import HoursQuery

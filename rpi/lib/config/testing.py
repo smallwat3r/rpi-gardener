@@ -5,8 +5,7 @@ be imported in production code.
 """
 
 import rpi.lib.config.settings as _settings_module
-
-from .settings import Settings, _load_settings
+from rpi.lib.config.settings import Settings, _load_settings
 
 
 def set_settings(settings: Settings | None) -> None:

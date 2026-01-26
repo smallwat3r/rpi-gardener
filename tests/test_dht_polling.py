@@ -14,14 +14,6 @@ class TestDHTPollingServiceAudit:
     """Tests for DHT22 sensor boundary validation during audit."""
 
     @pytest.fixture
-    def mock_publisher(self):
-        publisher = MagicMock()
-        publisher.connect = MagicMock()
-        publisher.publish = MagicMock()
-        publisher.close = MagicMock()
-        return publisher
-
-    @pytest.fixture
     def service(self, mock_sensor, mock_publisher, alert_tracker):
         """Create a DHTPollingService instance for testing."""
         return DHTPollingService(mock_sensor, mock_publisher, alert_tracker)
@@ -116,14 +108,6 @@ class TestDHTPollingServicePoll:
     """Tests for polling the DHT22 sensor."""
 
     @pytest.fixture
-    def mock_publisher(self):
-        publisher = MagicMock()
-        publisher.connect = MagicMock()
-        publisher.publish = MagicMock()
-        publisher.close = MagicMock()
-        return publisher
-
-    @pytest.fixture
     def service(self, mock_sensor, mock_publisher, alert_tracker):
         """Create a DHTPollingService instance for testing."""
         return DHTPollingService(mock_sensor, mock_publisher, alert_tracker)
@@ -148,14 +132,6 @@ class TestDHTPollingServicePoll:
 
 class TestDHTPollingServicePersist:
     """Tests for persisting readings to the database."""
-
-    @pytest.fixture
-    def mock_publisher(self):
-        publisher = MagicMock()
-        publisher.connect = MagicMock()
-        publisher.publish = MagicMock()
-        publisher.close = MagicMock()
-        return publisher
 
     @pytest.fixture
     def service(self, mock_sensor, mock_publisher, alert_tracker):
@@ -188,14 +164,6 @@ class TestDHTPollingServicePersist:
 
 class TestDHTPollingServiceErrorHandling:
     """Tests for error handling in the polling service."""
-
-    @pytest.fixture
-    def mock_publisher(self):
-        publisher = MagicMock()
-        publisher.connect = MagicMock()
-        publisher.publish = MagicMock()
-        publisher.close = MagicMock()
-        return publisher
 
     @pytest.fixture
     def service(self, mock_sensor, mock_publisher, alert_tracker):

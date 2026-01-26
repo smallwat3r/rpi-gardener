@@ -3,7 +3,7 @@
 import logging
 import sys
 from datetime import UTC, datetime
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -69,7 +69,7 @@ def alert_tracker():
 @pytest.fixture(autouse=True)
 def reset_settings():
     """Reset global settings after each test to avoid cross-test pollution."""
-    from rpi.lib.db import _invalidate_settings_cache
+    from rpi.lib.db.settings import _invalidate_settings_cache
 
     _invalidate_settings_cache()
     yield
@@ -178,3 +178,22 @@ async def pico_audit_events(alert_tracker):
 
     await alert_tracker.register_callback(Namespace.PICO, capture_event)
     return events
+
+
+@pytest.fixture
+def mock_publisher():
+    """Create a mock event publisher for polling services."""
+    publisher = MagicMock()
+    publisher.connect = MagicMock()
+    publisher.publish = MagicMock()
+    publisher.close = MagicMock()
+    return publisher
+
+
+@pytest.fixture
+def mock_source():
+    """Create a mock data source for Pico polling service."""
+    source = MagicMock()
+    source.readline = AsyncMock()
+    source.close = MagicMock()
+    return source

@@ -44,7 +44,7 @@ class TestConnectionPool:
         mock_db._connection = None
         mock_db.connect = AsyncMock()
 
-        with patch("rpi.lib.db.Database", return_value=mock_db):
+        with patch("rpi.lib.db.connection.Database", return_value=mock_db):
             async with pool.acquire() as conn:
                 assert conn is mock_db
                 mock_db.connect.assert_called_once()
@@ -66,7 +66,7 @@ class TestConnectionPool:
         mock_db._connection = None
         mock_db.connect = AsyncMock()
 
-        with patch("rpi.lib.db.Database", return_value=mock_db):
+        with patch("rpi.lib.db.connection.Database", return_value=mock_db):
             async with pool.acquire():
                 assert len(pool._connections) == 0
 
@@ -149,7 +149,7 @@ class TestGetDb:
     @pytest.fixture
     def db_module(self):
         """Provide db module with automatic state restoration."""
-        import rpi.lib.db as db
+        import rpi.lib.db.connection as db
 
         original_persistent = db._persistent
         original_pool = db._pool
@@ -177,7 +177,7 @@ class TestGetDb:
         db_module._persistent = None
         db_module._pool = ConnectionPool(max_size=2)
 
-        with patch("rpi.lib.db.Database", return_value=mock_db):
+        with patch("rpi.lib.db.connection.Database", return_value=mock_db):
             async with get_db() as conn:
                 assert conn is mock_db
 
@@ -192,7 +192,7 @@ class TestGetDb:
         db_module._persistent = None
         db_module._pool = ConnectionPool(max_size=2)
 
-        with patch("rpi.lib.db.Database", MockDatabase):
+        with patch("rpi.lib.db.connection.Database", MockDatabase):
 
             async def worker() -> None:
                 async with get_db():

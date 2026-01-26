@@ -7,13 +7,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from rpi.lib.config import SettingsKey
-from rpi.lib.db import (
+from rpi.lib.db import get_all_settings, set_settings_batch
+from rpi.lib.db.settings import (
     _get_settings_version,
     _increment_settings_version,
     _settings_cache,
     _SettingsCache,
-    get_all_settings,
-    set_settings_batch,
 )
 
 
@@ -155,8 +154,8 @@ class TestGetAllSettingsCache:
         _settings_cache.set({"cached_key": "cached_value"}, version=1)
 
         with (
-            patch("rpi.lib.db._get_settings_version", return_value=1),
-            patch("rpi.lib.db.get_db") as mock_get_db,
+            patch("rpi.lib.db.settings._get_settings_version", return_value=1),
+            patch("rpi.lib.db.settings.get_db") as mock_get_db,
         ):
             result = await get_all_settings()
 
@@ -178,8 +177,8 @@ class TestGetAllSettingsCache:
             yield mock_db
 
         with (
-            patch("rpi.lib.db._get_settings_version", return_value=2),
-            patch("rpi.lib.db.get_db", mock_get_db),
+            patch("rpi.lib.db.settings._get_settings_version", return_value=2),
+            patch("rpi.lib.db.settings.get_db", mock_get_db),
         ):
             result = await get_all_settings()
 
@@ -217,9 +216,9 @@ class TestSetSettingsBatchCache:
             yield mock_db
 
         with (
-            patch("rpi.lib.db.get_db", mock_get_db),
+            patch("rpi.lib.db.settings.get_db", mock_get_db),
             patch(
-                "rpi.lib.db._increment_settings_version", return_value=5
+                "rpi.lib.db.settings._increment_settings_version", return_value=5
             ) as mock_incr,
         ):
             await set_settings_batch(
@@ -252,8 +251,8 @@ class TestSetSettingsBatchCache:
             yield mock_db
 
         with (
-            patch("rpi.lib.db.get_db", mock_get_db),
-            patch("rpi.lib.db._increment_settings_version", return_value=10),
+            patch("rpi.lib.db.settings.get_db", mock_get_db),
+            patch("rpi.lib.db.settings._increment_settings_version", return_value=10),
         ):
             result = await set_settings_batch(
                 cast(dict[SettingsKey, str], {"key1": "value1"})

@@ -17,8 +17,8 @@ from pydantic import (
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .constants import HYSTERESIS_MOISTURE
-from .enums import MeasureName, NotificationBackend
+from rpi.lib.config.constants import HYSTERESIS_MOISTURE
+from rpi.lib.config.enums import MeasureName, NotificationBackend
 
 # Type alias for raw plant ID values (used when parsing from Pico data)
 type PlantIdValue = int

@@ -14,12 +14,11 @@ from rpi.lib.config import get_settings
 from rpi.lib.db import close_db, get_db
 from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.logging import configure, get_logger
-
-from .api.admin import get_admin_settings, update_admin_settings
-from .api.dashboard import get_dashboard
-from .api.health import health_check
-from .api.thresholds import get_thresholds
-from .websockets import (
+from rpi.server.api.admin import get_admin_settings, update_admin_settings
+from rpi.server.api.dashboard import get_dashboard
+from rpi.server.api.health import health_check
+from rpi.server.api.thresholds import get_thresholds
+from rpi.server.websockets import (
     connection_manager,
     ws_dht_latest,
     ws_humidifier_state,

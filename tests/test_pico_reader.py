@@ -1,6 +1,6 @@
 """Tests for the Pico serial reader module."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -73,21 +73,6 @@ class TestMoistureReadingValidation:
 
 class TestPicoPollingServicePoll:
     """Tests for PicoPollingService poll method."""
-
-    @pytest.fixture
-    def mock_source(self):
-        source = MagicMock()
-        source.readline = AsyncMock()
-        source.close = MagicMock()
-        return source
-
-    @pytest.fixture
-    def mock_publisher(self):
-        publisher = MagicMock()
-        publisher.connect = MagicMock()
-        publisher.publish = MagicMock()
-        publisher.close = MagicMock()
-        return publisher
 
     @pytest.fixture
     def service(self, mock_source, mock_publisher, alert_tracker):
@@ -163,21 +148,6 @@ class TestPicoPollingServicePoll:
 
 class TestPicoPollingServiceAudit:
     """Tests for moisture alert logic."""
-
-    @pytest.fixture
-    def mock_source(self):
-        source = MagicMock()
-        source.readline = AsyncMock()
-        source.close = MagicMock()
-        return source
-
-    @pytest.fixture
-    def mock_publisher(self):
-        publisher = MagicMock()
-        publisher.connect = MagicMock()
-        publisher.publish = MagicMock()
-        publisher.close = MagicMock()
-        return publisher
 
     @pytest.fixture
     def service(self, mock_source, mock_publisher, alert_tracker):
@@ -327,21 +297,6 @@ class TestSpikeDetection:
     This allows data visibility while suppressing alerts for suspected sensor
     errors. Large increases below 100% are normal (watering recovery).
     """
-
-    @pytest.fixture
-    def mock_source(self):
-        source = MagicMock()
-        source.readline = AsyncMock()
-        source.close = MagicMock()
-        return source
-
-    @pytest.fixture
-    def mock_publisher(self):
-        publisher = MagicMock()
-        publisher.connect = MagicMock()
-        publisher.publish = MagicMock()
-        publisher.close = MagicMock()
-        return publisher
 
     @pytest.fixture
     def service(self, mock_source, mock_publisher, alert_tracker):

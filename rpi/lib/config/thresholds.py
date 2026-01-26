@@ -1,8 +1,16 @@
 """Threshold rules and DB-backed settings fetching."""
 
-from .constants import HYSTERESIS_HUMIDITY, HYSTERESIS_TEMPERATURE
-from .enums import MeasureName, NotificationBackend, SettingsKey, ThresholdType
-from .settings import (
+from rpi.lib.config.constants import (
+    HYSTERESIS_HUMIDITY,
+    HYSTERESIS_TEMPERATURE,
+)
+from rpi.lib.config.enums import (
+    MeasureName,
+    NotificationBackend,
+    SettingsKey,
+    ThresholdType,
+)
+from rpi.lib.config.settings import (
     NotificationSettings,
     ThresholdSettings,
     get_settings,

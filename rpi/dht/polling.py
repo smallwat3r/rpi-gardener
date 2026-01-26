@@ -26,10 +26,8 @@ class DHTSensor(Protocol):
 
     @property
     def temperature(self) -> float: ...
-
     @property
     def humidity(self) -> float: ...
-
     def exit(self) -> None: ...
 
 

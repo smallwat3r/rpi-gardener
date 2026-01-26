@@ -8,7 +8,7 @@ import asyncio
 from contextlib import suppress
 
 from rpi.lcd.display import DisplayProtocol
-from rpi.lib.alerts import AlertEvent, Namespace
+from rpi.lib.alerts import AlertEvent, Namespace, safe_parse_alert_event
 from rpi.lib.config import MeasureName, get_settings
 from rpi.lib.eventbus import EventSubscriber, Topic
 from rpi.lib.service import run_service
@@ -117,11 +117,8 @@ async def run() -> None:
             async with EventSubscriber(topics=[Topic.ALERT]) as subscriber:
                 logger.info("LCD service started")
                 async for _topic, data in subscriber.receive():
-                    try:
-                        event = AlertEvent.from_dict(data)
+                    if event := safe_parse_alert_event(data):
                         manager.handle_event(event)
-                    except (KeyError, ValueError, TypeError):
-                        logger.exception("Failed to parse alert event")
         finally:
             stop_event.set()
             scroll_task.cancel()

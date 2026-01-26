@@ -17,6 +17,7 @@ from pydantic import (
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .constants import HYSTERESIS_MOISTURE
 from .enums import MeasureName, NotificationBackend
 
 # Type alias for raw plant ID values (used when parsing from Pico data)
@@ -24,12 +25,6 @@ type PlantIdValue = int
 
 # Patterns
 _PICO_PLANT_ID_PATTERN = re.compile(r"^plant-(\d+)$")
-
-# Hysteresis offsets for alert recovery (prevents flapping)
-# Alert triggers at threshold, clears at threshold +/- hysteresis
-_HYSTERESIS_TEMPERATURE = 1  # °C
-_HYSTERESIS_HUMIDITY = 3  # %
-_HYSTERESIS_MOISTURE = 3  # %
 
 # Spike rejection: max allowed jump to 100% between consecutive readings
 # Jumps to 100% larger than this are rejected as sensor errors
@@ -132,7 +127,7 @@ class ThresholdSettings(BaseModel):
     @property
     def moisture_hysteresis(self) -> int:
         """Hysteresis offset for moisture alerts."""
-        return _HYSTERESIS_MOISTURE
+        return HYSTERESIS_MOISTURE
 
     def get_moisture_threshold(self, plant_id: int) -> int:
         """Get moisture threshold for a plant, falling back to default."""
@@ -466,8 +461,8 @@ class Settings(BaseSettings):
         return self
 
 
-# Test-only: allows tests to inject custom Settings without modifying environment
-# variables or clearing the lru_cache. Set via conftest.set_settings().
+# Settings override for testing - allows injecting custom Settings without
+# modifying environment variables or clearing the lru_cache.
 _settings_override: Settings | None = None
 
 
@@ -478,7 +473,12 @@ def _load_settings() -> Settings:
 
 
 def get_settings() -> Settings:
-    """Get the global settings instance."""
+    """Get the global settings instance.
+
+    Returns the test override if set, otherwise loads from environment
+    variables (cached after first load). For testing, use set_settings()
+    from rpi.lib.config.testing to override.
+    """
     if _settings_override is not None:
         return _settings_override
     return _load_settings()

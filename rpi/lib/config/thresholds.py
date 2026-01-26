@@ -1,15 +1,12 @@
 """Threshold rules and DB-backed settings fetching."""
 
+from .constants import HYSTERESIS_HUMIDITY, HYSTERESIS_TEMPERATURE
 from .enums import MeasureName, NotificationBackend, SettingsKey, ThresholdType
 from .settings import (
     NotificationSettings,
     ThresholdSettings,
     get_settings,
 )
-
-# Hysteresis offsets (duplicated here to avoid circular imports)
-_HYSTERESIS_TEMPERATURE = 1  # °C
-_HYSTERESIS_HUMIDITY = 3  # %
 
 type _ThresholdRule = tuple[ThresholdType, int, float]
 """Threshold rule: (type, value, hysteresis)."""
@@ -30,24 +27,24 @@ async def get_threshold_rules_async() -> dict[MeasureName, tuple[_ThresholdRule,
             (
                 ThresholdType.MIN,
                 thresholds.min_temperature,
-                _HYSTERESIS_TEMPERATURE,
+                HYSTERESIS_TEMPERATURE,
             ),
             (
                 ThresholdType.MAX,
                 thresholds.max_temperature,
-                _HYSTERESIS_TEMPERATURE,
+                HYSTERESIS_TEMPERATURE,
             ),
         ),
         MeasureName.HUMIDITY: (
             (
                 ThresholdType.MIN,
                 thresholds.min_humidity,
-                _HYSTERESIS_HUMIDITY,
+                HYSTERESIS_HUMIDITY,
             ),
             (
                 ThresholdType.MAX,
                 thresholds.max_humidity,
-                _HYSTERESIS_HUMIDITY,
+                HYSTERESIS_HUMIDITY,
             ),
         ),
     }

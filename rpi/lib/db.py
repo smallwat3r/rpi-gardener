@@ -506,7 +506,17 @@ async def set_settings_batch(
 
     Returns the full settings dict after update. Increments the Redis version
     to invalidate caches in other processes.
+
+    The version is incremented BEFORE the DB transaction to ensure cache
+    invalidation even if the process crashes after DB commit. This guarantees
+    other processes will refetch from the database rather than serving stale
+    cached data.
     """
+    # Increment version FIRST to invalidate caches in other processes.
+    # This ensures that even if we crash after DB commit but before updating
+    # local cache, other processes will see the version change and refetch.
+    new_version = await _increment_settings_version()
+
     async with get_db() as db, db.transaction():
         await db.executemany(
             """INSERT INTO settings (key, value, updated_at)
@@ -522,8 +532,6 @@ async def set_settings_batch(
             row["key"]: row["value"] for row in rows
         }
 
-    # Increment version to invalidate caches in other processes
-    new_version = await _increment_settings_version()
     _settings_cache.set(cast(dict[str, str], all_settings), new_version)
     return all_settings
 

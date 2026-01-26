@@ -7,9 +7,12 @@ the poll → audit → persist pattern with configurable intervals.
 import asyncio
 import signal
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from types import FrameType
 
 from rpi.lib.config import get_settings
+
+type _SignalHandler = Callable[[int, FrameType | None], None] | int | None
 from rpi.logging import get_logger
 
 logger = get_logger("lib.polling")
@@ -40,6 +43,7 @@ class PollingService[T](ABC):
         self.frequency_sec = frequency_sec or polling_cfg.frequency_sec
         self._shutdown_requested = False
         self._logger = get_logger(f"polling.{name}")
+        self._previous_handlers: dict[signal.Signals, _SignalHandler] = {}
 
     @abstractmethod
     async def initialize(self) -> None:
@@ -101,8 +105,15 @@ class PollingService[T](ABC):
 
     def _setup_signal_handlers(self) -> None:
         """Register signal handlers for graceful shutdown."""
-        signal.signal(signal.SIGTERM, self._handle_shutdown)
-        signal.signal(signal.SIGINT, self._handle_shutdown)
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            self._previous_handlers[sig] = signal.signal(sig, self._handle_shutdown)
+
+    def _restore_signal_handlers(self) -> None:
+        """Restore previous signal handlers."""
+        for sig, handler in self._previous_handlers.items():
+            if handler is not None:
+                signal.signal(sig, handler)
+        self._previous_handlers.clear()
 
     async def _poll_cycle(self) -> None:
         """Execute a single poll → audit → persist cycle."""
@@ -145,6 +156,10 @@ class PollingService[T](ABC):
         2. Calls initialize()
         3. Enters the polling loop (poll → audit → persist)
         4. Calls cleanup() on exit
+        5. Restores previous signal handlers
         """
         self._setup_signal_handlers()
-        asyncio.run(self._run_loop())
+        try:
+            asyncio.run(self._run_loop())
+        finally:
+            self._restore_signal_handlers()

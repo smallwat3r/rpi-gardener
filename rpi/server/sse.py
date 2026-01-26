@@ -33,14 +33,16 @@ async def _subscribe_to_topic(topic: Topic) -> AsyncIterator[dict[str, Any]]:
     try:
         client = aioredis.from_url(redis_url)
         pubsub = client.pubsub()
-        await pubsub.subscribe(topic)
-        _logger.debug("Subscribed to topic: %s", topic)
+        await pubsub.subscribe(str(topic))
+        _logger.info("Subscribed to Redis topic: %s", topic)
 
         async for message in pubsub.listen():
+            _logger.info("Redis message type: %s on %s", message["type"], topic)
             if message["type"] != "message":
                 continue
             try:
                 data = json.loads(message["data"].decode())
+                _logger.info("Yielding SSE event on %s", topic)
                 yield data
             except (ValueError, json.JSONDecodeError) as e:
                 _logger.warning("Invalid message on %s: %s", topic, e)
@@ -62,7 +64,11 @@ def _sse_response(generator: AsyncIterator[str]) -> StreamingResponse:
     return StreamingResponse(
         generator,
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
     )
 
 

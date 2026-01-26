@@ -32,6 +32,11 @@ class PlantId(IntEnum):
     PLANT_2 = 2
     PLANT_3 = 3
 
+    @property
+    def key(self) -> str:
+        """Return the Pico data key format (e.g., 'plant-1')."""
+        return f"plant-{self.value}"
+
 
 class SettingsKey(StrEnum):
     """Valid DB settings keys."""

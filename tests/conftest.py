@@ -24,6 +24,8 @@ from rpi.lib.alerts import AlertEvent, AlertTracker, Namespace
 from rpi.lib.config import Settings, Unit
 from rpi.lib.config.testing import set_settings
 
+__all__ = ["set_settings"]
+
 
 def make_alert_event(
     sensor_name: str | int = "temperature",

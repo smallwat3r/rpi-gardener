@@ -102,8 +102,13 @@ class ConnectionManager:
         return sent_count
 
 
-# Global connection manager
-connection_manager = ConnectionManager()
+def get_connection_manager(app: Any) -> ConnectionManager:
+    """Get the connection manager from app state.
+
+    The connection manager is initialized in create_app() and stored on app.state
+    for better testability and lifecycle management.
+    """
+    return app.state.connection_manager  # type: ignore[no-any-return]
 
 
 async def _send_heartbeat(websocket: WebSocket, client_id: int) -> None:
@@ -129,7 +134,8 @@ async def _maintain_connection(
     Sends initial data on connect, then keeps the connection alive with
     heartbeats. Real-time updates arrive via broadcast from the event bus.
     """
-    client_id = await connection_manager.connect(websocket, endpoint)
+    manager = get_connection_manager(websocket.app)
+    client_id = await manager.connect(websocket, endpoint)
     heartbeat_task: asyncio.Task[None] | None = None
 
     try:
@@ -152,7 +158,7 @@ async def _maintain_connection(
             heartbeat_task.cancel()
             with suppress(asyncio.CancelledError, WebSocketDisconnect):
                 await heartbeat_task
-        connection_manager.disconnect(websocket, endpoint)
+        manager.disconnect(websocket, endpoint)
         with suppress(Exception):
             await websocket.close()
 

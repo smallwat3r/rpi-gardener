@@ -23,6 +23,7 @@ from rpi.lib.config import (
     get_effective_notifications,
     get_settings,
 )
+from rpi.lib.exceptions import PartialNotificationError
 from rpi.lib.retry import with_retry
 from rpi.logging import get_logger
 
@@ -298,11 +299,17 @@ class CompositeNotifier(AbstractNotifier):
 
     @override
     async def send(self, event: AlertEvent) -> None:
-        """Send notification to all configured backends concurrently."""
+        """Send notification to all configured backends concurrently.
+
+        Raises:
+            PartialNotificationError: If one or more backends fail. Contains
+                a dict mapping backend names to their exceptions.
+        """
         results = await asyncio.gather(
             *(notifier.send(event) for notifier in self._notifiers),
             return_exceptions=True,
         )
+        failures: dict[str, Exception] = {}
         for notifier, result in zip(self._notifiers, results, strict=True):
             if isinstance(result, Exception):
                 backend_name = notifier.__class__.__name__
@@ -311,6 +318,10 @@ class CompositeNotifier(AbstractNotifier):
                     backend_name,
                     result,
                 )
+                failures[backend_name] = result
+
+        if failures:
+            raise PartialNotificationError(failures)
 
 
 class NoOpNotifier(AbstractNotifier):

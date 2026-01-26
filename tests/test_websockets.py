@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
-from rpi.server.websockets import ConnectionManager, connection_manager
+from rpi.server.websockets import ConnectionManager
 
 
 class TestConnectionManager:
@@ -223,11 +223,17 @@ class TestMaintainConnection:
 
     @pytest.fixture
     def mock_websocket(self):
-        """Create a mock WebSocket for testing."""
+        """Create a mock WebSocket for testing with app.state.connection_manager."""
         ws = AsyncMock()
         ws.accept = AsyncMock()
         ws.send_json = AsyncMock()
         ws.close = AsyncMock()
+        # Set up app.state.connection_manager
+        mock_manager = MagicMock()
+        mock_manager.connect = AsyncMock(return_value=123)
+        mock_manager.disconnect = MagicMock()
+        ws.app = MagicMock()
+        ws.app.state.connection_manager = mock_manager
         return ws
 
     @pytest.mark.asyncio
@@ -243,13 +249,7 @@ class TestMaintainConnection:
             WebSocketDisconnect(),  # Heartbeat fails (disconnect)
         ]
 
-        with (
-            patch("rpi.server.websockets.connection_manager") as mock_manager,
-            patch("asyncio.sleep", new_callable=AsyncMock),
-        ):
-            mock_manager.connect = AsyncMock(return_value=123)
-            mock_manager.disconnect = MagicMock()
-
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             await _maintain_connection(mock_websocket, "/test", initial_data)
 
             # Verify initial data was sent
@@ -262,17 +262,11 @@ class TestMaintainConnection:
 
         mock_websocket.send_json.side_effect = WebSocketDisconnect()
 
-        with (
-            patch("rpi.server.websockets.connection_manager") as mock_manager,
-            patch("asyncio.sleep", new_callable=AsyncMock),
-        ):
-            mock_manager.connect = AsyncMock(return_value=123)
-            mock_manager.disconnect = MagicMock()
-
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             # Should not raise
             await _maintain_connection(mock_websocket, "/test")
 
-            mock_manager.disconnect.assert_called_once()
+            mock_websocket.app.state.connection_manager.disconnect.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_cleans_up_on_disconnect(self, mock_websocket):
@@ -281,16 +275,10 @@ class TestMaintainConnection:
 
         mock_websocket.send_json.side_effect = WebSocketDisconnect()
 
-        with (
-            patch("rpi.server.websockets.connection_manager") as mock_manager,
-            patch("asyncio.sleep", new_callable=AsyncMock),
-        ):
-            mock_manager.connect = AsyncMock(return_value=123)
-            mock_manager.disconnect = MagicMock()
-
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             await _maintain_connection(mock_websocket, "/test")
 
-            mock_manager.disconnect.assert_called_once_with(
+            mock_websocket.app.state.connection_manager.disconnect.assert_called_once_with(
                 mock_websocket, "/test"
             )
             mock_websocket.close.assert_called_once()
@@ -300,20 +288,16 @@ class TestMaintainConnection:
         """Should re-raise CancelledError for proper shutdown."""
         from rpi.server.websockets import _maintain_connection
 
-        with patch("rpi.server.websockets.connection_manager") as mock_manager:
-            mock_manager.connect = AsyncMock(return_value=123)
-            mock_manager.disconnect = MagicMock()
+        # Simulate cancellation during initial data send
+        mock_websocket.send_json.side_effect = asyncio.CancelledError()
 
-            # Simulate cancellation during initial data send
-            mock_websocket.send_json.side_effect = asyncio.CancelledError()
+        with pytest.raises(asyncio.CancelledError):
+            await _maintain_connection(
+                mock_websocket, "/test", {"data": "initial"}
+            )
 
-            with pytest.raises(asyncio.CancelledError):
-                await _maintain_connection(
-                    mock_websocket, "/test", {"data": "initial"}
-                )
-
-            # Should still clean up
-            mock_manager.disconnect.assert_called_once()
+        # Should still clean up
+        mock_websocket.app.state.connection_manager.disconnect.assert_called_once()
 
 
 class TestHeartbeat:
@@ -364,9 +348,15 @@ class TestHeartbeat:
 
 
 class TestGlobalConnectionManager:
-    """Tests for the global connection_manager instance."""
+    """Tests for the get_connection_manager function."""
 
     def test_global_manager_exists(self):
-        """Global connection_manager should exist."""
-        assert connection_manager is not None
-        assert isinstance(connection_manager, ConnectionManager)
+        """get_connection_manager should return the manager from app.state."""
+        from rpi.server.websockets import get_connection_manager
+
+        mock_app = MagicMock()
+        mock_app.state.connection_manager = ConnectionManager()
+
+        manager = get_connection_manager(mock_app)
+        assert manager is not None
+        assert isinstance(manager, ConnectionManager)

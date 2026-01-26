@@ -40,6 +40,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
+from functools import cache
 from pathlib import Path
 from typing import Any, cast
 
@@ -56,18 +57,20 @@ _logger = get_logger("lib.db")
 _SQL_DIR = Path(__file__).resolve().parent.parent / "sql"
 
 
+@cache
 def _load_template(name: str) -> str:
-    """Load a SQL template file."""
-    return (_SQL_DIR / name).read_text()
+    """Load and cache a SQL template file.
 
+    Templates are lazy-loaded on first access and cached for subsequent calls.
 
-# Pre-load SQL templates
-_INIT_READING_SQL = _load_template("init_reading_table.sql")
-_IDX_READING_SQL = _load_template("idx_reading.sql")
-_INIT_PICO_SQL = _load_template("init_pico_reading_table.sql")
-_IDX_PICO_SQL = _load_template("idx_pico_reading.sql")
-_INIT_SETTINGS_SQL = _load_template("init_settings_table.sql")
-_INIT_ADMIN_SQL = _load_template("init_admin_table.sql")
+    Raises:
+        FileNotFoundError: If the template file does not exist, with a message
+            indicating the expected location.
+    """
+    path = _SQL_DIR / name
+    if not path.exists():
+        raise FileNotFoundError(f"SQL template not found: {path}")
+    return path.read_text()
 
 
 def _dict_factory(
@@ -296,12 +299,12 @@ async def init_db() -> None:
 
     await _persistent.execute_pragma("PRAGMA journal_mode=WAL")
     await _persistent.execute_pragma("PRAGMA auto_vacuum=INCREMENTAL")
-    await _persistent.execute(_INIT_READING_SQL)
-    await _persistent.executescript(_IDX_READING_SQL)
-    await _persistent.execute(_INIT_PICO_SQL)
-    await _persistent.executescript(_IDX_PICO_SQL)
-    await _persistent.execute(_INIT_SETTINGS_SQL)
-    await _persistent.execute(_INIT_ADMIN_SQL)
+    await _persistent.execute(_load_template("init_reading_table.sql"))
+    await _persistent.executescript(_load_template("idx_reading.sql"))
+    await _persistent.execute(_load_template("init_pico_reading_table.sql"))
+    await _persistent.executescript(_load_template("idx_pico_reading.sql"))
+    await _persistent.execute(_load_template("init_settings_table.sql"))
+    await _persistent.execute(_load_template("init_admin_table.sql"))
     await _init_admin_password()
 
 

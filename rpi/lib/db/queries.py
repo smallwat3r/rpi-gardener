@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from functools import cache
 from pathlib import Path
 from typing import cast
 
@@ -13,17 +14,20 @@ from rpi.lib.db.types import DHTReading, PicoReading
 _SQL_DIR = Path(__file__).resolve().parent.parent / "sql"
 
 
+@cache
 def _load_template(name: str) -> str:
-    """Load a SQL template file."""
-    return (_SQL_DIR / name).read_text()
+    """Load and cache a SQL template file.
 
+    Templates are lazy-loaded on first access and cached for subsequent calls.
 
-# Pre-load SQL templates for queries
-_DHT_CHART_SQL = _load_template("dht_chart.sql")
-_DHT_LATEST_SQL = _load_template("dht_latest_recording.sql")
-_DHT_STATS_SQL = _load_template("dht_stats.sql")
-_PICO_CHART_SQL = _load_template("pico_chart.sql")
-_PICO_LATEST_SQL = _load_template("pico_latest_recording.sql")
+    Raises:
+        FileNotFoundError: If the template file does not exist, with a message
+            indicating the expected location.
+    """
+    path = _SQL_DIR / name
+    if not path.exists():
+        raise FileNotFoundError(f"SQL template not found: {path}")
+    return path.read_text()
 
 
 def _calculate_bucket_size(
@@ -42,12 +46,12 @@ def _calculate_bucket_size(
 async def get_latest_dht_data() -> DHTReading | None:
     """Return the latest DHT22 sensor data."""
     async with get_db() as db:
-        row = await db.fetchone(_DHT_LATEST_SQL)
+        row = await db.fetchone(_load_template("dht_latest_recording.sql"))
         return cast(DHTReading | None, row)
 
 
 async def get_latest_pico_data() -> list[PicoReading]:
     """Return the latest Pico sensor data for each plant."""
     async with get_db() as db:
-        rows = await db.fetchall(_PICO_LATEST_SQL)
+        rows = await db.fetchall(_load_template("pico_latest_recording.sql"))
         return cast(list[PicoReading], rows)

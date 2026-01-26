@@ -8,14 +8,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from rpi.lib.db import get_db
-from rpi.lib.db.queries import (
-    _DHT_CHART_SQL,
-    _DHT_LATEST_SQL,
-    _DHT_STATS_SQL,
-    _PICO_CHART_SQL,
-    _PICO_LATEST_SQL,
-    _calculate_bucket_size,
-)
+from rpi.lib.db.queries import _calculate_bucket_size, _load_template
 from rpi.logging import get_logger
 from rpi.server.validators import HoursQuery
 
@@ -40,13 +33,21 @@ async def get_dashboard(request: Request) -> JSONResponse:
 
     try:
         async with get_db() as db:
-            dht_data = await db.fetchall(_DHT_CHART_SQL, params)
-            stats = await db.fetchone(
-                _DHT_STATS_SQL, {"from_epoch": from_epoch}
+            dht_data = await db.fetchall(
+                _load_template("dht_chart.sql"), params
             )
-            latest = await db.fetchone(_DHT_LATEST_SQL)
-            pico_rows = await db.fetchall(_PICO_CHART_SQL, params)
-            pico_latest = await db.fetchall(_PICO_LATEST_SQL)
+            stats = await db.fetchone(
+                _load_template("dht_stats.sql"), {"from_epoch": from_epoch}
+            )
+            latest = await db.fetchone(
+                _load_template("dht_latest_recording.sql")
+            )
+            pico_rows = await db.fetchall(
+                _load_template("pico_chart.sql"), params
+            )
+            pico_latest = await db.fetchall(
+                _load_template("pico_latest_recording.sql")
+            )
     except (DatabaseError, aiosqlite.Error):
         logger.exception("Database error fetching dashboard data")
         return JSONResponse({"error": "Database unavailable"}, status_code=503)

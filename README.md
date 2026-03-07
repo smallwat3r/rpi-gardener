@@ -215,7 +215,7 @@ A custom PCB that mounts as a Raspberry Pi HAT with an integrated Pico. Includes
 
 ![pcb_with_case](./img/assembly3.jpeg)
 
-See [pcb/README.md](./pcb/README.md) for:
+See [pcb/README.md](./hardware/README.md) for:
 - PCB specifications and manufacturing files
 - 3D printable case files (OpenSCAD/STL)
 - Complete bill of materials
@@ -227,7 +227,7 @@ For prototyping or if you prefer not to use the PCB.
 
 ![manual_setup](./img/manual_setup.jpg)
 
-Refer to [pcb/README.md](./pcb/README.md) for pin assignments and use the wiring diagram below as a reference.
+Refer to [pcb/README.md](./hardware/README.md) for pin assignments and use the wiring diagram below as a reference.
 
 ![manual_wiring](./img/manual_wiring.jpg)
 
@@ -236,4 +236,4 @@ Refer to [pcb/README.md](./pcb/README.md) for pin assignments and use the wiring
 This project uses a dual-license structure:
 
 - **Software** (code, scripts, configurations): [MIT License](./LICENSE)
-- **Hardware** (`pcb/` directory): [CERN-OHL-P v2](./pcb/LICENSE)
+- **Hardware** (`hardware/` directory): [CERN-OHL-P v2](./hardware/LICENSE)

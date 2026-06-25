@@ -10,7 +10,10 @@ set -eu
 command -v tailscale >/dev/null 2>&1 || { echo "tailscale not installed, skipping"; exit 0; }
 
 # Self.DNSName is the first DNSName in the status JSON; strip the trailing dot.
-host=$(tailscale status --json 2>/dev/null | grep -o '"DNSName":"[^"]*"' | head -1 | cut -d'"' -f4)
+# Capture first (don't pipe straight to head) so an early-closed pipe doesn't
+# make tailscale print "got an empty response"; ": *" tolerates the JSON spacing.
+status=$(tailscale status --json 2>/dev/null) || true
+host=$(printf '%s\n' "$status" | grep -oE '"DNSName": *"[^"]+"' | head -1 | cut -d'"' -f4)
 host=${host%.}
 [ -n "$host" ] || { echo "tailscale not up, skipping"; exit 0; }
 

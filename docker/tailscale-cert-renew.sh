@@ -21,8 +21,10 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 tailscale cert --cert-file "$tmp/ts.crt" --key-file "$tmp/ts.key" "$host"
 
+# uid 101 = nginx worker; it loads the key lazily (SNI-selected) so must read it.
 docker run --rm -v rpi-gardener-certs:/certs -v "$tmp":/in alpine sh -c \
-  'cp /in/ts.crt /certs/ && cp /in/ts.key /certs/ && chmod 644 /certs/ts.crt && chmod 600 /certs/ts.key'
+  'cp /in/ts.crt /certs/ && cp /in/ts.key /certs/ &&
+   chmod 644 /certs/ts.crt && chmod 600 /certs/ts.key && chown 101:101 /certs/ts.key'
 
 # Reload nginx so it picks up the new cert without dropping connections.
 docker compose -f "$(CDPATH= cd "$(dirname "$0")/.." && pwd)/docker-compose.yml" \

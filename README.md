@@ -205,6 +205,33 @@ This project is designed for local home networks:
 - Admin interface protected by HTTP Basic Auth (set `ADMIN_PASSWORD` to enable)
 - Do not expose to the internet without additional security
 
+## Remote access with Tailscale (optional)
+
+To reach the dashboard from outside your home network with a trusted (non
+self-signed) certificate, put the Pi on a [Tailscale](https://tailscale.com)
+tailnet and let nginx serve a Tailscale-issued cert.
+
+nginx picks the certificate by hostname (SNI): requests to your `*.ts.net`
+name get the Tailscale cert, everything else (local IP, `gardener.local`)
+keeps the self-signed cert. Nothing changes for users who don't use Tailscale.
+
+Seed the cert once on the Pi host (Tailscale must be installed and up):
+
+```sh
+./docker/tailscale-cert-renew.sh
+```
+
+Tailscale certs expire after 90 days. Renew automatically by adding the script
+to the host crontab (`sudo crontab -e`):
+
+```cron
+0 4 1 * * /path/to/rpi-gardener/docker/tailscale-cert-renew.sh >> /var/log/ts-cert.log 2>&1
+```
+
+The script is a no-op if Tailscale isn't installed, so it's safe to leave
+scheduled regardless. Certs live in the persistent `rpi-gardener-certs` volume,
+so they survive deploys and are not regenerated on `make up`.
+
 ## Hardware Build
 
 There are two ways to build the hardware: using a custom PCB with 3D-printed case, or manual wiring on a breadboard.

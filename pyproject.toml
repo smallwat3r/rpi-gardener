@@ -26,6 +26,14 @@ hardware = [
     "RPLCD",
     "smbus2",
 ]
+micropython = [
+    "mpremote",
+    "rshell",
+]
+
+# Installed by default on every `uv sync`/`uv run`, unlike an extra, so the
+# dev tools survive uv recreating the venv
+[dependency-groups]
 dev = [
     "pytest>=9.0.3",
     "pytest-asyncio>=0.24",
@@ -34,10 +42,6 @@ dev = [
     "pre-commit>=4.0",
     "types-redis",
     "types-requests",
-]
-micropython = [
-    "mpremote",
-    "rshell",
 ]
 
 [build-system]

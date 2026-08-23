@@ -1128,15 +1128,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-    { name = "types-redis" },
-    { name = "types-requests" },
-]
 hardware = [
     { name = "adafruit-circuitpython-dht" },
     { name = "adafruit-circuitpython-ssd1306" },
@@ -1152,6 +1143,17 @@ micropython = [
     { name = "rshell" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+    { name = "types-redis" },
+    { name = "types-requests" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "adafruit-circuitpython-dht", marker = "extra == 'hardware'" },
@@ -1161,27 +1163,31 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.0" },
     { name = "mpremote", marker = "extra == 'hardware'" },
     { name = "mpremote", marker = "extra == 'micropython'" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "pillow", marker = "extra == 'hardware'" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.0" },
     { name = "pydantic-settings", specifier = ">=2.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.3" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24" },
     { name = "python-kasa", specifier = ">=0.9" },
     { name = "redis", specifier = ">=5.0" },
     { name = "requests" },
     { name = "rpi-gpio", marker = "extra == 'hardware'" },
     { name = "rplcd", marker = "extra == 'hardware'" },
     { name = "rshell", marker = "extra == 'micropython'" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
     { name = "smbus2", marker = "extra == 'hardware'" },
     { name = "starlette" },
-    { name = "types-redis", marker = "extra == 'dev'" },
-    { name = "types-requests", marker = "extra == 'dev'" },
     { name = "uvicorn", extras = ["standard"] },
 ]
-provides-extras = ["hardware", "dev", "micropython"]
+provides-extras = ["hardware", "micropython"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.0" },
+    { name = "pre-commit", specifier = ">=4.0" },
+    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
+    { name = "ruff", specifier = ">=0.8" },
+    { name = "types-redis" },
+    { name = "types-requests" },
+]
 
 [[package]]
 name = "rpi-gpio"

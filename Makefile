@@ -19,7 +19,7 @@ mpdeps:  ## Install Micropython tooling requirements
 
 .PHONY: devdeps
 devdeps:  ## Install development dependencies (includes pytest)
-	uv sync --extra dev
+	uv sync
 
 .PHONY: test
 test:  ## Run pytest test suite

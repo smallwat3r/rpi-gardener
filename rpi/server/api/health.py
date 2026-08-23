@@ -17,6 +17,17 @@ logger = get_logger("server.api.health")
 
 _DB_ERRORS = (DatabaseError, aiosqlite.Error, OSError)
 
+# Sensors poll every ~2s, readings older than this mean the service is down
+_STALE_AFTER_SEC = 300
+
+
+def _is_stale(epoch_ms: object) -> bool:
+    """Check whether a reading's epoch (in milliseconds) is too old."""
+    if not isinstance(epoch_ms, int | float):
+        return True
+    age_sec = datetime.now(UTC).timestamp() - epoch_ms / 1000
+    return age_sec > _STALE_AFTER_SEC
+
 
 async def _check_database() -> tuple[bool, str]:
     """Check if database is accessible."""
@@ -25,32 +36,35 @@ async def _check_database() -> tuple[bool, str]:
             await db.fetchone("SELECT 1")
         return True, "ok"
     except _DB_ERRORS as e:
+        # Log the detail, but keep it out of the unauthenticated response
         logger.error("Database health check failed: %s", e)
-        return False, str(e)
+        return False, "unavailable"
 
 
 async def _check_dht_sensor() -> tuple[bool, str | None]:
     """Check if DHT sensor has recent data."""
     try:
         latest = await get_latest_dht_data()
-        if latest is None:
-            return False, "no data"
-        return True, latest.get("recording_time")
     except _DB_ERRORS as e:
         logger.error("DHT sensor health check failed: %s", e)
-        return False, str(e)
+        return False, None
+    if latest is None:
+        return False, "no data"
+    return not _is_stale(latest.get("epoch")), latest.get("recording_time")
 
 
 async def _check_pico_sensor() -> tuple[bool, str | None]:
     """Check if Pico sensor has recent data."""
     try:
         latest = await get_latest_pico_data()
-        if not latest:
-            return False, "no data"
-        return True, latest[0].get("recording_time")
     except _DB_ERRORS as e:
         logger.error("Pico sensor health check failed: %s", e)
-        return False, str(e)
+        return False, None
+    if not latest:
+        return False, "no data"
+    return not _is_stale(latest[0].get("epoch")), latest[0].get(
+        "recording_time"
+    )
 
 
 async def _check_redis() -> tuple[bool, str]:
@@ -61,7 +75,7 @@ async def _check_redis() -> tuple[bool, str]:
         return True, "ok"
     except (redis.RedisError, OSError) as e:
         logger.error("Redis health check failed: %s", e)
-        return False, str(e)
+        return False, "unavailable"
 
 
 async def health_check(request: Request) -> JSONResponse:

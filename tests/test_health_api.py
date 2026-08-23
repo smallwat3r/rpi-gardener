@@ -176,7 +176,7 @@ class TestCheckDatabase:
             ok, status = await _check_database()
 
         assert ok is False
-        assert "Connection failed" in status
+        assert status == "unavailable"
 
 
 class TestCheckDhtSensor:
@@ -184,17 +184,40 @@ class TestCheckDhtSensor:
 
     @pytest.mark.asyncio
     async def test_returns_true_with_recent_data(self):
-        """Should return True when DHT sensor has data."""
+        """Should return True when DHT sensor has fresh data."""
+        from datetime import UTC, datetime
+
         from rpi.server.api.health import _check_dht_sensor
 
         with patch(
             "rpi.server.api.health.get_latest_dht_data",
             new_callable=AsyncMock,
-            return_value={"recording_time": "2024-06-15T12:00:00"},
+            return_value={
+                "recording_time": "2024-06-15T12:00:00",
+                "epoch": int(datetime.now(UTC).timestamp() * 1000),
+            },
         ):
             ok, last = await _check_dht_sensor()
 
         assert ok is True
+        assert last == "2024-06-15T12:00:00"
+
+    @pytest.mark.asyncio
+    async def test_returns_false_with_stale_data(self):
+        """Should return False when the latest reading is too old."""
+        from rpi.server.api.health import _check_dht_sensor
+
+        with patch(
+            "rpi.server.api.health.get_latest_dht_data",
+            new_callable=AsyncMock,
+            return_value={
+                "recording_time": "2024-06-15T12:00:00",
+                "epoch": 1718452800000,  # 2024-06-15, long past
+            },
+        ):
+            ok, last = await _check_dht_sensor()
+
+        assert ok is False
         assert last == "2024-06-15T12:00:00"
 
     @pytest.mark.asyncio
@@ -218,17 +241,44 @@ class TestCheckPicoSensor:
 
     @pytest.mark.asyncio
     async def test_returns_true_with_recent_data(self):
-        """Should return True when Pico sensor has data."""
+        """Should return True when Pico sensor has fresh data."""
+        from datetime import UTC, datetime
+
         from rpi.server.api.health import _check_pico_sensor
 
         with patch(
             "rpi.server.api.health.get_latest_pico_data",
             new_callable=AsyncMock,
-            return_value=[{"recording_time": "2024-06-15T12:00:00"}],
+            return_value=[
+                {
+                    "recording_time": "2024-06-15T12:00:00",
+                    "epoch": int(datetime.now(UTC).timestamp() * 1000),
+                }
+            ],
         ):
             ok, last = await _check_pico_sensor()
 
         assert ok is True
+        assert last == "2024-06-15T12:00:00"
+
+    @pytest.mark.asyncio
+    async def test_returns_false_with_stale_data(self):
+        """Should return False when the latest reading is too old."""
+        from rpi.server.api.health import _check_pico_sensor
+
+        with patch(
+            "rpi.server.api.health.get_latest_pico_data",
+            new_callable=AsyncMock,
+            return_value=[
+                {
+                    "recording_time": "2024-06-15T12:00:00",
+                    "epoch": 1718452800000,  # 2024-06-15, long past
+                }
+            ],
+        ):
+            ok, last = await _check_pico_sensor()
+
+        assert ok is False
         assert last == "2024-06-15T12:00:00"
 
     @pytest.mark.asyncio
@@ -282,4 +332,4 @@ class TestCheckRedis:
             ok, status = await _check_redis()
 
         assert ok is False
-        assert "Connection refused" in status
+        assert status == "unavailable"

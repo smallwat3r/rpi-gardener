@@ -63,7 +63,9 @@ class AlertEvent:
             sensor_name=data["sensor_name"],  # type: ignore[arg-type]
             value=float(data["value"]),  # type: ignore[arg-type]
             unit=str(data["unit"]),  # type: ignore[arg-type]
-            threshold=float(data["threshold"]) if data["threshold"] else None,  # type: ignore[arg-type]
+            threshold=float(data["threshold"])  # type: ignore[arg-type]
+            if data["threshold"] is not None
+            else None,
             recording_time=datetime.strptime(
                 str(data["recording_time"]), "%Y-%m-%d %H:%M:%S"
             ),

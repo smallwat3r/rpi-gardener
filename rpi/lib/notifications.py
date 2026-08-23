@@ -128,7 +128,7 @@ def format_alert_html(event: AlertEvent) -> str:
         status_bg=status_bg,
         current_value=f"{event.value:.1f}{event.unit}",
         threshold=f"{event.threshold:.0f}{event.unit}"
-        if event.threshold
+        if event.threshold is not None
         else None,
         time=event.recording_time.strftime("%H:%M:%S"),
         date=event.recording_time.strftime("%B %d, %Y"),

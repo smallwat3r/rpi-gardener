@@ -51,6 +51,24 @@ class TestAlertEvent:
         assert event.threshold is None
         assert event.is_resolved is True
 
+    def test_from_dict_preserves_zero_threshold(self, frozen_time):
+        from rpi.lib.alerts import AlertEvent
+
+        event = AlertEvent.from_dict(
+            {
+                "namespace": "dht",
+                "sensor_name": "temperature",
+                "value": -1.5,
+                "unit": "c",
+                "threshold": 0,
+                "recording_time": frozen_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "is_resolved": False,
+            }
+        )
+
+        assert event.threshold == 0.0
+        assert event.is_resolved is False
+
     def test_format_alert_message(self, frozen_time):
         event = make_alert_event(
             sensor_name="humidity",

@@ -8,7 +8,16 @@ from rpi.server.api.admin import (
     _AdminSettingsRequest,
     _db_settings_to_response,
     _request_to_db_settings,
+    _validate_merged_bounds,
 )
+
+# Currently effective settings used to validate partial updates against
+_CURRENT = {
+    "thresholds": {
+        "temperature": {"min": 18, "max": 25},
+        "humidity": {"min": 40, "max": 65},
+    }
+}
 
 
 class TestSettingsValidation:
@@ -38,15 +47,31 @@ class TestSettingsValidation:
 
     def test_validate_temperature_min_gt_max(self):
         """Should error when temperature min >= max."""
-        settings = {
-            "thresholds": {
-                "temperature": {"min": 30, "max": 25},
-            },
-        }
+        data = _AdminSettingsRequest.model_validate(
+            {"thresholds": {"temperature": {"min": 30, "max": 25}}}
+        )
 
-        with pytest.raises(ValidationError) as exc_info:
-            _AdminSettingsRequest.model_validate(settings)
-        assert "max must be greater than min" in str(exc_info.value)
+        errors = _validate_merged_bounds(data, _CURRENT)
+        assert errors
+        assert "min (30) must be less than max (25)" in errors[0]
+
+    def test_validate_partial_update_against_stored_bounds(self):
+        """A lone max below the stored min should be rejected."""
+        data = _AdminSettingsRequest.model_validate(
+            {"thresholds": {"temperature": {"max": 10}}}
+        )
+
+        errors = _validate_merged_bounds(data, _CURRENT)
+        assert errors
+        assert "min (18) must be less than max (10)" in errors[0]
+
+    def test_validate_partial_update_valid(self):
+        """A lone max above the stored min should pass."""
+        data = _AdminSettingsRequest.model_validate(
+            {"thresholds": {"temperature": {"max": 30}}}
+        )
+
+        assert _validate_merged_bounds(data, _CURRENT) == []
 
     def test_validate_temperature_out_of_bounds(self):
         """Should error when temperature outside [-40, 80]."""
@@ -63,15 +88,13 @@ class TestSettingsValidation:
 
     def test_validate_humidity_min_gt_max(self):
         """Should error when humidity min >= max."""
-        settings = {
-            "thresholds": {
-                "humidity": {"min": 70, "max": 50},
-            },
-        }
+        data = _AdminSettingsRequest.model_validate(
+            {"thresholds": {"humidity": {"min": 70, "max": 50}}}
+        )
 
-        with pytest.raises(ValidationError) as exc_info:
-            _AdminSettingsRequest.model_validate(settings)
-        assert "max must be greater than min" in str(exc_info.value)
+        errors = _validate_merged_bounds(data, _CURRENT)
+        assert errors
+        assert "min (70) must be less than max (50)" in errors[0]
 
     def test_validate_humidity_out_of_bounds(self):
         """Should error when humidity outside [0, 100]."""

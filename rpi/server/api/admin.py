@@ -3,7 +3,7 @@
 import json
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -27,33 +27,17 @@ HUM_MIN, HUM_MAX = DHT22_BOUNDS[MeasureName.HUMIDITY]
 
 
 class _TemperatureThreshold(BaseModel):
-    """Temperature threshold with validation."""
+    """Temperature threshold bounds."""
 
     min: int | None = Field(None, ge=TEMP_MIN, le=TEMP_MAX)
     max: int | None = Field(None, ge=TEMP_MIN, le=TEMP_MAX)
 
-    @field_validator("max")
-    @classmethod
-    def max_gt_min(cls, v: int | None, info: Any) -> int | None:
-        if v is not None and info.data.get("min") is not None:
-            if v <= info.data["min"]:
-                raise ValueError("max must be greater than min")
-        return v
-
 
 class _HumidityThreshold(BaseModel):
-    """Humidity threshold with validation."""
+    """Humidity threshold bounds."""
 
     min: int | None = Field(None, ge=HUM_MIN, le=HUM_MAX)
     max: int | None = Field(None, ge=HUM_MIN, le=HUM_MAX)
-
-    @field_validator("max")
-    @classmethod
-    def max_gt_min(cls, v: int | None, info: Any) -> int | None:
-        if v is not None and info.data.get("min") is not None:
-            if v <= info.data["min"]:
-                raise ValueError("max must be greater than min")
-        return v
 
 
 class _MoistureThresholds(BaseModel):
@@ -219,6 +203,29 @@ def _request_to_db_settings(
     return result
 
 
+def _validate_merged_bounds(
+    data: _AdminSettingsRequest, current: dict[str, Any]
+) -> list[str]:
+    """Check request values merged over stored settings keep min < max.
+
+    Partial updates may only carry one bound, so each request bound is
+    validated against the currently effective value of the other.
+    """
+    errors: list[str] = []
+    for name, req in (
+        ("temperature", data.thresholds.temperature),
+        ("humidity", data.thresholds.humidity),
+    ):
+        stored = current["thresholds"][name]
+        lo = req.min if req.min is not None else stored["min"]
+        hi = req.max if req.max is not None else stored["max"]
+        if lo >= hi:
+            errors.append(
+                f"thresholds.{name}: min ({lo}) must be less than max ({hi})"
+            )
+    return errors
+
+
 @require_auth
 async def get_admin_settings(request: Request) -> JSONResponse:
     """Get all admin-configurable settings."""
@@ -242,6 +249,11 @@ async def update_admin_settings(request: Request) -> JSONResponse:
             for err in e.errors()
         ]
         return JSONResponse({"errors": errors}, status_code=400)
+
+    current = _db_settings_to_response(await get_all_settings())
+    merge_errors = _validate_merged_bounds(data, current)
+    if merge_errors:
+        return JSONResponse({"errors": merge_errors}, status_code=400)
 
     db_settings = _request_to_db_settings(data)
     if db_settings:

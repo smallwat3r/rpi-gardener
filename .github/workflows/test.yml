@@ -48,6 +48,9 @@ jobs:
       - name: Run biome
         run: npm run check
 
+      - name: Build
+        run: npm run build
+
   test:
     runs-on: ubuntu-latest
     steps:

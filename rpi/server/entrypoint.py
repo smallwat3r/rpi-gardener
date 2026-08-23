@@ -46,11 +46,13 @@ async def _humidifier_state_task(subscriber: EventSubscriber) -> None:
 
 
 async def _init_db_pool() -> None:
-    """Pre-warm database connection pool with optimized settings."""
+    """Pre-warm the connection pool and fail fast if the DB is unreachable.
+
+    Connection pragmas (WAL, synchronous, cache_size) are applied by
+    Database.connect() so every pooled connection gets them.
+    """
     async with get_db() as db:
-        await db.execute_pragma("PRAGMA journal_mode=WAL")
-        await db.execute_pragma("PRAGMA synchronous=NORMAL")
-        await db.execute_pragma("PRAGMA cache_size=-64000")  # 64MB
+        await db.fetchone("SELECT 1")
     _logger.info("Database connection pool initialized")
 
 

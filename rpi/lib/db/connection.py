@@ -90,13 +90,19 @@ class Database:
         self._in_transaction = False
 
     async def connect(self) -> None:
-        """Open the database connection."""
+        """Open the database connection with per-connection pragmas."""
         if self._connection is None:
             self._connection = await aiosqlite.connect(
                 self._db_path,
                 timeout=get_settings().db_timeout_sec,
             )
             self._connection.row_factory = _dict_factory  # type: ignore[assignment]
+            # journal_mode persists in the DB file, but synchronous and
+            # cache_size are per-connection, so every connection (including
+            # pooled ones) must set them itself
+            await self._connection.execute("PRAGMA journal_mode=WAL")
+            await self._connection.execute("PRAGMA synchronous=NORMAL")
+            await self._connection.execute("PRAGMA cache_size=-64000")  # 64MB
 
     async def close(self) -> None:
         """Close the database connection."""
@@ -297,7 +303,6 @@ async def init_db() -> None:
             "Opened persistent database connection: %s", get_settings().db_path
         )
 
-    await _persistent.execute_pragma("PRAGMA journal_mode=WAL")
     await _persistent.execute_pragma("PRAGMA auto_vacuum=INCREMENTAL")
     await _persistent.execute(_load_template("init_reading_table.sql"))
     await _persistent.executescript(_load_template("idx_reading.sql"))

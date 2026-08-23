@@ -16,7 +16,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
-from typing import Protocol
 
 from rpi.lib.config import PlantIdValue, ThresholdType, Unit, get_settings
 from rpi.lib.eventbus import EventPublisher
@@ -103,34 +102,6 @@ type AlertCallback = Callable[[AlertEvent], None]
 """Callback invoked when an alert state transition occurs."""
 
 
-class ThresholdChecker(Protocol):
-    """Protocol for threshold checking services.
-
-    Defines the interface for checking sensor values against thresholds.
-    Used to decouple audit functions from concrete AlertTracker implementation.
-    """
-
-    async def check(
-        self,
-        namespace: Namespace,
-        sensor_name: _SensorName,
-        value: float,
-        unit: Unit,
-        threshold: float,
-        threshold_type: ThresholdType,
-        hysteresis: float,
-        recording_time: datetime,
-    ) -> AlertState:
-        """Check if sensor value violates threshold and handle state transitions."""
-        ...
-
-    async def register_callback(
-        self, namespace: Namespace, callback: AlertCallback
-    ) -> None:
-        """Register a callback for state transitions in a namespace."""
-        ...
-
-
 class _ConfirmationTracker:
     """Tracks pending confirmation counts for state transitions.
 
@@ -176,41 +147,6 @@ class _ConfirmationTracker:
             self._pending_counts.pop(k, None)
 
 
-class _AlertCountCache:
-    """Tracks active alert counts per sensor for O(1) is_any_alert lookup.
-
-    Maintains a count of active alerts per (namespace, sensor) pair to avoid
-    iterating through all states when checking if any alert is active.
-    """
-
-    def __init__(self) -> None:
-        self._counts: dict[tuple[Namespace, _SensorName], int] = {}
-
-    def increment(self, namespace: Namespace, sensor_name: _SensorName) -> None:
-        """Increment alert count for a sensor."""
-        key = (namespace, sensor_name)
-        self._counts[key] = self._counts.get(key, 0) + 1
-
-    def decrement(self, namespace: Namespace, sensor_name: _SensorName) -> None:
-        """Decrement alert count for a sensor."""
-        key = (namespace, sensor_name)
-        count = self._counts.get(key, 0) - 1
-        if count <= 0:
-            self._counts.pop(key, None)
-        else:
-            self._counts[key] = count
-
-    def has_any(self, namespace: Namespace, sensor_name: _SensorName) -> bool:
-        """Check if any alert is active for a sensor."""
-        return self._counts.get((namespace, sensor_name), 0) > 0
-
-    def reset_for_sensor(
-        self, namespace: Namespace, sensor_name: _SensorName
-    ) -> None:
-        """Reset alert count for a sensor."""
-        self._counts.pop((namespace, sensor_name), None)
-
-
 class AlertTracker:
     """Tracks alert states per sensor/threshold and triggers callbacks on transitions.
 
@@ -243,7 +179,6 @@ class AlertTracker:
             else get_settings().alerts.confirmation_count
         )
         self._confirmations = _ConfirmationTracker(count)
-        self._alert_counts = _AlertCountCache()
 
     def _get_lock(self) -> asyncio.Lock:
         """Get or create the async lock.
@@ -382,13 +317,6 @@ class AlertTracker:
             self._states[key] = new_state
             callback = self._callbacks.get(namespace)
 
-            # Update alert count for O(1) is_any_alert lookup
-            if previous_state != new_state:
-                if new_state == AlertState.IN_ALERT:
-                    self._alert_counts.increment(namespace, sensor_name)
-                elif previous_state == AlertState.IN_ALERT:
-                    self._alert_counts.decrement(namespace, sensor_name)
-
         # Call callback outside of lock to prevent deadlocks
         self._handle_transition(check, previous_state, new_state, callback)
         return new_state
@@ -403,13 +331,6 @@ class AlertTracker:
         key: _AlertKey = (namespace, sensor_name, threshold_type)
         async with self._get_lock():
             return self._states.get(key, AlertState.OK)
-
-    async def is_any_alert(
-        self, namespace: Namespace, sensor_name: _SensorName
-    ) -> bool:
-        """Check if any threshold for this sensor is in alert state."""
-        async with self._get_lock():
-            return self._alert_counts.has_any(namespace, sensor_name)
 
     def _key_matches(
         self,
@@ -441,9 +362,6 @@ class AlertTracker:
         async with self._get_lock():
             to_delete = [k for k in self._states if matches(k)]
             for k in to_delete:
-                # Update alert count if we're deleting an alert state
-                if self._states.get(k) == AlertState.IN_ALERT:
-                    self._alert_counts.decrement(k[0], k[1])
                 self._states.pop(k, None)
             self._confirmations.reset_matching(matches)
 

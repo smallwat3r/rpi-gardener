@@ -30,6 +30,11 @@ _INITIAL_BACKOFF_SEC = 1.0
 _MAX_BACKOFF_SEC = 60.0
 _BACKOFF_MULTIPLIER = 2.0
 
+# The publisher uses the sync Redis client from within async polling loops
+# (the alert callback interface is sync), so socket operations must be
+# bounded or a Redis outage stalls the event loop indefinitely
+_PUBLISH_SOCKET_TIMEOUT_SEC = 5.0
+
 
 class Topic(StrEnum):
     """Event bus topics for pub/sub channels."""
@@ -176,7 +181,11 @@ class EventPublisher:
 
     def connect(self) -> None:
         """Connect to Redis."""
-        self._client = sync_redis.from_url(self._redis_url)
+        self._client = sync_redis.from_url(
+            self._redis_url,
+            socket_connect_timeout=_PUBLISH_SOCKET_TIMEOUT_SEC,
+            socket_timeout=_PUBLISH_SOCKET_TIMEOUT_SEC,
+        )
         logger.info("Event publisher connected to Redis")
 
     def _reconnect(self) -> bool:

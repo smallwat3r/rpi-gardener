@@ -48,6 +48,10 @@ services:
       context: .
       dockerfile: Dockerfile
     privileged: true
+    # Host gids for /dev/gpiochip0 and /dev/i2c-1, exported by scripts/deploy.sh
+    group_add:
+      - "${GPIO_GID:-993}"
+      - "${I2C_GID:-994}"
     devices:
       - /dev/gpiomem:/dev/gpiomem
       - /dev/gpiochip0:/dev/gpiochip0

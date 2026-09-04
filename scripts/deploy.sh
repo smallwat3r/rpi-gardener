@@ -26,7 +26,8 @@ echo "==> rebuilding and restarting"
 # recreated so nginx serves the freshly built frontend rather than the copy
 # Docker kept from the first start.
 ssh "$host" "cd $dir \
-    && sudo docker compose build \
-    && sudo docker compose down \
+    && export GPIO_GID=\$(getent group gpio | cut -d: -f3) I2C_GID=\$(getent group i2c | cut -d: -f3) \
+    && sudo -E docker compose build \
+    && sudo -E docker compose down \
     && sudo docker volume rm -f rpi-gardener-static \
-    && sudo docker compose up -d"
+    && sudo -E docker compose up -d"

@@ -4,7 +4,7 @@
 # rebuild and restart the stack. Usage: scripts/deploy.sh [host]
 set -eu
 
-host=${1:-gardener}
+host=${1:-pi@gardener.local}
 dir=rpi-gardener  # relative to the login user's home on the Pi
 cd "$(dirname "$0")/.."
 

@@ -64,10 +64,13 @@ for the values:
 
     cp .env.example .env
 
-Then, with SSH access to the Pi (Raspberry Pi OS, user with sudo), one
+Then, with SSH access to the Pi (Raspberry Pi OS, a user with sudo), one
 command provisions the host, syncs the code and starts the stack:
 
-    make deploy DEPLOY_HOST=gardener
+    make deploy DEPLOY_HOST=pi@gardener.local
+
+`DEPLOY_HOST` is anything `ssh` accepts, `user@host`, an IP, or an alias from
+your SSH config.
 
 Provisioning is idempotent and covers: I2C, a 50MB journald cap and swap off
 (both to limit SD card wear), Docker via get.docker.com, the docker group,

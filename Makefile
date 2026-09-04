@@ -1,7 +1,7 @@
 SHELL  = /bin/bash
 RPI    = rpi
 PICO   = pico
-DEPLOY_HOST ?= gardener
+DEPLOY_HOST ?= pi@gardener.local
 
 .PHONY: help
 help:  ## Show this help menu
@@ -73,7 +73,7 @@ mprestart:  ## Restart main.py script on the Pico
 	uv run mpremote exec --no-follow 'import main'
 
 .PHONY: deploy
-deploy:  ## Provision the Pi, sync the code and restart the stack (make deploy DEPLOY_HOST=gardener)
+deploy:  ## Provision the Pi, sync the code and restart the stack (make deploy DEPLOY_HOST=pi@gardener.local)
 	scripts/deploy.sh $(DEPLOY_HOST)
 
 .PHONY: up

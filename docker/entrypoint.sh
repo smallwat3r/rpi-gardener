@@ -6,6 +6,15 @@ if [ -d /app/data ] && id appuser >/dev/null 2>&1; then
     chown -R appuser:appgroup /app/data
 fi
 
+# Give appuser the host's gpio and i2c group ids. They differ between
+# Raspberry Pi OS images, so read them off the device nodes at start.
+for dev in /dev/gpiochip0 /dev/i2c-1; do
+    [ -e "$dev" ] || continue
+    gid=$(stat -c %g "$dev")
+    getent group "$gid" >/dev/null || groupadd --gid "$gid" "hw$gid"
+    usermod -aG "$gid" appuser
+done
+
 echo "Validating configuration..."
 python -c "from rpi.lib.config import get_settings; get_settings()"
 

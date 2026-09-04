@@ -26,8 +26,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /root/.cache \
     && find /var/log -type f -delete
 
-# Non-root user. Host gpio/i2c group ids are attached at run time via
-# group_add in docker-compose.yml, they differ between Raspberry Pi OS images.
+# Non-root user. Host gpio/i2c group ids are attached by entrypoint.sh at
+# start, they differ between Raspberry Pi OS images.
 RUN groupadd --gid 1000 appgroup \
     && useradd --uid 1000 --gid appgroup --shell /usr/sbin/nologin --no-create-home appuser \
     && usermod -aG dialout appuser

@@ -57,11 +57,20 @@ However, this project uses a Raspberry Pi Pico instead for several reasons:
 
 ## Quick Start
 
-### 1. Enable I2C on the Raspberry Pi
+### 1. Prepare the Raspberry Pi
+
+Enable I2C:
 
     sudo raspi-config  # Interface Options -> I2C -> Enable
     sudo modprobe i2c-dev
     echo "i2c-dev" | sudo tee -a /etc/modules
+
+Cap the system journal so it cannot wear the SD card (container logs are
+already capped in `docker-compose.yml`):
+
+    sudo mkdir -p /etc/systemd/journald.conf.d
+    printf '[Journal]\nSystemMaxUse=50M\n' | sudo tee /etc/systemd/journald.conf.d/sdcard.conf
+    sudo systemctl restart systemd-journald
 
 ### 2. Install Docker
 

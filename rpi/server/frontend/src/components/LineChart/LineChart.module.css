@@ -1,6 +1,6 @@
 .wrapper {
   position: relative;
-  height: 150px;
+  height: 170px;
   width: 100%;
 }
 
@@ -16,15 +16,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(20, 21, 23, 0.5);
   border-radius: var(--radius-sm);
 }
 
 .spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #fff;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }

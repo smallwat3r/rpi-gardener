@@ -1,29 +1,41 @@
 :root {
-  --color-bg: #212529;
-  --color-bg-card: #2b3035;
-  --color-text: #f8f9fa;
-  --color-text-muted: #6c757d;
-  --color-border: #495057;
+  /* Neutral charcoal ground, metric hues carry the colour */
+  --color-bg: #141517;
+  --color-bg-card: #1c1e21;
+  --color-surface-raised: #26282c;
+  --color-border: #33363b;
+  --color-border-strong: #4c5058;
 
-  --color-temperature: #f472b6;
-  --color-humidity: #22d3ee;
-  --color-plant-1: #a78bfa;
-  --color-plant-2: #38bdf8;
-  --color-plant-3: #fb7185;
-  --color-primary: #64748b;
-  --color-primary-hover: #475569;
+  --color-text: #e9e9e6;
+  --color-text-muted: #a4a5a0;
+  --color-text-faint: #8f9089;
 
-  --font-family: "Inter", system-ui, sans-serif;
-  --font-size-base: 16px;
-  --font-size-sm: 14px;
-  --font-size-lg: 24px;
-  --font-size-display: 48px;
+  /* One accent, leaf green, carries all interaction */
+  --color-accent: #a6c36f;
+  --color-accent-ink: #1a1e10;
+
+  --color-alert: #e07856;
+  --color-alert-ink: #1e1008;
+
+  /* Calibrated per-metric data hues, charts and readings only */
+  --color-temperature: #dfa456;
+  --color-humidity: #85b8c4;
+  --color-moisture: #a6c36f;
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 15px;
+  --font-size-lg: 22px;
+  --font-size-xl: 30px;
 
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
+  --spacing-lg: 28px;
+  --spacing-xl: 44px;
 
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -33,9 +45,9 @@
   :root {
     --font-size-base: 14px;
     --font-size-sm: 12px;
-    --font-size-lg: 20px;
-    --font-size-display: 32px;
+    --font-size-lg: 19px;
+    --font-size-xl: 26px;
     --spacing-md: 12px;
-    --spacing-lg: 16px;
+    --spacing-lg: 20px;
   }
 }

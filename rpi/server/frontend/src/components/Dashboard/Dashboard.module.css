@@ -1,15 +1,31 @@
 .container {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-xl);
 }
 
-.header {
+.masthead {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm) 0;
-  margin-bottom: var(--spacing-sm);
+  gap: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md) 0 var(--spacing-lg);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: var(--font-size-xl);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .settingsButton {
@@ -20,7 +36,7 @@
   height: 36px;
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--color-text-muted);
   cursor: pointer;
   transition:
@@ -31,27 +47,18 @@
 
 .settingsButton:hover {
   color: var(--color-text);
-  border-color: var(--color-text-muted);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-raised);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: 1fr;
-  gap: var(--spacing-md);
+.settingsButton:active {
+  background: var(--color-bg-card);
 }
 
-@media (max-width: 992px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .container {
-    padding: var(--spacing-md);
-  }
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
 }
 
 .loading,
@@ -61,8 +68,9 @@
   align-items: center;
   min-height: 200px;
   font-size: var(--font-size-lg);
+  color: var(--color-text-muted);
 }
 
 .error {
-  color: #dc3545;
+  color: var(--color-alert);
 }

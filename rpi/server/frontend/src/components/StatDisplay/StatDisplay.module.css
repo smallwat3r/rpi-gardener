@@ -1,15 +1,20 @@
 .stats {
   display: inline-flex;
   align-items: baseline;
-  gap: 2px;
-  font-size: var(--font-size-sm);
+  gap: var(--spacing-sm);
+  margin: var(--spacing-xs) 0 var(--spacing-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-}
-
-.stat {
   font-variant-numeric: tabular-nums;
 }
 
-.sep {
-  opacity: 0.5;
+.stat {
+  white-space: nowrap;
+}
+
+.statLabel {
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.9em;
 }

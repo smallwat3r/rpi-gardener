@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(10, 11, 12, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -54,8 +54,10 @@
 
 .title {
   margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
   font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text);
 }
 
@@ -79,7 +81,7 @@
 
 .closeButton:hover {
   color: var(--color-text);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-surface-raised);
 }
 
 .body {

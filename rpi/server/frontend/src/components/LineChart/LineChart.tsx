@@ -22,6 +22,10 @@ echarts.use([
   CanvasRenderer,
 ]);
 
+/** Read a theme token at render time so chart colours stay in sync with theme.css */
+export const cssVar = (name: string): string =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
 export interface SeriesConfig {
   name: string;
   dataKey: string;
@@ -91,6 +95,13 @@ export const LineChart = memo(function LineChart({
     const chart = chartRef.current;
     if (!chart || chart.isDisposed() || !data.length) return;
 
+    const axisColor = cssVar('--color-border-strong');
+    const labelColor = cssVar('--color-text-faint');
+    const gridColor = `${cssVar('--color-border')}80`;
+    const fontFamily = cssVar('--font-mono');
+    const alertColor = cssVar('--color-alert');
+    const accentColor = cssVar('--color-accent');
+
     const yAxisConfigs = yAxes?.map((axis, idx) => ({
       type: 'value' as const,
       position: axis.position || (idx === 0 ? 'left' : 'right'),
@@ -98,22 +109,23 @@ export const LineChart = memo(function LineChart({
       max: axis.max,
       axisLine: {
         show: true,
-        lineStyle: { color: colorAxis ? series[idx]?.color || '#666' : '#4b5563' },
+        lineStyle: { color: colorAxis ? series[idx]?.color || axisColor : axisColor },
       },
       axisLabel: {
-        color: '#9ca3af',
+        color: labelColor,
         fontSize: 11,
+        fontFamily,
         formatter: (value: number) => Math.round(value).toString(),
       },
       splitLine: {
-        lineStyle: { color: 'rgba(75, 85, 99, 0.3)' },
+        lineStyle: { color: gridColor },
       },
     })) || [
       {
         type: 'value' as const,
         axisLine: { show: false },
-        axisLabel: { color: '#9ca3af', fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(75, 85, 99, 0.3)' } },
+        axisLabel: { color: labelColor, fontSize: 11, fontFamily },
+        splitLine: { lineStyle: { color: gridColor } },
       },
     ];
 
@@ -167,8 +179,9 @@ export const LineChart = memo(function LineChart({
               label: {
                 position: t.type === 'max' ? 'insideStartTop' : 'insideStartBottom',
                 formatter: t.label,
-                color: 'rgba(255, 255, 255, 0.9)',
-                backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                fontFamily,
+                color: cssVar('--color-text'),
+                backgroundColor: `${alertColor}80`,
               },
             })),
           },
@@ -184,27 +197,27 @@ export const LineChart = memo(function LineChart({
               // Danger zone below min
               if (minThreshold) {
                 areas.push([
-                  { yAxis: -Infinity, itemStyle: { color: 'rgba(239, 68, 68, 0.1)' } },
+                  { yAxis: -Infinity, itemStyle: { color: `${alertColor}1a` } },
                   { yAxis: minThreshold.value },
                 ]);
               }
               // Danger zone above max
               if (maxThreshold) {
                 areas.push([
-                  { yAxis: maxThreshold.value, itemStyle: { color: 'rgba(239, 68, 68, 0.1)' } },
+                  { yAxis: maxThreshold.value, itemStyle: { color: `${alertColor}1a` } },
                   { yAxis: Infinity },
                 ]);
               }
               // Safe zone between min and max
               if (minThreshold && maxThreshold) {
                 areas.push([
-                  { yAxis: minThreshold.value, itemStyle: { color: 'rgba(34, 197, 94, 0.08)' } },
+                  { yAxis: minThreshold.value, itemStyle: { color: `${accentColor}14` } },
                   { yAxis: maxThreshold.value },
                 ]);
               } else if (minThreshold && !maxThreshold) {
                 // Only min threshold (like moisture) - safe zone is above min
                 areas.push([
-                  { yAxis: minThreshold.value, itemStyle: { color: 'rgba(34, 197, 94, 0.08)' } },
+                  { yAxis: minThreshold.value, itemStyle: { color: `${accentColor}14` } },
                   { yAxis: Infinity },
                 ]);
               }
@@ -226,13 +239,14 @@ export const LineChart = memo(function LineChart({
       },
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(30, 30, 35, 0.95)',
-        borderColor: 'rgba(75, 85, 99, 0.5)',
+        backgroundColor: cssVar('--color-surface-raised'),
+        borderColor: cssVar('--color-border-strong'),
         borderWidth: 1,
         padding: [10, 14],
         textStyle: {
-          color: '#f3f4f6',
+          color: cssVar('--color-text'),
           fontSize: 12,
+          fontFamily,
         },
         formatter: (params: unknown) => {
           const items = params as { seriesName: string; value: [number, number]; color: string }[];
@@ -240,7 +254,7 @@ export const LineChart = memo(function LineChart({
           const date = new Date(items[0].value[0]);
           const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
           const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-          let html = `<div style="font-weight:600;margin-bottom:8px;color:#9ca3af">${dateStr} ${timeStr} UTC</div>`;
+          let html = `<div style="font-weight:600;margin-bottom:8px;color:${labelColor}">${dateStr} ${timeStr} UTC</div>`;
           items.forEach((item) => {
             if (item.value[1] == null) return;
             const value = item.value[1].toFixed(1);
@@ -255,10 +269,12 @@ export const LineChart = memo(function LineChart({
       },
       xAxis: {
         type: 'time',
-        axisLine: { lineStyle: { color: '#4b5563' } },
+        axisLine: { lineStyle: { color: axisColor } },
         axisLabel: {
-          color: '#9ca3af',
+          color: labelColor,
           fontSize: 11,
+          fontFamily,
+          hideOverlap: true,
           formatter: (value: number) => {
             const date = new Date(value);
             // Calculate time range from data

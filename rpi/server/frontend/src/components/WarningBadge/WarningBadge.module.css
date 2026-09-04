@@ -2,12 +2,12 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  background-color: #ef4444;
-  color: #fff;
+  background-color: var(--color-alert);
+  color: var(--color-alert-ink);
   font-size: 0.65rem;
   font-weight: 600;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   text-transform: uppercase;
   letter-spacing: 0.02em;
   line-height: 1;

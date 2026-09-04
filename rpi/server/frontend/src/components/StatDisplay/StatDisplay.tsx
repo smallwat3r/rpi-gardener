@@ -12,13 +12,15 @@ export const StatDisplay = memo(function StatDisplay({ avg, min, max, unit }: St
   return (
     <div class={styles.stats} role="group" aria-label="Statistics">
       <span class={styles.stat}>
-        {avg}
+        <span class={styles.statLabel}>avg</span> {avg}
         {unit}
       </span>
-      <span class={styles.sep}>/</span>
-      <span class={styles.stat}>{min}</span>
-      <span class={styles.sep}>–</span>
-      <span class={styles.stat}>{max}</span>
+      <span class={styles.stat}>
+        <span class={styles.statLabel}>min</span> {min}
+      </span>
+      <span class={styles.stat}>
+        <span class={styles.statLabel}>max</span> {max}
+      </span>
     </div>
   );
 });

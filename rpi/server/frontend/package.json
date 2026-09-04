@@ -13,8 +13,7 @@
     "check": "biome check src"
   },
   "dependencies": {
-    "date-fns": "^3.0.0",
-    "echarts": "^5.5.1",
+    "echarts": "^6.1.0",
     "preact": "^10.28.2"
   },
   "devDependencies": {

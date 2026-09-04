@@ -1,51 +1,44 @@
 .container {
-  display: flex;
-  gap: 1px;
-  margin-bottom: var(--spacing-md);
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .button {
   padding: var(--spacing-xs) var(--spacing-sm);
-  background-color: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   transition:
     background-color 0.15s,
-    color 0.15s,
-    border-color 0.15s;
-}
-
-.button:first-child {
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-}
-
-.button:last-child {
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-.button:not(:first-child) {
-  margin-left: -1px;
+    color 0.15s;
 }
 
 .button:hover {
   color: var(--color-text);
-  border-color: var(--color-text-muted);
-  z-index: 1;
+  background-color: var(--color-surface-raised);
+}
+
+.button:active {
+  background-color: var(--color-border);
 }
 
 .button.active {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-  z-index: 2;
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-weight: 600;
 }
 
 .button.active:hover {
-  background-color: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
 }
 
 .container.disabled {

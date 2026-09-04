@@ -37,7 +37,7 @@ html {
 }
 
 body {
-  font-family: var(--font-family);
+  font-family: var(--font-mono);
   font-size: var(--font-size-base);
   background-color: var(--color-bg);
   color: var(--color-text);
@@ -46,6 +46,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 button {
@@ -73,8 +83,9 @@ h6 {
   bottom: var(--spacing-lg);
   left: 50%;
   transform: translateX(-50%);
-  background-color: #198754;
-  color: #fff;
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
@@ -90,5 +101,18 @@ h6 {
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: `*` has zero specificity, so the reduced-motion override needs !important to beat class-level animations */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: same as above */
+    animation-iteration-count: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: same as above */
+    transition-duration: 0.01ms !important;
   }
 }

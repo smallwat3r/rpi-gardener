@@ -23,7 +23,7 @@ export function App() {
 
   const handleSaveAdmin = () => {
     setShowAdmin(false);
-    setSuccessMessage('Settings saved successfully!');
+    setSuccessMessage('Settings saved');
     setThresholdVersion((v) => v + 1);
     if (successTimerRef.current !== null) {
       clearTimeout(successTimerRef.current);

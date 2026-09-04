@@ -18,8 +18,10 @@ Pico Reader ──┘                  ├── OLED Service (SSD1306 display)
 
 ### DHT22 Polling Service (`dht/`)
 
-Reads temperature and humidity from the DHT22 sensor every 2 seconds.
-Publishes readings to the event bus.
+Reads temperature and humidity from the DHT22 sensor every 2 seconds and
+publishes every reading to the event bus. Only every 5th reading is stored,
+batched into one database commit per minute, to limit SD card wear
+(`PollingSettings.persist_every` and `flush_interval_sec`).
 
     make polling
 

@@ -57,6 +57,20 @@ However, this project uses a Raspberry Pi Pico instead for several reasons:
 
 ## Quick Start
 
+### Deploy from your machine
+
+With SSH access to the Pi (Raspberry Pi OS, user with sudo), one command
+provisions the host, syncs the code and starts the stack:
+
+    make deploy DEPLOY_HOST=gardener
+
+Provisioning is idempotent and covers: I2C, a 50MB journald cap and swap off
+(both to limit SD card wear), Docker via get.docker.com, the docker group,
+and the monthly Tailscale cert renewal cron. A local `.env` is copied only
+if the Pi has none yet. Re-run `make deploy` to ship changes.
+
+The manual steps below are what `make deploy` does, for reference.
+
 ### 1. Prepare the Raspberry Pi
 
 Enable I2C:
@@ -74,9 +88,7 @@ already capped in `docker-compose.yml`):
 
 ### 2. Install Docker
 
-    sudo apt update
-    sudo apt install -y docker.io docker-compose docker-compose-plugin
-    sudo systemctl enable --now docker
+    curl -fsSL https://get.docker.com | sudo sh
     sudo usermod -aG docker $USER
     sudo reboot  # reboot pi
 
@@ -230,8 +242,8 @@ Seed the cert once on the Pi host (Tailscale must be installed and up):
 ./docker/tailscale-cert-renew.sh
 ```
 
-Tailscale certs expire after 90 days. Renew automatically by adding the script
-to the host crontab (`sudo crontab -e`):
+Tailscale certs expire after 90 days. `make deploy` schedules the script in
+the root crontab to renew monthly, or add it yourself (`sudo crontab -e`):
 
 ```cron
 0 4 1 * * /path/to/rpi-gardener/docker/tailscale-cert-renew.sh >> /var/log/ts-cert.log 2>&1

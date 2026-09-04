@@ -6,6 +6,7 @@ the poll → audit → persist pattern with configurable intervals.
 
 import asyncio
 import signal
+import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from types import FrameType
@@ -41,6 +42,11 @@ class PollingService[T](ABC):
         self.name = name
         polling_cfg = get_settings().polling
         self.frequency_sec = frequency_sec or polling_cfg.frequency_sec
+        self.persist_every = polling_cfg.persist_every
+        self.flush_interval_sec = polling_cfg.flush_interval_sec
+        self._cycle = 0
+        self._buffer: list[T] = []
+        self._last_flush = time.monotonic()
         self._shutdown_requested = False
         self._logger = get_logger(f"polling.{name}")
         self._previous_handlers: dict[signal.Signals, _SignalHandler] = {}
@@ -81,12 +87,26 @@ class PollingService[T](ABC):
         """
 
     @abstractmethod
-    async def persist(self, reading: T) -> None:
-        """Persist the reading to the database.
+    def publish(self, reading: T) -> None:
+        """Publish the reading to the event bus for live consumers.
+
+        Called every cycle, unlike persist() which is batched.
+        """
+
+    @abstractmethod
+    async def persist(self, readings: list[T]) -> None:
+        """Persist a batch of readings to the database in one transaction.
 
         Args:
-            reading: The validated reading to persist.
+            readings: Every Nth validated reading since the last flush.
         """
+
+    async def flush(self) -> None:
+        """Persist buffered readings, if any."""
+        if self._buffer:
+            await self.persist(self._buffer)
+            self._buffer = []
+        self._last_flush = time.monotonic()
 
     def on_poll_error(self, error: Exception) -> None:
         """Handle an error that occurred during polling.
@@ -106,7 +126,9 @@ class PollingService[T](ABC):
     def _setup_signal_handlers(self) -> None:
         """Register signal handlers for graceful shutdown."""
         for sig in (signal.SIGTERM, signal.SIGINT):
-            self._previous_handlers[sig] = signal.signal(sig, self._handle_shutdown)
+            self._previous_handlers[sig] = signal.signal(
+                sig, self._handle_shutdown
+            )
 
     def _restore_signal_handlers(self) -> None:
         """Restore previous signal handlers."""
@@ -116,11 +138,22 @@ class PollingService[T](ABC):
         self._previous_handlers.clear()
 
     async def _poll_cycle(self) -> None:
-        """Execute a single poll → audit → persist cycle."""
+        """Execute a single poll → audit → publish cycle, persisting in batches.
+
+        Only every persist_every-th reading is kept, and kept readings are
+        written together once per flush_interval_sec. Both cut SD card writes
+        by orders of magnitude at the cost of up to one interval of history
+        on power loss.
+        """
         reading = await self.poll()
-        if reading is not None:
-            if await self.audit(reading):
-                await self.persist(reading)
+        if reading is None or not await self.audit(reading):
+            return
+        self.publish(reading)
+        self._cycle += 1
+        if self._cycle % self.persist_every == 0:
+            self._buffer.append(reading)
+        if time.monotonic() - self._last_flush >= self.flush_interval_sec:
+            await self.flush()
 
     async def _run_loop(self) -> None:
         """Run the async polling loop with precise timing."""
@@ -145,6 +178,10 @@ class PollingService[T](ABC):
                     await asyncio.sleep(sleep_time)
         finally:
             self._logger.info("Cleaning up resources...")
+            try:
+                await self.flush()
+            except Exception:
+                self._logger.exception("Failed to flush readings on shutdown")
             await self.cleanup()
             self._logger.info("%s shutdown complete", self.name)
 

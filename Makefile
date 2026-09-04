@@ -1,6 +1,7 @@
 SHELL  = /bin/bash
 RPI    = rpi
 PICO   = pico
+DEPLOY_HOST ?= gardener
 
 .PHONY: help
 help:  ## Show this help menu
@@ -70,6 +71,10 @@ mpedit:  ## Edit remote Pico file (make mpedit file=main.py)
 mprestart:  ## Restart main.py script on the Pico
 	uv run mpremote soft-reset
 	uv run mpremote exec --no-follow 'import main'
+
+.PHONY: deploy
+deploy:  ## Provision the Pi, sync the code and restart the stack (make deploy DEPLOY_HOST=gardener)
+	scripts/deploy.sh $(DEPLOY_HOST)
 
 .PHONY: up
 up:  ## Start Docker services (RPi production)

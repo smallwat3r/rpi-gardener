@@ -139,26 +139,29 @@ class TestDHTPollingServicePersist:
         return DHTPollingService(mock_sensor, mock_publisher, alert_tracker)
 
     @pytest.mark.asyncio
-    async def test_persist_inserts_reading(self, service, sample_reading):
+    async def test_persist_inserts_batch(self, service, sample_reading):
         mock_db = AsyncMock()
-        mock_db.execute = AsyncMock()
-        mock_publisher = MagicMock()
 
         @asynccontextmanager
         async def mock_get_db():
             yield mock_db
 
-        service._publisher = mock_publisher
-
         with patch("rpi.dht.polling.get_db", mock_get_db):
-            await service.persist(sample_reading)
+            await service.persist([sample_reading, sample_reading])
 
-        mock_db.execute.assert_called_once()
-        call_args = mock_db.execute.call_args
-        params = call_args[0][1]
-        assert params[0] == sample_reading.temperature.value
-        assert params[1] == sample_reading.humidity.value
-        assert params[2] == int(sample_reading.recording_time.timestamp())
+        mock_db.executemany.assert_called_once()
+        rows = mock_db.executemany.call_args[0][1]
+        assert len(rows) == 2
+        assert rows[0] == (
+            sample_reading.temperature.value,
+            sample_reading.humidity.value,
+            int(sample_reading.recording_time.timestamp()),
+        )
+
+    def test_publish_emits_event(self, service, sample_reading):
+        mock_publisher = MagicMock()
+        service._publisher = mock_publisher
+        service.publish(sample_reading)
         mock_publisher.publish.assert_called_once()
 
 

@@ -44,11 +44,6 @@ class DHTPollingService(PollingService[Reading]):
         self._dht = sensor
         self._publisher = publisher
         self._alert_tracker = alert_tracker
-        self._reading = Reading(
-            Measure(0.0, Unit.CELSIUS),
-            Measure(0.0, Unit.PERCENT),
-            datetime.now(UTC),
-        )
 
     @override
     async def initialize(self) -> None:
@@ -73,16 +68,13 @@ class DHTPollingService(PollingService[Reading]):
         temperature = await asyncio.to_thread(lambda: self._dht.temperature)
         humidity = await asyncio.to_thread(lambda: self._dht.humidity)
 
-        self._reading.temperature.value = temperature
-        self._reading.humidity.value = humidity
-        self._reading.recording_time = datetime.now(UTC)
-
-        logger.info(
-            "Read %s, %s",
-            str(self._reading.temperature),
-            str(self._reading.humidity),
+        reading = Reading(
+            Measure(temperature, Unit.CELSIUS),
+            Measure(humidity, Unit.PERCENT),
+            datetime.now(UTC),
         )
-        return self._reading
+        logger.info("Read %s, %s", reading.temperature, reading.humidity)
+        return reading
 
     @override
     async def audit(self, reading: Reading) -> bool:
@@ -104,19 +96,25 @@ class DHTPollingService(PollingService[Reading]):
         return True
 
     @override
-    async def persist(self, reading: Reading) -> None:
-        """Persist the reading values into the database and publish event."""
+    async def persist(self, readings: list[Reading]) -> None:
+        """Persist a batch of readings into the database in one transaction."""
         async with get_db() as db:
-            await db.execute(
+            await db.executemany(
                 "INSERT INTO reading (temperature, humidity, recording_time) VALUES (?, ?, ?)",
-                (
-                    reading.temperature.value,
-                    reading.humidity.value,
-                    int(reading.recording_time.timestamp()),
-                ),
+                [
+                    (
+                        r.temperature.value,
+                        r.humidity.value,
+                        int(r.recording_time.timestamp()),
+                    )
+                    for r in readings
+                ],
             )
+        logger.debug("Persisted %d readings", len(readings))
 
-        # Publish to event bus for real-time SSE updates
+    @override
+    def publish(self, reading: Reading) -> None:
+        """Publish the reading to the event bus for real-time SSE updates."""
         event = DHTReadingEvent(
             temperature=reading.temperature.value,
             humidity=reading.humidity.value,

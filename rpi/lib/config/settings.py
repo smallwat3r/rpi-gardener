@@ -186,6 +186,10 @@ class PollingSettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     frequency_sec: int = 2
+    # Store every Nth reading (10s at 2s polling), batched into one commit per
+    # flush interval, to limit SD card wear. Live values still publish every poll.
+    persist_every: int = 5
+    flush_interval_sec: int = 60
 
 
 class CleanupSettings(BaseModel):

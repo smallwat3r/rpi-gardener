@@ -212,24 +212,28 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         return True
 
     @override
-    async def persist(self, readings: list[MoistureReading]) -> None:
-        """Persist moisture readings to the database and publish event."""
+    async def persist(self, batches: list[list[MoistureReading]]) -> None:
+        """Persist batches of moisture readings in one transaction."""
+        rows = [
+            {
+                "plant_id": r.plant_id,
+                "moisture": r.moisture,
+                "recording_time": int(r.recording_time.timestamp()),
+            }
+            for batch in batches
+            for r in batch
+        ]
         async with get_db() as db:
             await db.executemany(
                 "INSERT INTO pico_reading (plant_id, moisture, recording_time) "
                 "VALUES (:plant_id, :moisture, :recording_time)",
-                [
-                    {
-                        "plant_id": r.plant_id,
-                        "moisture": r.moisture,
-                        "recording_time": int(r.recording_time.timestamp()),
-                    }
-                    for r in readings
-                ],
+                rows,
             )
-        self._logger.debug("Persisted %d readings", len(readings))
+        self._logger.debug("Persisted %d readings", len(rows))
 
-        # Publish to event bus for real-time SSE updates
+    @override
+    def publish(self, readings: list[MoistureReading]) -> None:
+        """Publish readings to the event bus for real-time SSE updates."""
         events = [
             PicoReadingEvent(
                 plant_id=r.plant_id,

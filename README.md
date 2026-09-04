@@ -59,15 +59,21 @@ However, this project uses a Raspberry Pi Pico instead for several reasons:
 
 ### Deploy from your machine
 
-With SSH access to the Pi (Raspberry Pi OS, user with sudo), one command
-provisions the host, syncs the code and starts the stack:
+First create a `.env` in this checkout, see [Configure Environment](#3-configure-environment)
+for the values:
+
+    cp .env.example .env
+
+Then, with SSH access to the Pi (Raspberry Pi OS, user with sudo), one
+command provisions the host, syncs the code and starts the stack:
 
     make deploy DEPLOY_HOST=gardener
 
 Provisioning is idempotent and covers: I2C, a 50MB journald cap and swap off
 (both to limit SD card wear), Docker via get.docker.com, the docker group,
-and the monthly Tailscale cert renewal cron. A local `.env` is copied only
-if the Pi has none yet. Re-run `make deploy` to ship changes.
+and the monthly Tailscale cert renewal cron. Your `.env` is copied to the Pi
+on the first deploy only, later edits are made on the Pi. Re-run
+`make deploy` to ship code changes.
 
 The manual steps below are what `make deploy` does, for reference.
 

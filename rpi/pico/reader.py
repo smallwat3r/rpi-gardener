@@ -186,7 +186,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
                 f"plant-{r.plant_id}: {r.moisture}% (raw={r.raw})"
                 for r in readings
             )
-            self._logger.info("Read %s", summary)
+            self._logger.debug("Read %s", summary)
             return readings
         return None
 

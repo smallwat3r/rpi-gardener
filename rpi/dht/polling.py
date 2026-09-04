@@ -73,7 +73,7 @@ class DHTPollingService(PollingService[Reading]):
             Measure(humidity, Unit.PERCENT),
             datetime.now(UTC),
         )
-        logger.info("Read %s, %s", reading.temperature, reading.humidity)
+        logger.debug("Read %s, %s", reading.temperature, reading.humidity)
         return reading
 
     @override

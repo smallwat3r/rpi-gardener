@@ -13,7 +13,7 @@
 .heading {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-md);
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -114,7 +114,6 @@
   font-weight: 600;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
 }
 
 .unit {

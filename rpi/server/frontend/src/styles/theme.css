@@ -28,6 +28,7 @@
   --font-size-xs: 11px;
   --font-size-sm: 13px;
   --font-size-base: 15px;
+  --font-size-md: 17px;
   --font-size-lg: 22px;
   --font-size-xl: 30px;
 
@@ -45,6 +46,7 @@
   :root {
     --font-size-base: 14px;
     --font-size-sm: 12px;
+    --font-size-md: 16px;
     --font-size-lg: 19px;
     --font-size-xl: 26px;
     --spacing-md: 12px;

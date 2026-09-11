@@ -6,9 +6,6 @@ export async function getAdminSettings(): Promise<AdminSettings> {
     if (response.status === 401) {
       throw new Error('Unauthorized');
     }
-    if (response.status === 503) {
-      throw new Error('Admin not configured');
-    }
     throw new Error(`Failed to get settings: ${response.statusText}`);
   }
   return response.json();

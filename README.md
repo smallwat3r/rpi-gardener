@@ -109,9 +109,8 @@ Create a `.env` file:
 # SSL certificate (use your RPi's local IP)
 CERT_IP=192.168.1.100
 
-# Admin password for the settings UI (optional)
-# If set, enables the admin interface accessible via the gear icon
-# Login with username "admin" and this password
+# Admin password for the settings UI (optional, off by default)
+# When set, the settings UI asks for username "admin" and this password
 ADMIN_PASSWORD=your_secure_password
 
 # DHT22 thresholds (optional, these are defaults)
@@ -232,7 +231,7 @@ See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for common issues and solutions.
 This project is designed for local home networks:
 - HTTPS with self-signed certificates
 - Dashboard is publicly accessible (read-only)
-- Admin interface protected by HTTP Basic Auth (set `ADMIN_PASSWORD` to enable)
+- Settings UI is open by default, set `ADMIN_PASSWORD` to protect it with HTTP Basic Auth
 - Do not expose to the internet without additional security
 
 ## Remote access with Tailscale (optional)

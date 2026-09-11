@@ -28,7 +28,6 @@ export function AdminSettings({ onClose, onSave }: AdminSettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notConfigured, setNotConfigured] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -46,9 +45,6 @@ export function AdminSettings({ onClose, onSave }: AdminSettingsProps) {
           if (err.message === 'Unauthorized') {
             // Auth failed or was cancelled - close modal
             onCloseRef();
-          } else if (err.message === 'Admin not configured') {
-            setNotConfigured(true);
-            setLoading(false);
           } else {
             setError(err.message);
             setLoading(false);
@@ -143,10 +139,6 @@ export function AdminSettings({ onClose, onSave }: AdminSettingsProps) {
 
   if (loading) {
     return <div class={styles.loading}>Loading settings...</div>;
-  }
-
-  if (notConfigured) {
-    return <div class={styles.notConfigured}>Admin not configured. Set ADMIN_PASSWORD in .env</div>;
   }
 
   return (

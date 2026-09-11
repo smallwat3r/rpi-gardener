@@ -3,6 +3,7 @@
 import base64
 
 from starlette.requests import Request
+from starlette.responses import Response
 
 from rpi.server.auth import (
     _parse_basic_auth,
@@ -123,3 +124,43 @@ class TestBasicAuthParsing:
         request = self._make_request(f"Basic {credentials}")
 
         assert _parse_basic_auth(request) == password
+
+
+class TestRequireAuthOptIn:
+    """Auth is opt-in: no stored password means the endpoint is open."""
+
+    async def test_no_password_configured_allows_request(self, monkeypatch):
+        from unittest.mock import AsyncMock
+
+        import rpi.lib.db as db
+        from rpi.server.auth import require_auth
+
+        monkeypatch.setattr(
+            db, "get_admin_password_hash", AsyncMock(return_value=None)
+        )
+
+        @require_auth
+        async def handler(request: Request) -> Response:
+            return Response("ok", status_code=200)
+
+        response = await handler(Request({"type": "http", "headers": []}))
+        assert response.status_code == 200
+
+    async def test_password_configured_requires_auth(self, monkeypatch):
+        from unittest.mock import AsyncMock
+
+        import rpi.lib.db as db
+        from rpi.server.auth import hash_password, require_auth
+
+        monkeypatch.setattr(
+            db,
+            "get_admin_password_hash",
+            AsyncMock(return_value=hash_password("secret")),
+        )
+
+        @require_auth
+        async def handler(request: Request) -> Response:
+            return Response("ok", status_code=200)
+
+        response = await handler(Request({"type": "http", "headers": []}))
+        assert response.status_code == 401

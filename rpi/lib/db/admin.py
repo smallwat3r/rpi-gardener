@@ -40,9 +40,8 @@ async def init_admin_password() -> None:
 
     admin_password = environ.get("ADMIN_PASSWORD", "")
     if not admin_password:
-        _logger.warning(
-            "No admin password configured. Set ADMIN_PASSWORD in .env to enable "
-            "admin UI."
+        _logger.info(
+            "ADMIN_PASSWORD not set, settings UI is open without auth"
         )
         return
 

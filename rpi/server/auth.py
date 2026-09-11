@@ -1,5 +1,6 @@
 """Basic authentication utilities for the admin interface."""
 
+import asyncio
 import base64
 import hashlib
 import secrets
@@ -8,7 +9,7 @@ from contextlib import suppress
 from functools import wraps
 
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 
 # Realm shown in browser's auth dialog
 AUTH_REALM = "rpi-gardener admin"
@@ -68,7 +69,11 @@ def _unauthorized_response() -> Response:
 def require_auth[R: Response](
     handler: Callable[[Request], Awaitable[R]],
 ) -> Callable[[Request], Awaitable[Response]]:
-    """Decorator to require basic authentication for an endpoint."""
+    """Require basic auth for an endpoint, only when a password is set.
+
+    Auth is opt-in: with no admin password stored (ADMIN_PASSWORD unset),
+    the endpoint is open. This is a local network home dashboard.
+    """
 
     @wraps(handler)
     async def wrapper(request: Request) -> Response:
@@ -76,12 +81,13 @@ def require_auth[R: Response](
 
         stored_hash = await get_admin_password_hash()
         if stored_hash is None:
-            return JSONResponse(
-                {"error": "Admin not configured"}, status_code=503
-            )
+            return await handler(request)
 
         password = _parse_basic_auth(request)
-        if password is None or not verify_password(password, stored_hash):
+        # scrypt takes ~100ms on a Pi, keep it off the event loop
+        if password is None or not await asyncio.to_thread(
+            verify_password, password, stored_hash
+        ):
             return _unauthorized_response()
 
         return await handler(request)

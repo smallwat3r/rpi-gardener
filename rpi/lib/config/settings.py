@@ -472,11 +472,11 @@ class Settings(BaseSettings):
 
 # Settings override for testing - allows injecting custom Settings without
 # modifying environment variables or clearing the lru_cache.
-_settings_override: Settings | None = None
+settings_override: Settings | None = None
 
 
 @lru_cache(maxsize=1)
-def _load_settings() -> Settings:
+def load_settings() -> Settings:
     """Load settings from environment (cached)."""
     return Settings()
 
@@ -488,9 +488,9 @@ def get_settings() -> Settings:
     variables (cached after first load). For testing, use set_settings()
     from rpi.lib.config.testing to override.
     """
-    if _settings_override is not None:
-        return _settings_override
-    return _load_settings()
+    if settings_override is not None:
+        return settings_override
+    return load_settings()
 
 
 def parse_pico_plant_id(raw_id: str) -> int | None:

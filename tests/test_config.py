@@ -208,8 +208,8 @@ class TestGetSettings:
     """Tests for global settings management."""
 
     def test_get_settings_lazy_initialization(self):
-        config_settings._settings_override = None
-        config_settings._load_settings.cache_clear()
+        config_settings.settings_override = None
+        config_settings.load_settings.cache_clear()
 
         settings = get_settings()
 
@@ -218,7 +218,7 @@ class TestGetSettings:
 
     def test_get_settings_uses_override(self):
         custom = Settings(db_path="custom.db")
-        config_settings._settings_override = custom
+        config_settings.settings_override = custom
 
         assert get_settings().db_path == "custom.db"
 

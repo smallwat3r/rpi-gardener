@@ -28,7 +28,7 @@ async def set_admin_password_hash(password_hash: str) -> None:
         )
 
 
-async def _init_admin_password() -> None:
+async def init_admin_password() -> None:
     """Initialize admin password from ADMIN_PASSWORD env var if not already set."""
     from os import environ
 

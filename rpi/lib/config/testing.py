@@ -5,7 +5,7 @@ be imported in production code.
 """
 
 import rpi.lib.config.settings as _settings_module
-from rpi.lib.config.settings import Settings, _load_settings
+from rpi.lib.config.settings import Settings, load_settings
 
 
 def set_settings(settings: Settings | None) -> None:
@@ -17,5 +17,5 @@ def set_settings(settings: Settings | None) -> None:
     Args:
         settings: Settings instance to use, or None to clear override.
     """
-    _settings_module._settings_override = settings
-    _load_settings.cache_clear()
+    _settings_module.settings_override = settings
+    load_settings.cache_clear()

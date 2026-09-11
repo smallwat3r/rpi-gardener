@@ -58,7 +58,7 @@ _SQL_DIR = Path(__file__).resolve().parent.parent / "sql"
 
 
 @cache
-def _load_template(name: str) -> str:
+def load_template(name: str) -> str:
     """Load and cache a SQL template file.
 
     Templates are lazy-loaded on first access and cached for subsequent calls.
@@ -291,7 +291,7 @@ async def init_db() -> None:
     connection reused by all get_db() calls. For web server (no init_db),
     get_db() uses the connection pool instead.
     """
-    from .admin import _init_admin_password
+    from .admin import init_admin_password
 
     global _persistent
     if _persistent is None:
@@ -302,13 +302,13 @@ async def init_db() -> None:
         )
 
     await _persistent.execute_pragma("PRAGMA auto_vacuum=INCREMENTAL")
-    await _persistent.execute(_load_template("init_reading_table.sql"))
-    await _persistent.executescript(_load_template("idx_reading.sql"))
-    await _persistent.execute(_load_template("init_pico_reading_table.sql"))
-    await _persistent.executescript(_load_template("idx_pico_reading.sql"))
-    await _persistent.execute(_load_template("init_settings_table.sql"))
-    await _persistent.execute(_load_template("init_admin_table.sql"))
-    await _init_admin_password()
+    await _persistent.execute(load_template("init_reading_table.sql"))
+    await _persistent.executescript(load_template("idx_reading.sql"))
+    await _persistent.execute(load_template("init_pico_reading_table.sql"))
+    await _persistent.executescript(load_template("idx_pico_reading.sql"))
+    await _persistent.execute(load_template("init_settings_table.sql"))
+    await _persistent.execute(load_template("init_admin_table.sql"))
+    await init_admin_password()
 
 
 async def close_db() -> None:

@@ -26,13 +26,19 @@ export interface PicoChartDataPoint {
   [plantId: string]: number;
 }
 
+/** Shape of /api/dashboard. Chart arrays are bucketed to ~500 points. */
 export interface DashboardData {
   hours: number;
+  bucket_sec: number;
   data: DHTReading[];
-  stats: DHTStats | null;
   latest: DHTReading | null;
   pico_data: PicoChartDataPoint[];
   pico_latest: PicoReading[];
+}
+
+/** Dashboard data plus stats derived client side from the chart data. */
+export interface DashboardView extends DashboardData {
+  stats: DHTStats | null;
 }
 
 export interface Thresholds {

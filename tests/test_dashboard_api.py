@@ -21,7 +21,6 @@ class TestGetDashboard:
     def _make_mock_db(
         self,
         dht_data=None,
-        stats=None,
         latest=None,
         pico_data=None,
         pico_latest=None,
@@ -37,7 +36,7 @@ class TestGetDashboard:
                 pico_data or [],
                 pico_latest or [],
             ]
-            mock_db.fetchone.side_effect = [stats or {}, latest]
+            mock_db.fetchone.return_value = latest
 
         @asynccontextmanager
         async def mock_get_db():
@@ -50,22 +49,21 @@ class TestGetDashboard:
         """Should return dashboard data with default hours."""
         mock_get_db = self._make_mock_db(
             dht_data=[{"temperature": 22.0, "humidity": 55.0, "epoch": 1000}],
-            stats={"avg_temp": 22.0},
             latest={"temperature": 22.5},
             pico_data=[{"epoch": 1000, "plants": '{"1": 50.0}'}],
             pico_latest=[{"plant_id": 1, "moisture": 50.0}],
         )
 
-        with patch("rpi.server.api.dashboard.get_db", mock_get_db):
+        with patch("rpi.lib.db.queries.get_db", mock_get_db):
             response = await get_dashboard(self._make_request())
 
         assert response.status_code == 200
         body = bytes(response.body)
         assert b"hours" in body
         assert b"data" in body
-        assert b"stats" in body
+        assert b"bucket_sec" in body
         assert b"latest" in body
-        assert b"pico_data" in body
+        assert b'"pico_data":[{"epoch":1000,"1":50.0}]' in body
         assert b"pico_latest" in body
 
     @pytest.mark.asyncio
@@ -73,7 +71,7 @@ class TestGetDashboard:
         """Should accept custom hours parameter."""
         mock_get_db = self._make_mock_db()
 
-        with patch("rpi.server.api.dashboard.get_db", mock_get_db):
+        with patch("rpi.lib.db.queries.get_db", mock_get_db):
             response = await get_dashboard(self._make_request({"hours": "12"}))
 
         assert response.status_code == 200
@@ -102,7 +100,7 @@ class TestGetDashboard:
         """Should return 503 when database is unavailable."""
         mock_get_db = self._make_mock_db(raise_error=True)
 
-        with patch("rpi.server.api.dashboard.get_db", mock_get_db):
+        with patch("rpi.lib.db.queries.get_db", mock_get_db):
             response = await get_dashboard(self._make_request())
 
         assert response.status_code == 503

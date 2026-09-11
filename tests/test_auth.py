@@ -164,3 +164,32 @@ class TestRequireAuthOptIn:
 
         response = await handler(Request({"type": "http", "headers": []}))
         assert response.status_code == 401
+
+
+class TestInitAdminPassword:
+    """The env var is the source of truth for the stored hash."""
+
+    async def test_unset_removes_stored_hash(self, monkeypatch):
+        from rpi.lib.db import get_admin_password_hash, set_admin_password_hash
+        from rpi.lib.db.admin import init_admin_password
+
+        await set_admin_password_hash(hash_password("old"))
+        monkeypatch.delenv("ADMIN_PASSWORD", raising=False)
+
+        await init_admin_password()
+
+        assert await get_admin_password_hash() is None
+
+    async def test_set_replaces_stored_hash(self, monkeypatch):
+        from rpi.lib.db import get_admin_password_hash, set_admin_password_hash
+        from rpi.lib.db.admin import init_admin_password
+        from rpi.server.auth import verify_password
+
+        await set_admin_password_hash(hash_password("old"))
+        monkeypatch.setenv("ADMIN_PASSWORD", "new")
+
+        await init_admin_password()
+
+        stored = await get_admin_password_hash()
+        assert stored is not None
+        assert verify_password("new", stored)

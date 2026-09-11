@@ -15,7 +15,6 @@
 
 .title {
   font-family: var(--font-display);
-  font-style: italic;
   font-weight: 500;
   font-size: var(--font-size-xl);
   letter-spacing: -0.01em;

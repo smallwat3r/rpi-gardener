@@ -55,7 +55,6 @@
 .title {
   margin: 0;
   font-family: var(--font-display);
-  font-style: italic;
   font-size: var(--font-size-lg);
   font-weight: 500;
   color: var(--color-text);

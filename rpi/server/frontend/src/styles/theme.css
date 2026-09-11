@@ -22,7 +22,7 @@
   --color-humidity: #85b8c4;
   --color-moisture: #a6c36f;
 
-  --font-display: "Fraunces", Georgia, serif;
+  --font-display: var(--font-mono);
   --font-mono: "ocrab", ui-monospace, "SF Mono", Menlo, monospace;
 
   --font-size-xs: 11px;

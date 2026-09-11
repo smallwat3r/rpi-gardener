@@ -1,11 +1,4 @@
-/* Self-hosted latin subsets, see assets/fonts/LICENSE.txt */
-@font-face {
-  font-family: "Fraunces";
-  font-style: italic;
-  font-weight: 500 600;
-  font-display: swap;
-  src: url("../assets/fonts/fraunces-italic-500.woff2") format("woff2");
-}
+/* Self-hosted, see assets/fonts/LICENSE.txt */
 /* Single weight, the range keeps 500/600 usages on this file with no faux bold */
 @font-face {
   font-family: "ocrab";

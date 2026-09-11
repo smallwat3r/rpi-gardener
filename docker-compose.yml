@@ -47,6 +47,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Docker masks /sys/firmware in unprivileged containers, which hides
+    # /proc/device-tree and stops Blinka and RPi.GPIO recognising the Pi.
+    # Unmasking it is all that the old privileged mode was needed for.
+    security_opt:
+      - systempaths=unconfined
     # Host gids for /dev/gpiochip0 and /dev/i2c-1, exported by scripts/deploy.sh
     group_add:
       - "${GPIO_GID:-993}"

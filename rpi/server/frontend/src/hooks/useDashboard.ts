@@ -47,12 +47,12 @@ function computeStats(readings: DHTReading[]): DHTStats | null {
     hMin = Math.min(hMin, r.humidity);
     hMax = Math.max(hMax, r.humidity);
   }
-  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const round1 = (n: number) => Math.round(n * 10) / 10;
   return {
-    avg_temperature: round2(tSum / readings.length),
+    avg_temperature: round1(tSum / readings.length),
     min_temperature: tMin,
     max_temperature: tMax,
-    avg_humidity: round2(hSum / readings.length),
+    avg_humidity: round1(hSum / readings.length),
     min_humidity: hMin,
     max_humidity: hMax,
   };

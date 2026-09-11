@@ -69,12 +69,8 @@ def alert_tracker():
 @pytest.fixture(autouse=True)
 def reset_settings():
     """Reset global settings after each test to avoid cross-test pollution."""
-    from rpi.lib.db.settings import _invalidate_settings_cache
-
-    _invalidate_settings_cache()
     yield
     set_settings(None)
-    _invalidate_settings_cache()
 
 
 @pytest.fixture(autouse=True)

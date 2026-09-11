@@ -2,22 +2,22 @@
 
 import logging
 import sys
-from functools import lru_cache
 
 LOG_FORMAT = "%(asctime)s %(name)s %(levelname)s - %(message)s"
 
 
-@lru_cache(maxsize=1)
 def configure(level: int = logging.INFO) -> None:
     """Configure logging for the application.
 
-    Safe to call multiple times - only configures once (cached).
+    Safe to call multiple times, the handler is only attached once.
     """
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(logging.Formatter(LOG_FORMAT))
-
     root = logging.getLogger("rpi")
     root.setLevel(level)
+    if root.handlers:
+        return
+
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
     root.addHandler(handler)
 
     # Configure uvicorn root logger to use the same format

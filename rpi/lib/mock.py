@@ -98,7 +98,8 @@ class MockPicoDataSource:
         await asyncio.sleep(self._frequency_sec)
 
         data = {
-            plant_id.key: self._generate_reading(plant_id) for plant_id in PlantId
+            plant_id.key: self._generate_reading(plant_id)
+            for plant_id in PlantId
         }
         return json.dumps(data)
 

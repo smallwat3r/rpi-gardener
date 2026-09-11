@@ -63,7 +63,9 @@ async def lifespan(app: Starlette) -> AsyncIterator[None]:
 
     # Subscribe only to humidifier state to store it for new connections
     async with EventSubscriber(topics=[Topic.HUMIDIFIER_STATE]) as subscriber:
-        subscriber_task = asyncio.create_task(_humidifier_state_task(subscriber))
+        subscriber_task = asyncio.create_task(
+            _humidifier_state_task(subscriber)
+        )
         _logger.info("Humidifier state subscriber started")
 
         try:

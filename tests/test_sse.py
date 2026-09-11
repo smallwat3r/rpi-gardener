@@ -16,7 +16,9 @@ class TestSSEEndpoints:
         return request
 
     @pytest.mark.asyncio
-    async def test_sse_dht_latest_returns_streaming_response(self, mock_request):
+    async def test_sse_dht_latest_returns_streaming_response(
+        self, mock_request
+    ):
         """DHT SSE endpoint should return StreamingResponse."""
         from rpi.server.sse import sse_dht_latest
 
@@ -30,7 +32,9 @@ class TestSSEEndpoints:
             assert response.media_type == "text/event-stream"
 
     @pytest.mark.asyncio
-    async def test_sse_pico_latest_returns_streaming_response(self, mock_request):
+    async def test_sse_pico_latest_returns_streaming_response(
+        self, mock_request
+    ):
         """Pico SSE endpoint should return StreamingResponse."""
         from rpi.server.sse import sse_pico_latest
 
@@ -53,7 +57,10 @@ class TestSSEEndpoints:
         with patch(
             "rpi.server.sse._get_last_humidifier_state",
             new_callable=AsyncMock,
-            return_value={"is_on": True, "recording_time": "2024-01-01 12:00:00"},
+            return_value={
+                "is_on": True,
+                "recording_time": "2024-01-01 12:00:00",
+            },
         ):
             response = await sse_humidifier_state(mock_request)
             assert response is not None
@@ -82,7 +89,9 @@ class TestEventGenerator:
             return
             yield  # Make it an async generator
 
-        with patch("rpi.server.sse._subscribe_to_topic", return_value=empty_gen()):
+        with patch(
+            "rpi.server.sse._subscribe_to_topic", return_value=empty_gen()
+        ):
             gen = _event_generator(
                 mock_request, "/test", Topic.DHT_READING, initial_data
             )
@@ -114,7 +123,8 @@ class TestEventGenerator:
                 yield {"data": "test"}
 
         with patch(
-            "rpi.server.sse._subscribe_to_topic", return_value=infinite_events()
+            "rpi.server.sse._subscribe_to_topic",
+            return_value=infinite_events(),
         ):
             gen = _event_generator(
                 mock_request, "/test", Topic.DHT_READING, {"initial": "data"}

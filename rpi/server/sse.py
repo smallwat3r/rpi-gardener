@@ -128,7 +128,9 @@ async def _get_last_humidifier_state() -> dict[str, Any] | None:
                 parsed = json.loads(data)
                 if isinstance(parsed, dict):
                     return parsed
-                _logger.warning("Humidifier state is not a dict: %s", type(parsed))
+                _logger.warning(
+                    "Humidifier state is not a dict: %s", type(parsed)
+                )
     except (aioredis.RedisError, OSError, json.JSONDecodeError) as e:
         _logger.warning("Failed to fetch humidifier state: %s", e)
     return None
@@ -142,6 +144,9 @@ async def sse_humidifier_state(request: Request) -> StreamingResponse:
     initial_data = await _get_last_humidifier_state()
     return _sse_response(
         _event_generator(
-            request, "/sse/humidifier/state", Topic.HUMIDIFIER_STATE, initial_data
+            request,
+            "/sse/humidifier/state",
+            Topic.HUMIDIFIER_STATE,
+            initial_data,
         )
     )

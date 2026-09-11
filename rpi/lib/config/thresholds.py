@@ -21,7 +21,9 @@ type _ThresholdRule = tuple[ThresholdType, int, float]
 """Threshold rule: (type, value, hysteresis)."""
 
 
-async def get_threshold_rules_async() -> dict[MeasureName, tuple[_ThresholdRule, ...]]:
+async def get_threshold_rules_async() -> dict[
+    MeasureName, tuple[_ThresholdRule, ...]
+]:
     """Get threshold rules with DB overrides applied.
 
     This checks the database for runtime setting changes made via

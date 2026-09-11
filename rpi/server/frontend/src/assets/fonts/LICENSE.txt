@@ -1,0 +1,5 @@
+Fraunces (Copyright 2020 The Fraunces Project Authors,
+https://github.com/undercasetype/Fraunces, latin subset served by Google
+Fonts) and ocrab (https://github.com/smallwat3r/ocrab-font) are both
+licensed under the SIL Open Font License, Version 1.1,
+https://openfontlicense.org.

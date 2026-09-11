@@ -13,11 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 RUN pip install --no-cache-dir uv
-COPY pyproject.toml ./
-RUN python -m venv /opt/venv \
-    && . /opt/venv/bin/activate \
-    && uv pip install --no-cache ".[hardware]" \
-    && uv pip install --no-cache supervisor
+COPY pyproject.toml uv.lock ./
+# Install from the lock file for reproducible builds, the project itself is
+# run from /app via python -m so it is not installed
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+RUN uv sync --frozen --no-install-project --no-dev --extra hardware \
+    && uv pip install --python /opt/venv/bin/python --no-cache supervisor
 
 # Runtime
 FROM python:3.14-slim-bookworm AS runtime

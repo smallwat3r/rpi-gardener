@@ -13,8 +13,9 @@ ssh "$host" 'sudo sh -s' < scripts/provision.sh
 
 echo "==> syncing code"
 rsync -az --delete --exclude .git --exclude-from .gitignore ./ "$host:$dir/"
+# The local .env is the source of truth, it replaces the one on the Pi
 if [ -f .env ]; then
-    rsync -a --ignore-existing .env "$host:$dir/"
+    rsync -a .env "$host:$dir/"
 fi
 ssh "$host" "test -f $dir/.env" || {
     echo "no .env on $host, copy .env.example to $dir/.env there and edit it" >&2

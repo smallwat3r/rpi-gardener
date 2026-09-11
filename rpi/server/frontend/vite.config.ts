@@ -22,14 +22,9 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
-      '/pico': {
+      '/sse': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-      },
-      '/dht': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-        ws: true,
       },
     },
   },

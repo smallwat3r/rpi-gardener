@@ -122,6 +122,13 @@ export function useDashboard(initialHours: number = 24) {
     loadData();
   }, [loadData]);
 
+  // Retry while the API is down, so a page opened mid-deploy recovers by itself
+  useEffect(() => {
+    if (!error) return;
+    const timer = window.setTimeout(loadData, 5000);
+    return () => clearTimeout(timer);
+  }, [error, loadData]);
+
   const handleDhtLatest = useCallback(
     (reading: DHTReading | null) => {
       if (!reading || reading.epoch === lastDhtEpoch.current) return;

@@ -29,7 +29,7 @@ class _Stub(PollingService[int]):
         return True
 
     @override
-    def publish(self, reading: int) -> None:
+    async def publish(self, reading: int) -> None:
         self.published.append(reading)
 
     @override

@@ -12,9 +12,9 @@ from collections.abc import Callable
 from types import FrameType
 
 from rpi.lib.config import get_settings
+from rpi.logging import get_logger
 
 type _SignalHandler = Callable[[int, FrameType | None], None] | int | None
-from rpi.logging import get_logger
 
 logger = get_logger("lib.polling")
 
@@ -37,11 +37,16 @@ class PollingService[T](ABC):
 
         Args:
             name: Service name for logging.
-            frequency_sec: Polling frequency in seconds.
+            frequency_sec: Polling frequency in seconds. Use 0 when poll()
+                blocks on the source (a serial line) and paces the loop itself.
         """
         self.name = name
         polling_cfg = get_settings().polling
-        self.frequency_sec = frequency_sec or polling_cfg.frequency_sec
+        self.frequency_sec = (
+            polling_cfg.frequency_sec
+            if frequency_sec is None
+            else frequency_sec
+        )
         self.persist_every = polling_cfg.persist_every
         self.flush_interval_sec = polling_cfg.flush_interval_sec
         self._cycle = 0
@@ -87,7 +92,7 @@ class PollingService[T](ABC):
         """
 
     @abstractmethod
-    def publish(self, reading: T) -> None:
+    async def publish(self, reading: T) -> None:
         """Publish the reading to the event bus for live consumers.
 
         Called every cycle, unlike persist() which is batched.
@@ -148,7 +153,7 @@ class PollingService[T](ABC):
         reading = await self.poll()
         if reading is None or not await self.audit(reading):
             return
-        self.publish(reading)
+        await self.publish(reading)
         self._cycle += 1
         if self._cycle % self.persist_every == 0:
             self._buffer.append(reading)

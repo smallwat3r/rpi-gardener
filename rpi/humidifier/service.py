@@ -59,7 +59,7 @@ async def _handle_humidity_event(
         is_on = True
 
     if success:
-        publisher.publish(
+        await publisher.publish(
             HumidifierStateEvent(is_on=is_on, recording_time=datetime.now(UTC))
         )
 
@@ -75,18 +75,18 @@ async def run() -> None:
     # turn_off_on_close ensures humidifier is OFF when service stops
     controller = create_smartplug_controller(cfg.host, turn_off_on_close=True)
 
-    with EventPublisher() as publisher:
-        async with (
-            controller,
-            EventSubscriber(topics=[Topic.ALERT]) as subscriber,
-        ):
-            logger.info("Humidifier service started")
-            async for _topic, data in subscriber.receive():
-                event = safe_parse_alert_event(data)
-                if event is None:
-                    continue
-                if _is_low_humidity_alert(event):
-                    await _handle_humidity_event(event, controller, publisher)
+    async with (
+        EventPublisher() as publisher,
+        controller,
+        EventSubscriber(topics=[Topic.ALERT]) as subscriber,
+    ):
+        logger.info("Humidifier service started")
+        async for _topic, data in subscriber.receive():
+            event = safe_parse_alert_event(data)
+            if event is None:
+                continue
+            if _is_low_humidity_alert(event):
+                await _handle_humidity_event(event, controller, publisher)
 
     logger.info("Humidifier service stopped")
 

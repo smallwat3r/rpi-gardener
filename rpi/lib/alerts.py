@@ -7,12 +7,11 @@ transitions (to prevent notification spam).
 Uses hysteresis to prevent flapping when values oscillate around thresholds.
 Uses confirmation window to require consecutive readings before state change.
 
-Async-safe: Uses asyncio.Lock to protect shared state when accessed from
-multiple async contexts without blocking the event loop.
+Not locked: each polling process owns one tracker and calls check() from a
+single task.
 """
 
-import asyncio
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
@@ -98,8 +97,8 @@ class _ThresholdCheck:
         return self.value <= self.threshold - self.hysteresis
 
 
-type AlertCallback = Callable[[AlertEvent], None]
-"""Callback invoked when an alert state transition occurs."""
+type AlertCallback = Callable[[AlertEvent], Awaitable[None]]
+"""Async callback invoked when an alert state transition occurs."""
 
 
 class _ConfirmationTracker:
@@ -136,16 +135,6 @@ class _ConfirmationTracker:
             return True
         return False
 
-    def reset(self, key: _AlertKey) -> None:
-        """Reset pending count for a specific key."""
-        self._pending_counts.pop(key, None)
-
-    def reset_matching(self, predicate: Callable[[_AlertKey], bool]) -> None:
-        """Reset pending counts for all keys matching the predicate."""
-        to_delete = [k for k in self._pending_counts if predicate(k)]
-        for k in to_delete:
-            self._pending_counts.pop(k, None)
-
 
 class AlertTracker:
     """Tracks alert states per sensor/threshold and triggers callbacks on transitions.
@@ -159,8 +148,6 @@ class AlertTracker:
     triggering false alerts.
 
     Supports multiple namespaces (DHT, Pico) to keep sensor states organized.
-
-    Async-safe: All state mutations are protected by an asyncio.Lock.
     """
 
     def __init__(self, confirmation_count: int | None = None) -> None:
@@ -170,7 +157,6 @@ class AlertTracker:
             confirmation_count: Number of consecutive readings required to
                 confirm a state change. If None, uses config default.
         """
-        self._lock: asyncio.Lock | None = None
         self._states: dict[_AlertKey, AlertState] = {}
         self._callbacks: dict[Namespace, AlertCallback] = {}
         count = (
@@ -180,34 +166,11 @@ class AlertTracker:
         )
         self._confirmations = _ConfirmationTracker(count)
 
-    def _get_lock(self) -> asyncio.Lock:
-        """Get or create the async lock.
-
-        The lock is lazily initialized on first use rather than in __init__
-        because asyncio.Lock() binds to the current event loop at creation time.
-        Since AlertTracker instances may be created before the event loop is
-        running (e.g., at module import or in test setup), creating the lock
-        eagerly would either fail or bind to a different loop than the one used
-        at runtime.
-
-        Lazy initialization ensures the lock is created within the correct
-        event loop context when first accessed by an async method.
-        """
-        if self._lock is None:
-            self._lock = asyncio.Lock()
-        return self._lock
-
-    async def register_callback(
+    def register_callback(
         self, namespace: Namespace, callback: AlertCallback
     ) -> None:
-        """Register a callback for a specific namespace.
-
-        Args:
-            namespace: The namespace to register for.
-            callback: Function called when a sensor transitions state.
-        """
-        async with self._get_lock():
-            self._callbacks[namespace] = callback
+        """Register the async callback called on state transitions."""
+        self._callbacks[namespace] = callback
         logger.debug(
             "Registered alert callback for namespace %s", namespace.value
         )
@@ -241,7 +204,7 @@ class AlertTracker:
             return desired  # type: ignore[return-value]
         return current
 
-    def _handle_transition(
+    async def _handle_transition(
         self,
         check: _ThresholdCheck,
         previous: AlertState,
@@ -270,7 +233,7 @@ class AlertTracker:
             )
 
         if callback:
-            callback(
+            await callback(
                 AlertEvent(
                     namespace=check.namespace,
                     sensor_name=check.sensor_name,
@@ -311,59 +274,24 @@ class AlertTracker:
         )
         key = self._make_key(check)
 
-        async with self._get_lock():
-            previous_state = self._states.get(key, AlertState.OK)
-            new_state = self._compute_new_state(check, key, previous_state)
-            self._states[key] = new_state
-            callback = self._callbacks.get(namespace)
-
-        # Call callback outside of lock to prevent deadlocks
-        self._handle_transition(check, previous_state, new_state, callback)
+        previous_state = self._states.get(key, AlertState.OK)
+        new_state = self._compute_new_state(check, key, previous_state)
+        self._states[key] = new_state
+        await self._handle_transition(
+            check, previous_state, new_state, self._callbacks.get(namespace)
+        )
         return new_state
 
-    async def get_state(
+    def get_state(
         self,
         namespace: Namespace,
         sensor_name: _SensorName,
         threshold_type: ThresholdType,
     ) -> AlertState:
         """Get current alert state for a sensor threshold."""
-        key: _AlertKey = (namespace, sensor_name, threshold_type)
-        async with self._get_lock():
-            return self._states.get(key, AlertState.OK)
-
-    def _key_matches(
-        self,
-        key: _AlertKey,
-        namespace: Namespace | None,
-        sensor_name: _SensorName | None,
-        threshold_type: ThresholdType | None,
-    ) -> bool:
-        """Check if a key matches the given filter criteria."""
-        if namespace is not None and key[0] != namespace:
-            return False
-        if sensor_name is not None and key[1] != sensor_name:
-            return False
-        return threshold_type is None or key[2] == threshold_type
-
-    async def reset(
-        self,
-        namespace: Namespace | None = None,
-        sensor_name: _SensorName | None = None,
-        threshold_type: ThresholdType | None = None,
-    ) -> None:
-        """Reset alert state and pending counts matching the filter criteria.
-
-        All parameters are optional filters. If all are None, clears everything.
-        """
-        def matches(k: _AlertKey) -> bool:
-            return self._key_matches(k, namespace, sensor_name, threshold_type)
-
-        async with self._get_lock():
-            to_delete = [k for k in self._states if matches(k)]
-            for k in to_delete:
-                self._states.pop(k, None)
-            self._confirmations.reset_matching(matches)
+        return self._states.get(
+            (namespace, sensor_name, threshold_type), AlertState.OK
+        )
 
 
 def create_alert_publisher(publisher: EventPublisher) -> AlertCallback:
@@ -377,7 +305,7 @@ def create_alert_publisher(publisher: EventPublisher) -> AlertCallback:
     """
     from rpi.lib.eventbus import AlertEventPayload
 
-    def publish_alert(event: AlertEvent) -> None:
+    async def publish_alert(event: AlertEvent) -> None:
         payload = AlertEventPayload(
             namespace=event.namespace.value,
             sensor_name=event.sensor_name,
@@ -387,22 +315,9 @@ def create_alert_publisher(publisher: EventPublisher) -> AlertCallback:
             recording_time=event.recording_time,
             is_resolved=event.is_resolved,
         )
-        publisher.publish(payload)
+        await publisher.publish(payload)
 
     return publish_alert
-
-
-async def setup_alert_publisher(
-    tracker: AlertTracker,
-    namespace: Namespace,
-    publisher: EventPublisher,
-) -> None:
-    """Register an alert publisher callback with the tracker.
-
-    Shared helper for DHT and Pico polling services to register
-    their alert callbacks consistently.
-    """
-    await tracker.register_callback(namespace, create_alert_publisher(publisher))
 
 
 def safe_parse_alert_event(data: dict[str, object]) -> AlertEvent | None:

@@ -211,20 +211,20 @@ class TestAuditReading:
 
         # Temperature is above max threshold
         assert (
-            await alert_tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.DHT, "temperature", ThresholdType.MAX
             )
             == AlertState.IN_ALERT
         )
         # Humidity is within normal range (neither MIN nor MAX violated)
         assert (
-            await alert_tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.DHT, "humidity", ThresholdType.MIN
             )
             == AlertState.OK
         )
         assert (
-            await alert_tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.DHT, "humidity", ThresholdType.MAX
             )
             == AlertState.OK

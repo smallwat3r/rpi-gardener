@@ -11,7 +11,7 @@ from typing import Protocol, override
 
 from rpi.dht.audit import audit_reading
 from rpi.dht.models import Measure, Reading
-from rpi.lib.alerts import AlertTracker, Namespace, setup_alert_publisher
+from rpi.lib.alerts import AlertTracker, Namespace, create_alert_publisher
 from rpi.lib.config import DHT22_BOUNDS, MeasureName, Unit
 from rpi.lib.db import close_db, get_db, init_db
 from rpi.lib.eventbus import DHTReadingEvent, EventPublisher
@@ -49,16 +49,16 @@ class DHTPollingService(PollingService[Reading]):
     async def initialize(self) -> None:
         """Initialize database and register alert callback."""
         await init_db()
-        self._publisher.connect()
-        await setup_alert_publisher(
-            self._alert_tracker, Namespace.DHT, self._publisher
+        await self._publisher.connect()
+        self._alert_tracker.register_callback(
+            Namespace.DHT, create_alert_publisher(self._publisher)
         )
 
     @override
     async def cleanup(self) -> None:
         """Clean up DHT22 sensor, event publisher, and database."""
         self._dht.exit()
-        self._publisher.close()
+        await self._publisher.close()
         await close_db()
 
     @override
@@ -113,14 +113,14 @@ class DHTPollingService(PollingService[Reading]):
         logger.debug("Persisted %d readings", len(readings))
 
     @override
-    def publish(self, reading: Reading) -> None:
+    async def publish(self, reading: Reading) -> None:
         """Publish the reading to the event bus for real-time SSE updates."""
         event = DHTReadingEvent(
             temperature=reading.temperature.value,
             humidity=reading.humidity.value,
             recording_time=reading.recording_time,
         )
-        self._publisher.publish(event)
+        await self._publisher.publish(event)
 
     @override
     def on_poll_error(self, error: Exception) -> None:

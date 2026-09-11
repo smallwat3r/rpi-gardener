@@ -3,7 +3,7 @@
 Provides pub/sub messaging between polling services (publishers) and
 the web server/notification service (subscribers) for real-time updates.
 
-Includes automatic reconnection with exponential backoff on connection failures.
+The subscriber reconnects with exponential backoff on connection failures.
 """
 
 import asyncio
@@ -16,7 +16,6 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Self
 
-import redis as sync_redis
 import redis.asyncio as aioredis
 from redis.asyncio import RedisError
 
@@ -30,9 +29,8 @@ _INITIAL_BACKOFF_SEC = 1.0
 _MAX_BACKOFF_SEC = 60.0
 _BACKOFF_MULTIPLIER = 2.0
 
-# The publisher uses the sync Redis client from within async polling loops
-# (the alert callback interface is sync), so socket operations must be
-# bounded or a Redis outage stalls the event loop indefinitely
+# Bound publish socket operations so a Redis outage cannot stall a poll
+# cycle for long
 _PUBLISH_SOCKET_TIMEOUT_SEC = 5.0
 
 
@@ -171,51 +169,29 @@ type _AnyEvent = (
 class EventPublisher:
     """Publishes sensor readings to the event bus.
 
-    Used by polling services (DHT, Pico) to broadcast new readings.
-    Automatically reconnects on connection failures.
+    Used by polling services (DHT, Pico) to broadcast new readings. A
+    failed connection is dropped from the pool and the next publish opens a
+    fresh one, so no manual reconnect is needed.
     """
 
     def __init__(self) -> None:
         self._redis_url = get_settings().eventbus.redis_url
-        self._client: sync_redis.Redis[bytes] | None = None
+        self._client: aioredis.Redis[bytes] | None = None
 
-    def connect(self) -> None:
+    async def connect(self) -> None:
         """Connect to Redis."""
-        self._client = sync_redis.from_url(
+        self._client = aioredis.from_url(
             self._redis_url,
             socket_connect_timeout=_PUBLISH_SOCKET_TIMEOUT_SEC,
             socket_timeout=_PUBLISH_SOCKET_TIMEOUT_SEC,
         )
         logger.info("Event publisher connected to Redis")
 
-    def _reconnect(self) -> bool:
-        """Attempt to reconnect to Redis.
-
-        Returns True if reconnection succeeded, False otherwise.
-        """
-        try:
-            self.close()
-            self.connect()
-            return True
-        except RedisError as e:
-            logger.warning("Failed to reconnect to Redis: %s", e)
-            return False
-
-    def publish(self, data: _Event | Sequence[_Event]) -> None:
+    async def publish(self, data: _Event | Sequence[_Event]) -> None:
         """Publish event(s) to the event bus.
 
         The topic is derived from the event's topic property.
-        Attempts to reconnect once on connection failure.
         """
-        if self._client is None:
-            first = data if isinstance(data, _Event) else data[0]
-            logger.warning(
-                "Cannot publish to %s: Redis client not connected. "
-                "Call connect() first.",
-                first.topic,
-            )
-            return
-
         if isinstance(data, _Event):
             topic = data.topic
             payload: list[dict[str, Any]] | dict[str, Any] = data.to_dict()
@@ -223,41 +199,35 @@ class EventPublisher:
             topic = data[0].topic
             payload = [event.to_dict() for event in data]
 
+        if self._client is None:
+            logger.warning(
+                "Cannot publish to %s: Redis client not connected. "
+                "Call connect() first.",
+                topic,
+            )
+            return
+
         message = json.dumps(payload)
-
         try:
-            self._client.publish(topic, message)
+            await self._client.publish(topic, message)
             logger.debug("Published to %s: %s", topic, message)
-        except RedisError as e:
-            logger.warning("Publish failed, attempting reconnect: %s", e)
-            if self._reconnect():
-                try:
-                    self._client.publish(topic, message)
-                    logger.debug("Published to %s after reconnect", topic)
-                except RedisError as retry_error:
-                    logger.error(
-                        "Publish failed after reconnect: %s", retry_error
-                    )
-            else:
-                logger.error(
-                    "Could not publish to %s: reconnect failed", topic
-                )
+        except (RedisError, OSError) as e:
+            logger.warning("Publish to %s failed: %s", topic, e)
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the publisher connection."""
         if self._client is not None:
-            self._client.close()
+            with suppress(RedisError, OSError):
+                await self._client.close()
             self._client = None
         logger.info("Event publisher closed")
 
-    def __enter__(self) -> Self:
-        """Context manager entry."""
-        self.connect()
+    async def __aenter__(self) -> Self:
+        await self.connect()
         return self
 
-    def __exit__(self, *_: object) -> None:
-        """Context manager exit."""
-        self.close()
+    async def __aexit__(self, *_: object) -> None:
+        await self.close()
 
 
 class EventSubscriber:

@@ -98,49 +98,56 @@ class TestAlertEventPayload:
 class TestEventPublisher:
     """Tests for EventPublisher."""
 
-    @patch("rpi.lib.eventbus.sync_redis")
-    def test_connect_creates_client(self, mock_redis):
-        """Connect creates a Redis client."""
+    def _connected(self, mock_aioredis):
         mock_client = MagicMock()
-        mock_redis.from_url.return_value = mock_client
+        mock_client.publish = AsyncMock()
+        mock_client.close = AsyncMock()
+        mock_aioredis.from_url.return_value = mock_client
+        return mock_client
+
+    @pytest.mark.asyncio
+    @patch("rpi.lib.eventbus.aioredis")
+    async def test_connect_creates_client(self, mock_aioredis):
+        """Connect creates a Redis client."""
+        mock_client = self._connected(mock_aioredis)
 
         publisher = EventPublisher()
-        publisher.connect()
+        await publisher.connect()
 
-        mock_redis.from_url.assert_called_once()
+        mock_aioredis.from_url.assert_called_once()
         assert publisher._client is mock_client
 
-    @patch("rpi.lib.eventbus.sync_redis")
-    def test_publish_single_event(self, mock_redis):
+    @pytest.mark.asyncio
+    @patch("rpi.lib.eventbus.aioredis")
+    async def test_publish_single_event(self, mock_aioredis):
         """Publish serializes and sends a single event."""
-        mock_client = MagicMock()
-        mock_redis.from_url.return_value = mock_client
+        mock_client = self._connected(mock_aioredis)
 
         publisher = EventPublisher()
-        publisher.connect()
+        await publisher.connect()
 
         event = DHTReadingEvent(
             temperature=22.0,
             humidity=50.0,
             recording_time=datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC),
         )
-        publisher.publish(event)
+        await publisher.publish(event)
 
-        mock_client.publish.assert_called_once()
+        mock_client.publish.assert_awaited_once()
         call_args = mock_client.publish.call_args
         assert call_args[0][0] == Topic.DHT_READING  # topic derived from event
         payload = json.loads(call_args[0][1])
         assert payload["temperature"] == 22.0
         assert payload["humidity"] == 50.0
 
-    @patch("rpi.lib.eventbus.sync_redis")
-    def test_publish_event_list(self, mock_redis):
+    @pytest.mark.asyncio
+    @patch("rpi.lib.eventbus.aioredis")
+    async def test_publish_event_list(self, mock_aioredis):
         """Publish serializes and sends a list of events."""
-        mock_client = MagicMock()
-        mock_redis.from_url.return_value = mock_client
+        mock_client = self._connected(mock_aioredis)
 
         publisher = EventPublisher()
-        publisher.connect()
+        await publisher.connect()
 
         events = [
             PicoReadingEvent(
@@ -150,35 +157,51 @@ class TestEventPublisher:
                 2, 55.0, datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
             ),
         ]
-        publisher.publish(events)
+        await publisher.publish(events)
 
-        mock_client.publish.assert_called_once()
+        mock_client.publish.assert_awaited_once()
         call_args = mock_client.publish.call_args
         payload = json.loads(call_args[0][1])
         assert len(payload) == 2
         assert payload[0]["plant_id"] == 1
         assert payload[1]["plant_id"] == 2
 
-    @patch("rpi.lib.eventbus.sync_redis")
-    def test_publish_without_connect_does_nothing(self, mock_redis):
+    @pytest.mark.asyncio
+    @patch("rpi.lib.eventbus.aioredis")
+    async def test_publish_without_connect_does_nothing(self, mock_aioredis):
         """Publish without connect silently returns."""
         publisher = EventPublisher()
         event = DHTReadingEvent(22.0, 50.0, datetime.now(UTC))
 
         # Should not raise
-        publisher.publish(event)
+        await publisher.publish(event)
 
-    @patch("rpi.lib.eventbus.sync_redis")
-    def test_close(self, mock_redis):
-        """Close closes the Redis client."""
-        mock_client = MagicMock()
-        mock_redis.from_url.return_value = mock_client
+    @pytest.mark.asyncio
+    @patch("rpi.lib.eventbus.aioredis")
+    async def test_publish_error_is_logged_not_raised(
+        self, mock_aioredis, caplog
+    ):
+        """A Redis failure on publish is logged and swallowed."""
+        mock_client = self._connected(mock_aioredis)
+        mock_client.publish.side_effect = OSError("down")
 
         publisher = EventPublisher()
-        publisher.connect()
-        publisher.close()
+        await publisher.connect()
+        await publisher.publish(DHTReadingEvent(22.0, 50.0, datetime.now(UTC)))
 
-        mock_client.close.assert_called_once()
+        assert "Publish to dht.reading failed" in caplog.text
+
+    @pytest.mark.asyncio
+    @patch("rpi.lib.eventbus.aioredis")
+    async def test_close(self, mock_aioredis):
+        """Close closes the Redis client."""
+        mock_client = self._connected(mock_aioredis)
+
+        publisher = EventPublisher()
+        await publisher.connect()
+        await publisher.close()
+
+        mock_client.close.assert_awaited_once()
         assert publisher._client is None
 
 

@@ -42,11 +42,17 @@ class TestMoistureReadingValidation:
         with pytest.raises(
             ValidationError, match="must be in 'plant-N' format"
         ):
-            MoistureReading.from_raw("", {"pct": 50.0, "raw": 1000}, frozen_time)
+            MoistureReading.from_raw(
+                "", {"pct": 50.0, "raw": 1000}, frozen_time
+            )
 
     def test_non_string_plant_id_raises(self, frozen_time):
         with pytest.raises(ValidationError, match="must be a string"):
-            MoistureReading.from_raw(123, {"pct": 50.0, "raw": 1000}, frozen_time)  # type: ignore[arg-type]
+            MoistureReading.from_raw(
+                123,  # type: ignore[arg-type]
+                {"pct": 50.0, "raw": 1000},
+                frozen_time,
+            )
 
     def test_valid_moisture_values(self, frozen_time):
         assert (
@@ -90,7 +96,9 @@ class TestMoistureReadingValidation:
     def test_non_number_moisture_raises(self, frozen_time):
         with pytest.raises(ValidationError, match="must be a number"):
             MoistureReading.from_raw(
-                "plant-1", {"pct": "50", "raw": 1000}, frozen_time  # type: ignore[dict-item]
+                "plant-1",
+                {"pct": "50", "raw": 1000},  # type: ignore[dict-item]
+                frozen_time,
             )
 
 
@@ -197,7 +205,7 @@ class TestPicoPollingServiceAudit:
 
         assert len(pico_audit_events) == 0
         assert (
-            await alert_tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
             )
             == AlertState.OK
@@ -224,7 +232,7 @@ class TestPicoPollingServiceAudit:
         assert event.threshold == 30
         assert event.namespace == Namespace.PICO
         assert (
-            await alert_tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
             )
             == AlertState.IN_ALERT
@@ -271,13 +279,13 @@ class TestPicoPollingServiceAudit:
 
         assert len(pico_audit_events) == 2
         assert (
-            await alert_tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_1, ThresholdType.MIN
             )
             == AlertState.IN_ALERT
         )
         assert (
-            await alert_tracker.get_state(
+            alert_tracker.get_state(
                 Namespace.PICO, PlantId.PLANT_2, ThresholdType.MIN
             )
             == AlertState.IN_ALERT
@@ -446,10 +454,10 @@ class TestConfirmationWindow:
 
         events: list[AlertEvent] = []
 
-        def capture_event(event: AlertEvent) -> None:
+        async def capture_event(event: AlertEvent) -> None:
             events.append(event)
 
-        await tracker_with_confirmation.register_callback(
+        tracker_with_confirmation.register_callback(
             Namespace.PICO, capture_event
         )
         return events

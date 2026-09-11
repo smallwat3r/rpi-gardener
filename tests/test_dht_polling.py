@@ -158,11 +158,13 @@ class TestDHTPollingServicePersist:
             int(sample_reading.recording_time.timestamp()),
         )
 
-    def test_publish_emits_event(self, service, sample_reading):
+    @pytest.mark.asyncio
+    async def test_publish_emits_event(self, service, sample_reading):
         mock_publisher = MagicMock()
+        mock_publisher.publish = AsyncMock()
         service._publisher = mock_publisher
-        service.publish(sample_reading)
-        mock_publisher.publish.assert_called_once()
+        await service.publish(sample_reading)
+        mock_publisher.publish.assert_awaited_once()
 
 
 class TestDHTPollingServiceErrorHandling:

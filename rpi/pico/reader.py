@@ -9,7 +9,7 @@ import json
 from datetime import UTC, datetime
 from typing import Protocol, override
 
-from rpi.lib.alerts import AlertTracker, Namespace, setup_alert_publisher
+from rpi.lib.alerts import AlertTracker, Namespace, create_alert_publisher
 from rpi.lib.config import (
     ThresholdType,
     Unit,
@@ -77,7 +77,10 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         publisher: EventPublisher,
         alert_tracker: AlertTracker,
     ) -> None:
-        super().__init__(name="Pico")
+        # The Pico prints a line every 2s and readline() blocks until it
+        # arrives, so the source paces the loop. Sleeping here as well would
+        # consume one line per interval and never drain a backlog.
+        super().__init__(name="Pico", frequency_sec=0)
         self._source = source
         self._publisher = publisher
         self._alert_tracker = alert_tracker
@@ -110,16 +113,16 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
     async def initialize(self) -> None:
         """Initialize database and register alert callback."""
         await init_db()
-        self._publisher.connect()
-        await setup_alert_publisher(
-            self._alert_tracker, Namespace.PICO, self._publisher
+        await self._publisher.connect()
+        self._alert_tracker.register_callback(
+            Namespace.PICO, create_alert_publisher(self._publisher)
         )
 
     @override
     async def cleanup(self) -> None:
         """Clean up serial connection, event publisher, and database."""
         self._source.close()
-        self._publisher.close()
+        await self._publisher.close()
         await close_db()
 
     @override
@@ -232,7 +235,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         self._logger.debug("Persisted %d readings", len(rows))
 
     @override
-    def publish(self, readings: list[MoistureReading]) -> None:
+    async def publish(self, readings: list[MoistureReading]) -> None:
         """Publish readings to the event bus for real-time SSE updates."""
         events = [
             PicoReadingEvent(
@@ -242,7 +245,7 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
             )
             for r in readings
         ]
-        self._publisher.publish(events)
+        await self._publisher.publish(events)
 
 
 def _create_data_source() -> PicoDataSource:

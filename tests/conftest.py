@@ -91,7 +91,9 @@ async def test_db(tmp_path):
 
     # Override settings to use the temp database
     # Use a fake serial port to avoid RuntimeError from pico auto-detection
-    test_settings = Settings(db_path=str(db_file), pico_serial_port="/dev/null")
+    test_settings = Settings(
+        db_path=str(db_file), pico_serial_port="/dev/null"
+    )
     set_settings(test_settings)
 
     # Initialize the schema using sync sqlite3 (simpler for setup)
@@ -148,10 +150,10 @@ async def dht_audit_events(alert_tracker):
 
     events: list[AlertEvent] = []
 
-    def capture_event(event: AlertEvent) -> None:
+    async def capture_event(event: AlertEvent) -> None:
         events.append(event)
 
-    await alert_tracker.register_callback(Namespace.DHT, capture_event)
+    alert_tracker.register_callback(Namespace.DHT, capture_event)
     return events
 
 
@@ -169,10 +171,10 @@ async def pico_audit_events(alert_tracker):
 
     events: list[AlertEvent] = []
 
-    def capture_event(event: AlertEvent) -> None:
+    async def capture_event(event: AlertEvent) -> None:
         events.append(event)
 
-    await alert_tracker.register_callback(Namespace.PICO, capture_event)
+    alert_tracker.register_callback(Namespace.PICO, capture_event)
     return events
 
 
@@ -180,9 +182,9 @@ async def pico_audit_events(alert_tracker):
 def mock_publisher():
     """Create a mock event publisher for polling services."""
     publisher = MagicMock()
-    publisher.connect = MagicMock()
-    publisher.publish = MagicMock()
-    publisher.close = MagicMock()
+    publisher.connect = AsyncMock()
+    publisher.publish = AsyncMock()
+    publisher.close = AsyncMock()
     return publisher
 
 

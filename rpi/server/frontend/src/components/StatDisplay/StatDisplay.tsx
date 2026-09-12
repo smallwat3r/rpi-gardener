@@ -12,14 +12,14 @@ export const StatDisplay = memo(function StatDisplay({ avg, min, max, unit }: St
   return (
     <div class={styles.stats} role="group" aria-label="Statistics">
       <span class={styles.stat}>
-        <span class={styles.statLabel}>avg</span> {avg}
+        <span class={styles.statLabel}>avg</span> {avg.toFixed(1)}
         {unit}
       </span>
       <span class={styles.stat}>
-        <span class={styles.statLabel}>min</span> {min}
+        <span class={styles.statLabel}>min</span> {min.toFixed(1)}
       </span>
       <span class={styles.stat}>
-        <span class={styles.statLabel}>max</span> {max}
+        <span class={styles.statLabel}>max</span> {max.toFixed(1)}
       </span>
     </div>
   );

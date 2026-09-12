@@ -25,7 +25,7 @@ function SectionHead({ recordingTime }: { recordingTime?: string }) {
       <span class={styles.rule} aria-hidden="true" />
       {recordingTime && (
         <p class={styles.lastUpdate}>
-          updated <time>{recordingTime}</time> UTC
+          updated <time dateTime={recordingTime}>{recordingTime.slice(11)}</time> UTC
         </p>
       )}
     </div>
@@ -101,7 +101,7 @@ export function PicoCard({ latest, chartData, thresholds, loading = false }: Pic
                 {status === 'alert' && <WarningBadge>Thirsty</WarningBadge>}
                 <div class={styles.metricValue}>
                   <p class={`${styles.display} ${styles.moisture}`} aria-live="polite">
-                    {plant.moisture}
+                    {plant.moisture.toFixed(1)}
                     <span class={styles.unit}>%</span>
                   </p>
                   <button

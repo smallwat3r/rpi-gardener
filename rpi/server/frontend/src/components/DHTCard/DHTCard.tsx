@@ -37,7 +37,7 @@ function SectionHead({ recordingTime }: { recordingTime?: string }) {
       <span class={styles.rule} aria-hidden="true" />
       {recordingTime && (
         <p class={styles.lastUpdate}>
-          updated <time>{recordingTime}</time> UTC
+          updated <time dateTime={recordingTime}>{recordingTime.slice(11)}</time> UTC
         </p>
       )}
     </div>
@@ -173,7 +173,7 @@ export function DHTCard({
             {tempStatus === 'too_low' && <WarningBadge>Too cold</WarningBadge>}
             <div class={styles.metricValue}>
               <p class={`${styles.display} ${styles.temperature}`} aria-live="polite">
-                {latest.temperature}
+                {latest.temperature.toFixed(1)}
                 <span class={styles.unit}>°C</span>
               </p>
               <button
@@ -222,7 +222,7 @@ export function DHTCard({
             )}
             <div class={styles.metricValue}>
               <p class={`${styles.display} ${styles.humidity}`} aria-live="polite">
-                {latest.humidity}
+                {latest.humidity.toFixed(1)}
                 <span class={styles.unit}>%</span>
               </p>
               <button

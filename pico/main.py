@@ -1,14 +1,17 @@
 # This module uses Micropython and needs to be set-up on the Raspberry Pico
 # board, to read values from capacitive soil moisture sensors (v1.2).
 import gc
+import json
+import time
 
-import ujson
-import utime
 from machine import ADC, I2C, WDT, Pin
 from ssd1306 import SSD1306_I2C
 
 # Configuration
 POLLING_INTERVAL_SEC = 2
+# Samples averaged per reading, the capacitive probes and the RP2040 ADC are
+# both noisy on a single conversion
+ADC_SAMPLES = 16
 
 # Display configuration
 DISPLAY_WIDTH = 128
@@ -52,9 +55,6 @@ plants = (
 
 
 class Display(SSD1306_I2C):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def clear(self):
         self.fill(0)
 
@@ -74,8 +74,8 @@ class Display(SSD1306_I2C):
 
 def read_moisture(plant):
     """Read moisture level from a plant sensor, clamped to 0-100%."""
-    raw = plant.pin.read_u16()
-    pct = round((plant.cal.max - raw) * 100 / plant.cal.diff, 2)
+    raw = sum(plant.pin.read_u16() for _ in range(ADC_SAMPLES)) // ADC_SAMPLES
+    pct = round((plant.cal.max - raw) * 100 / plant.cal.diff, 1)
     return {"pct": max(0, min(100, pct)), "raw": raw}
 
 
@@ -100,8 +100,9 @@ def update_display(display, readings):
 
 def main():
     """Main loop for reading sensors and sending data via USB serial."""
-    display = init_display()
+    # Watchdog first, so a hung I2C bus during display init still resets
     wdt = WDT(timeout=8000)
+    display = init_display()
     readings = {plant.name: {"pct": 0, "raw": 0} for plant in plants}
 
     while True:
@@ -111,9 +112,9 @@ def main():
         update_display(display, readings)
 
         # Send JSON over USB serial (stdout)
-        print(ujson.dumps(readings))
+        print(json.dumps(readings))
 
-        utime.sleep(POLLING_INTERVAL_SEC)
+        time.sleep(POLLING_INTERVAL_SEC)
         gc.collect()
         wdt.feed()
 

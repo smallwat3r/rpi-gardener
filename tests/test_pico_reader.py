@@ -180,6 +180,25 @@ class TestPicoPollingServicePoll:
             assert "Validation failed" in caplog.text
 
 
+class TestPicoPollingServiceErrors:
+    """Tests for poll error handling."""
+
+    @pytest.fixture
+    def service(self, mock_source, mock_publisher, alert_tracker):
+        from rpi.pico.reader import PicoPollingService
+
+        return PicoPollingService(mock_source, mock_publisher, alert_tracker)
+
+    def test_dead_serial_port_is_fatal(self, service):
+        """An OSError ends the loop so supervisord reopens the port."""
+        with pytest.raises(OSError):
+            service.on_poll_error(OSError(5, "Input/output error"))
+
+    def test_other_errors_are_logged_not_raised(self, service, caplog):
+        service.on_poll_error(ValueError("bad line"))
+        assert "poll error" in caplog.text
+
+
 class TestPicoPollingServiceAudit:
     """Tests for moisture alert logic."""
 

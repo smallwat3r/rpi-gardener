@@ -194,6 +194,18 @@ class PicoPollingService(PollingService[list[MoistureReading]]):
         return None
 
     @override
+    def on_poll_error(self, error: Exception) -> None:
+        """Treat a dead serial port as fatal.
+
+        The port is opened once, so after the Pico disconnects or
+        re-enumerates every read fails at once. Exiting lets supervisord
+        restart the service, which detects and reopens the port.
+        """
+        if isinstance(error, OSError):
+            raise error
+        super().on_poll_error(error)
+
+    @override
     async def audit(self, readings: list[MoistureReading]) -> bool:
         """Check moisture levels and trigger alerts for thirsty plants."""
         thresholds = await get_effective_thresholds()

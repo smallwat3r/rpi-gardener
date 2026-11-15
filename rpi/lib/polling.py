@@ -116,9 +116,10 @@ class PollingService[T](ABC):
     def on_poll_error(self, error: Exception) -> None:
         """Handle an error that occurred during polling.
 
-        Override to customize error handling. Default logs the error.
+        Override to customize error handling. Default logs a warning, an
+        unexpected error (a failed database write, a bug) must be visible.
         """
-        self._logger.debug("%s poll error: %s", self.name, error)
+        self._logger.warning("%s poll error: %r", self.name, error)
 
     def _handle_shutdown(self, signum: int, frame: FrameType | None) -> None:
         """Handle shutdown signals gracefully."""

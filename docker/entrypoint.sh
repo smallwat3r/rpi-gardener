@@ -18,6 +18,15 @@ done
 echo "Validating configuration..."
 python -c "from rpi.lib.config import get_settings; get_settings()"
 
+# cron jobs do not inherit the container environment, so hand the cleanup
+# job its setting through a file (read in docker/crontab). The value was
+# validated as an integer just above.
+if [ -n "${RETENTION_DAYS:-}" ]; then
+    echo "RETENTION_DAYS=$RETENTION_DAYS" > /etc/cron-env
+else
+    : > /etc/cron-env
+fi
+
 echo "Initializing database..."
 python -c "
 import asyncio

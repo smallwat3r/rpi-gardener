@@ -97,6 +97,11 @@ class Database:
                 timeout=get_settings().db_timeout_sec,
             )
             self._connection.row_factory = _dict_factory  # type: ignore[assignment]
+            # auto_vacuum only applies to a new file if set before anything
+            # is written, and switching to WAL writes the header. On an
+            # existing file it takes effect at the next VACUUM, which the
+            # cleanup job runs once.
+            await self._connection.execute("PRAGMA auto_vacuum=INCREMENTAL")
             # journal_mode persists in the DB file, but synchronous and
             # cache_size are per-connection, so every connection (including
             # pooled ones) must set them itself
@@ -203,16 +208,6 @@ class Database:
             rows = await cursor.fetchall()
             return cast(list[dict[str, Any]], rows)
 
-    async def execute_pragma(self, pragma: str) -> None:
-        """Execute a PRAGMA statement directly on the connection.
-
-        Use this for connection-level settings like journal_mode, synchronous,
-        or cache_size that need raw connection access.
-        """
-        if self._connection is None:
-            raise DatabaseNotConnectedError()
-        await self._connection.execute(pragma)
-
 
 class ConnectionPool:
     """Async connection pool with bounded concurrency.
@@ -301,7 +296,6 @@ async def init_db() -> None:
             "Opened persistent database connection: %s", get_settings().db_path
         )
 
-    await _persistent.execute_pragma("PRAGMA auto_vacuum=INCREMENTAL")
     await _persistent.execute(load_template("init_reading_table.sql"))
     await _persistent.executescript(load_template("idx_reading.sql"))
     await _persistent.execute(load_template("init_pico_reading_table.sql"))

@@ -22,7 +22,8 @@
   --color-humidity: #85b8c4;
   --color-moisture: #a6c36f;
 
-  --font-display: var(--font-mono);
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-sans);
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
 
   --font-size-xs: 11px;

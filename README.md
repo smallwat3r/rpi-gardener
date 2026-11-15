@@ -106,9 +106,6 @@ already capped in `docker-compose.yml`):
 Create a `.env` file:
 
 ```sh
-# SSL certificate (use your RPi's local IP)
-CERT_IP=192.168.1.100
-
 # Admin password for the settings UI (optional, off by default)
 # When set, the settings UI asks for username "admin" and this password
 ADMIN_PASSWORD=your_secure_password
@@ -141,7 +138,7 @@ GMAIL_PASSWORD=
 SLACK_WEBHOOK_URL=
 
 # Humidifier (optional, TP-Link Kasa smart plug)
-# Automatically controls a humidifier based on humidity alerts
+# Automatically controls a humidifier based on humidity readings
 ENABLE_HUMIDIFIER=0
 HUMIDIFIER_HOST=192.168.1.100  # IP address of your Kasa plug
 

@@ -4,66 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from rpi.humidifier.service import _is_low_humidity_alert
-from rpi.lib.alerts import Namespace
-from rpi.lib.config import MeasureName, Unit
 from rpi.lib.smartplug import SmartPlugController, create_smartplug_controller
-from tests.conftest import make_alert_event
-
-
-class TestIsLowHumidityAlert:
-    """Tests for the alert filtering logic."""
-
-    def test_returns_true_for_low_humidity_alert(self):
-        """Alert fires when humidity below threshold."""
-        event = make_alert_event(
-            sensor_name=MeasureName.HUMIDITY,
-            namespace=Namespace.DHT,
-            value=35.0,
-            threshold=40,
-        )
-        assert _is_low_humidity_alert(event) is True
-
-    def test_returns_true_for_resolved_humidity_alert(self):
-        """Resolved humidity alerts should trigger turn-off."""
-        event = make_alert_event(
-            sensor_name=MeasureName.HUMIDITY,
-            namespace=Namespace.DHT,
-            value=45.0,
-            is_resolved=True,
-        )
-        assert _is_low_humidity_alert(event) is True
-
-    def test_returns_false_for_high_humidity_alert(self):
-        """High humidity alerts (MAX threshold) should not trigger humidifier."""
-        event = make_alert_event(
-            sensor_name=MeasureName.HUMIDITY,
-            namespace=Namespace.DHT,
-            value=75.0,
-            threshold=65,  # value > threshold = MAX violation
-        )
-        assert _is_low_humidity_alert(event) is False
-
-    def test_returns_false_for_temperature_alert(self):
-        """Temperature alerts should not trigger humidifier."""
-        event = make_alert_event(
-            sensor_name=MeasureName.TEMPERATURE,
-            namespace=Namespace.DHT,
-            value=30.0,
-            unit=Unit.CELSIUS,
-            threshold=25,
-        )
-        assert _is_low_humidity_alert(event) is False
-
-    def test_returns_false_for_pico_moisture_alert(self):
-        """Plant moisture alerts should not trigger humidifier."""
-        event = make_alert_event(
-            sensor_name=1,  # Plant ID
-            namespace=Namespace.PICO,
-            value=20.0,
-            threshold=30,
-        )
-        assert _is_low_humidity_alert(event) is False
 
 
 class TestSmartPlugController:

@@ -146,7 +146,6 @@ async def dht_audit_events(alert_tracker):
     Returns:
         A list that will be populated with AlertEvent objects as they're published.
     """
-    from rpi.lib.alerts import AlertEvent
 
     events: list[AlertEvent] = []
 
@@ -167,7 +166,6 @@ async def pico_audit_events(alert_tracker):
     Returns:
         A list that will be populated with AlertEvent objects as they're published.
     """
-    from rpi.lib.alerts import AlertEvent
 
     events: list[AlertEvent] = []
 

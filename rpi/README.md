@@ -49,9 +49,9 @@ Runs independently of the web server.
 
 ### Humidifier Service (`humidifier/`)
 
-Controls a humidifier via TP-Link Kasa smart plug based on humidity alerts.
-Turns on when humidity drops below the threshold,
-and turns off when humidity recovers.
+Controls a humidifier via TP-Link Kasa smart plug based on humidity readings.
+Turns on when humidity drops below the threshold, and turns off when humidity
+recovers, when readings stop arriving, or when the service stops.
 
     python -m rpi.humidifier
 

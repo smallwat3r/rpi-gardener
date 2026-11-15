@@ -90,7 +90,7 @@ def format_alert_message(event: AlertEvent) -> str:
     """Format an alert event as a notification message body."""
     label = get_sensor_label(event.sensor_name)
     condition = _get_condition_text(event)
-    time_str = event.recording_time.strftime("%H:%M:%S")
+    time_str = event.recording_time.strftime("%H:%M:%S UTC")
 
     lines = [
         f"{label} {condition}",
@@ -129,7 +129,7 @@ def format_alert_html(event: AlertEvent) -> str:
         threshold=f"{event.threshold:.0f}{event.unit}"
         if event.threshold is not None
         else None,
-        time=event.recording_time.strftime("%H:%M:%S"),
+        time=event.recording_time.strftime("%H:%M:%S UTC"),
         date=event.recording_time.strftime("%B %d, %Y"),
     )
 
@@ -265,7 +265,7 @@ class SlackNotifier(AbstractNotifier):
     async def send(self, event: AlertEvent) -> None:
         """Send Slack notification."""
         title = _get_alert_description(event)
-        time_str = event.recording_time.strftime("%H:%M:%S")
+        time_str = event.recording_time.strftime("%H:%M:%S UTC")
 
         if event.is_resolved:
             fields = [
@@ -338,7 +338,7 @@ async def get_notifier() -> AbstractNotifier:
         try:
             backend = NotificationBackend(backend_str)
             notifiers.append(_BACKEND_MAP[backend]())
-        except (ValueError, KeyError):
+        except ValueError, KeyError:
             logger.warning("Unknown notification backend: %s", backend_str)
 
     if not notifiers:

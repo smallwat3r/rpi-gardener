@@ -29,6 +29,6 @@ class HoursQuery(BaseModel):
         raw = params.get("hours", DEFAULT_HOURS)
         try:
             hours = int(raw)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             raise ValueError("hours must be an integer") from None
         return cls(hours=hours)

@@ -54,7 +54,7 @@ class AlertEvent:
     is_resolved: bool = False
 
     @classmethod
-    def from_dict(cls, data: dict[str, object]) -> "AlertEvent":
+    def from_dict(cls, data: dict[str, object]) -> AlertEvent:
         """Parse an AlertEvent from event bus data."""
         return cls(
             namespace=Namespace(str(data["namespace"])),
@@ -328,6 +328,6 @@ def safe_parse_alert_event(data: dict[str, object]) -> AlertEvent | None:
     """
     try:
         return AlertEvent.from_dict(data)
-    except (KeyError, ValueError, TypeError):
+    except KeyError, ValueError, TypeError:
         logger.exception("Failed to parse alert event")
         return None

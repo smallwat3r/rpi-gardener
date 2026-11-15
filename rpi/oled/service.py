@@ -37,7 +37,7 @@ async def run() -> None:
                     humidity = data.get("humidity")
                     if temperature is not None and humidity is not None:
                         display.render(temperature, humidity)
-                except (KeyError, ValueError, TypeError):
+                except KeyError, ValueError, TypeError:
                     logger.exception("Failed to parse DHT reading event")
 
     logger.info("OLED service stopped")

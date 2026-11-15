@@ -21,7 +21,7 @@ async def get_dashboard(request: Request) -> JSONResponse:
 
     try:
         data = await get_dashboard_data(query.from_time)
-    except (DatabaseError, aiosqlite.Error):
+    except DatabaseError, aiosqlite.Error:
         logger.exception("Database error fetching dashboard data")
         return JSONResponse({"error": "Database unavailable"}, status_code=503)
 

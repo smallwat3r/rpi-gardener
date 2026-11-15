@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { AdminSettings } from '@/components/AdminSettings';
 import { Dashboard } from '@/components/Dashboard';
 import { Modal } from '@/components/Modal';
-import './styles/fonts.css';
 import './styles/global.css';
 
 export function App() {

@@ -1,2 +1,0 @@
-ocrab (https://github.com/smallwat3r/ocrab-font) is licensed under the
-SIL Open Font License, Version 1.1, https://openfontlicense.org.

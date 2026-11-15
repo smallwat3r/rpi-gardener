@@ -117,7 +117,7 @@ services:
         condition: service_healthy
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.28-alpine
     ports:
       - "5000:80"
     volumes:

@@ -19,24 +19,24 @@ services:
       timeout: 5s
       retries: 3
 
-  # Self-signed certificate generation, and enforce cert permissions on every
-  # start. nginx loads certs lazily in the worker (uid 101) because rpi-ssl.conf
+  # Self-signed certificate generation (renewed when within 30 days of expiry,
+  # checked on every `up`), and enforce cert permissions on every start. nginx loads certs lazily in the worker (uid 101) because rpi-ssl.conf
   # selects them by SNI variable, so keys must be readable by uid 101, not just
   # root. The chmod/chown run unconditionally so they also fix any Tailscale
   # cert (ts.key) dropped in by docker/tailscale-cert-renew.sh.
   certgen:
-    image: alpine:latest
+    image: alpine:3.22
     volumes:
       - certs:/certs
     command: >
       sh -c "
         apk add --no-cache openssl &&
-        if [ ! -f /certs/server.crt ]; then
+        if ! openssl x509 -checkend 2592000 -noout -in /certs/server.crt >/dev/null 2>&1; then
           echo 'Generating self-signed certificate...' &&
           openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /certs/server.key -out /certs/server.crt -subj '/CN=gardener.local/O=Home/C=US' -addext 'subjectAltName=DNS:localhost,DNS:gardener.local,DNS:rpi-gardener,IP:127.0.0.1' &&
           echo 'Certificate generated successfully';
         else
-          echo 'Certificate already exists, skipping generation';
+          echo 'Certificate still valid, skipping generation';
         fi &&
         chmod 644 /certs/*.crt &&
         chmod 600 /certs/*.key &&
@@ -80,7 +80,7 @@ services:
         condition: service_healthy
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.28-alpine
     ports:
       - "80:80"
       - "443:443"
